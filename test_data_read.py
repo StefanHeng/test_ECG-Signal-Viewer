@@ -17,6 +17,8 @@ import json
 
 # from scipy import stats
 
+from ecgrecord import *
+
 # enum SignalType { UNUSED = 0, ECG = 1, BOX = 2, PRESSURE = 3, ANALOG = 4, STIM = 5 };
 
 DATA_PATH = pathlib.Path("/Users/stefanh/Documents/UMich/Research/ECG-Signal-Viewer/data")
@@ -31,6 +33,7 @@ if __name__ == "__main__":
     print()
 
     selected_file = files[3]
+    print(type(record[selected_file]))
     attrs = record[selected_file].attrs  # attributes of the log
     # print(attrs)
     # # print(attrs["metadata"])
@@ -67,3 +70,9 @@ if __name__ == "__main__":
     for i in range(2, num+1):
         print(annotations[i])
     print()
+
+    print("several global metadata for each log file: ")
+    my_record = ECGRecord(DATA_PATH.joinpath(selected_record))
+    print(len(my_record.get_segment_keys()))
+    for key in my_record.get_segment_keys():
+        print(my_record.get_segment(key).get_metadata())

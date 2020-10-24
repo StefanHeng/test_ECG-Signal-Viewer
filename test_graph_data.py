@@ -27,17 +27,24 @@ if __name__ == "__main__":
     print(files)
     print()
 
-    selected_file = files[3]  # This is the file name, as dict key, not the file itself
+    selected_file = files[0]  # This is the file name, as dict key, not the file itself
     dataset = record[selected_file]
     print(type(dataset), dataset.dtype, dataset.shape)
-    print(dataset.shape[0] * dataset.shape[1], dataset.size)
+    # print(dataset.shape[0] * dataset.shape[1], dataset.size)
     print()
 
     lead = dataset[0]
     print(type(lead), lead.dtype, lead.shape)
 
-    plt.plot(lead[:3000])
-    plt.xlabel('sample #')
-    plt.ylabel('mV')
-    plt.title('lead signal')
-    plt.show()
+    # print(lead[100:500])
+    # plt.plot(lead[:3000])
+    # plt.xlabel('sample #')
+    # plt.ylabel('mV')
+    # plt.title('lead signal')
+    # plt.show()
+
+    # print(dataset['I'])
+
+
+
+
