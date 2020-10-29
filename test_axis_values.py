@@ -30,4 +30,9 @@ if __name__ == "__main__":
             x=x_vals,
             y=y_vals
         ))
+    # fig = px.line(
+    #     x=x_vals,
+    #     y=y_vals,
+    #     render_mode='webgl'
+    # )
     fig.show()

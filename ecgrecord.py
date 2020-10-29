@@ -3,6 +3,8 @@ import json
 import numpy as np
 import pandas as pd
 
+from test_data_read import DATA_PATH, selected_record
+
 
 class ECGRecord:
     """
@@ -13,6 +15,7 @@ class ECGRecord:
     and it's one Segment of signal taken, artificially sliced.
     All .log files joined sequentially will form the entire sampling of all ECG data in the surgery.
     """
+
     def __init__(self, path):
         self.record = h5py.File(path, 'r')
         self.annotations = list(self.record.attrs)
@@ -41,6 +44,7 @@ class ECGRecord:
         """
         Each segment contains multiple `leads` taking in data concurrently
         """
+
         def __init__(self, dataset):
             """Input: A dataset in a .h5 file, 2 dimensional, #leads * #sample """
             self.dataset = dataset
@@ -63,6 +67,7 @@ class ECGRecord:
 
         class Lead:
             """Each lead contains the array of data taken """
+
             def __init__(self, seg, idx):
                 self.seg = seg  # Link to outer class
                 self.arr_data = self.seg.dataset[idx]
@@ -77,8 +82,15 @@ class ECGRecord:
             Local offset instead of across all segments, for now
             """
             num_sample = self.dataset.shape[1]
-            sample_lin = np.linspace(0, num_sample-1, num=num_sample)
+            sample_lin = np.linspace(0, num_sample - 1, num=num_sample)
             sample_lin = pd.to_datetime(sample_lin / self.sample_rate * 1000, unit='ms')
             # sample_lin = sample_lin.map(lambda t: t.strftime('%H:%M:%S:%f'))
             return sample_lin
 
+    @staticmethod
+    def example(idx_segment=0, idx_lead=0, path=DATA_PATH.joinpath(selected_record)):
+        """Fast process a simple example for testing """
+        ecg_record = ECGRecord(path)
+        key = list(ecg_record.get_segment_keys())[idx_segment]
+        segment = ecg_record.get_segment(key)
+        return ecg_record, segment, segment.get_lead(idx_lead)
