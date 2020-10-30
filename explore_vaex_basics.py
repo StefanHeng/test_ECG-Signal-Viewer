@@ -15,15 +15,16 @@ import random
 # df.plot(df.pickup_longitude, df.pickup_latitude, f="log1p", limits=[[-74.05, -73.75], [40.58, 40.90]], show=True)
 
 
-def vx_df_eg(num=64):
+def vx_df_eg(num=64, prime=97):
     t = np.arange(num) + 1
     f1 = t ** 2
     f2 = np.log(t)
     f3 = random.sample(range(0, 99), num)
     f4 = t ** 2 - 10 * t + 3
-    f5 = np.vectorize(lambda x: np.math.factorial(x) % 97 ** 2)(t)
+    f5 = np.vectorize(lambda x: np.math.factorial(x) % prime ** 2)(t)
     d = {'t': t, 'f1': f1, 'f2': f2, 'f3': f3, 'f4': f4, 'f5': f5}
     return vaex.from_dict(d)
+
 
 if __name__ == "__main__":
     df = vx_df_eg()
