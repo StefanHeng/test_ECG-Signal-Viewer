@@ -2,7 +2,7 @@ import pandas as pd
 import sys
 import timeit
 
-from check_vaex_func_efficiency import sizeof_fmt
+from optimize.check_vaex_func_efficiency import sizeof_fmt
 
 t_in_ms = 101242323432.5  # arbitrary value to be used as timestamp, for 2000 sample rate
 t_in_s = t_in_ms / 1000

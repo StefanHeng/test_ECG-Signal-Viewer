@@ -7,19 +7,15 @@
 # import plotly.graph_objs as go
 # import plotly.express as px
 # import pandas as pd
-import pathlib
 # import os
 import h5py
-import json
 # import numpy as np
 
 # from dash.dependencies import Input, Output  # , State
 
 # from scipy import stats
 
-import matplotlib.pyplot as plt
-
-from test_data_read import DATA_PATH, selected_record
+from ecg_misc.test_data_read import DATA_PATH, selected_record
 
 if __name__ == "__main__":
     record = h5py.File(DATA_PATH.joinpath(selected_record), 'r')

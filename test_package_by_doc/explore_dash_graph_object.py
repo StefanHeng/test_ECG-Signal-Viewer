@@ -7,17 +7,13 @@ import dash_html_components as html
 import plotly.graph_objs as go
 # import plotly.express as px
 # import pandas as pd
-import pathlib
 # import os
-import h5py
-import json
 # import numpy as np
 
 # from dash.dependencies import Input, Output  # , State
 
 # from scipy import stats
 
-from test_data_read import DATA_PATH, selected_record
 from ecgrecord import *
 
 

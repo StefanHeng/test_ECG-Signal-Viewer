@@ -1,9 +1,8 @@
 import vaex as vx
 import timeit
-import sys
 
 import ecgrecord
-from explore_vaex_basics import vx_df_eg
+from test_package_by_doc.explore_vaex_basics import vx_df_eg
 
 
 def test_np_join():

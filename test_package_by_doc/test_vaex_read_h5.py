@@ -1,7 +1,5 @@
 import vaex
 
-from test_data_read import DATA_PATH, selected_record
-
 import numpy as np
 x = np.arange(0, 100)
 ds = vaex.from_arrays("test-dataset", x=x, y=x**2)

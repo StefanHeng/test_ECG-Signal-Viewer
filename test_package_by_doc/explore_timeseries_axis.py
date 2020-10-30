@@ -1,15 +1,12 @@
-import plotly.graph_objs as go
-import pandas as pd
 import requests
 
-from test_data_read import DATA_PATH, selected_record
 from ecgrecord import *
 
 
 def download_csv(csv_url):
     req = requests.get(csv_url)
     url_content = req.content
-    csv_file = open('downloaded.csv', 'wb')
+    csv_file = open('../downloaded.csv', 'wb')
 
     csv_file.write(url_content)
     csv_file.close()

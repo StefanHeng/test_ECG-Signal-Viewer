@@ -1,9 +1,5 @@
 import plotly.graph_objs as go
-import plotly.express as px
-import pandas as pd
 
-
-from test_data_read import DATA_PATH, selected_record
 from ecgrecord import *
 
 
