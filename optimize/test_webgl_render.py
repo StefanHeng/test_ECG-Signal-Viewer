@@ -1,17 +1,19 @@
-import plotly.express as px
-
 import pandas as pd
 import numpy as np
-np.random.seed(1)
+import plotly.express as px
 
-N = 100000
+import ecg_record
 
-df = pd.DataFrame(dict(x=np.random.randn(N),
-                       y=np.random.randn(N)))
+if __name__ == "__main__":
+    ecg_record, seg, lead = ecg_record.EcgRecord.example()
 
-fig = px.scatter(df, x="x", y="y", render_mode='webgl')
+    x_vals = seg.get_time_axis()
+    df = pd.DataFrame(dict(x=np.random.randn(N),
+                           y=np.random.randn(N)))
 
-fig.update_traces(marker_line=dict(width=1, color='DarkSlateGray'))
+    fig = px.scatter(df, x="x", y="y", render_mode='webgl')
 
-fig.show()
+    fig.update_traces(marker_line=dict(width=1, color='DarkSlateGray'))
+
+    fig.show()
 

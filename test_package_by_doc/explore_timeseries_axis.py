@@ -1,6 +1,6 @@
 import requests
 
-from ecgrecord import *
+from ecg_record import *
 
 
 def download_csv(csv_url):
@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     idx_segment = 0
     idx_lead = 0
-    ecg_record = ECGRecord(DATA_PATH.joinpath(selected_record))
+    ecg_record = EcgRecord(DATA_PATH.joinpath(selected_record))
     key = list(ecg_record.get_segment_keys())[idx_segment]
     segment = ecg_record.get_segment(key)
     print(segment.dataset.shape)

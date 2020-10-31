@@ -1,7 +1,7 @@
 import vaex as vx
 import timeit
 
-import ecgrecord
+import ecg_record
 from test_package_by_doc.explore_vaex_basics import vx_df_eg
 
 
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     # print(df.__dict__)
     # print(df.__dict__.keys())
 
-    ecg_record, seg, lead = ecgrecord.ECGRecord.example()
+    ecg_record, seg, lead = ecg_record.EcgRecord.example()
     # keys = ecg_record.get_segment_keys()
     # print(keys, type(keys))
     arr_single = lead.get_ecg_values()

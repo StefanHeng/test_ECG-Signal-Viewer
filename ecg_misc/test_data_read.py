@@ -17,7 +17,7 @@ import json
 
 # from scipy import stats
 
-from ecgrecord import *
+from ecg_record import *
 
 # enum SignalType { UNUSED = 0, ECG = 1, BOX = 2, PRESSURE = 3, ANALOG = 4, STIM = 5 };
 
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     print()
 
     print("several global metadata for each log file: ")
-    my_record = ECGRecord(DATA_PATH.joinpath(selected_record))
+    my_record = EcgRecord(DATA_PATH.joinpath(selected_record))
     print(len(my_record.get_segment_keys()))
     for key in my_record.get_segment_keys():
         print(my_record.get_segment(key).get_metadata())

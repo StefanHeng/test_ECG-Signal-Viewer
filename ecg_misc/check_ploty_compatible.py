@@ -2,7 +2,7 @@ import numpy as np
 import plotly.graph_objs as go
 from datetime import timedelta
 
-import ecgrecord
+import ecg_record
 
 
 def get_time_axis_timedelta(arr):
@@ -10,7 +10,7 @@ def get_time_axis_timedelta(arr):
 
 
 if __name__ == "__main__":
-    ecg_record, seg, lead = ecgrecord.ECGRecord.example()
+    ecg_record, seg, lead = ecg_record.EcgRecord.example()
 
     x_vals = np.arange(100)
     print(timedelta(milliseconds=float(x_vals[23])))

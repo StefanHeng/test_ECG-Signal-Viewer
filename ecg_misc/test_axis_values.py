@@ -1,6 +1,6 @@
 import plotly.graph_objs as go
 
-from ecgrecord import *
+import ecg_record
 
 
 # x = np.arange(10)
@@ -9,18 +9,16 @@ from ecgrecord import *
 # fig.show()
 
 if __name__ == "__main__":
-    idx_segment = 0
-    idx_lead = 0
-    ecg_record = ECGRecord(DATA_PATH.joinpath(selected_record))
-    key = list(ecg_record.get_segment_keys())[idx_segment]
-    segment = ecg_record.get_segment(key)
-    lead = segment.get_lead(idx_lead)
+    ecg_record, seg, lead = ecg_record.EcgRecord.example()
 
-    x_vals = segment.get_time_axis()
+    x_vals = seg.get_time_axis()
+    # print(x_vals)
     # print(x_vals.shape[0] / (3600 * 24))
     # x_vals = x_vals[:100000]
     # x_vals = pd.Timestamp(x_vals[:100])
     y_vals = lead.get_ecg_values()
+    # print(x_vals.shape[0], y_vals.shape[0])
+    # print()
     fig = go.Figure(
         data=go.Scatter(
             x=x_vals,

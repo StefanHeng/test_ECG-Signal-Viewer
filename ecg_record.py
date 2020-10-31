@@ -2,13 +2,14 @@ import h5py
 import json
 import numpy as np
 import pandas as pd
+from math import floor
 
 import pathlib
 DATA_PATH = pathlib.Path("/Users/stefanh/Documents/UMich/Research/ECG-Signal-Viewer/data")
 selected_record = "LOG_DHR50526570_09000e6f-001.h5"
 
 
-class ECGRecord:
+class EcgRecord:
     """Handles reading a .h5 file of ECG signal data, and sending datasets to graph plot.
 
     The .h5 file is created by `Ablation Database (ABLDB)`.
@@ -87,14 +88,18 @@ class ECGRecord:
 
         def get_time_axis(self):
             """
-            :return: Incremental linspace of time in seconds starting from 0
+            :return: Evenly spaced, incremental time in microseconds, starting from 0
             Local offset instead of across all segments, for now
             """
             num_sample = self.dataset.shape[1]
-            sample_lin = np.linspace(0, num_sample - 1, num=num_sample)
-            sample_lin = pd.to_datetime(sample_lin / (self.sample_rate / 1000), unit='ms')
-            # sample_lin = sample_lin.map(lambda t: t.strftime('%H:%M:%S:%f'))
-            return sample_lin
+            arr = np.arange(num_sample)
+            factor = 10**6 / self.sample_rate
+            if floor(factor) == factor:  # Is an int
+                arr *= int(factor)
+            else:
+                arr = (arr * factor).astype(np.int64)
+            # Converted to time in microseconds as integer, drastically raises efficiency while maintaining precision
+            return pd.to_datetime(pd.Series(arr), unit='us')
 
     def join_lead(self, idx_lead=0):
         """ Joins values of a specific lead, across the entire record """
@@ -104,11 +109,11 @@ class ECGRecord:
     @staticmethod
     def example(idx_segment=0, idx_lead=0, path=DATA_PATH.joinpath(selected_record)):
         """Fast process a simple example for testing """
-        ecg_record = ECGRecord(path)
+        ecg_record = EcgRecord(path)
         key = list(ecg_record.get_segment_keys())[idx_segment]
         segment = ecg_record.get_segment(key)
         return ecg_record, segment, segment.get_lead(idx_lead)
 
 
 if __name__ == "__main__":
-    help(ECGRecord)
+    help(EcgRecord)
