@@ -2,7 +2,10 @@ import h5py
 import json
 import numpy as np
 import pandas as pd
+import vaex as vx
+
 from math import floor
+from bisect import bisect_left, bisect_right
 
 import pathlib
 DATA_PATH = pathlib.Path("/Users/stefanh/Documents/UMich/Research/ECG-Signal-Viewer/data")
@@ -22,24 +25,34 @@ class EcgRecord:
 
     def __init__(self, path):
         self.record = h5py.File(path, 'r')
+        self.seg_keys = list(self.record.keys())  # keys to each segment compiled in the .h5 file
         self.annotations = list(self.record.attrs)
+        self._sample_counts = self._get_sample_counts()
+        self._sample_counts_acc = self._get_sample_counts_acc()  # Accumulated
 
-    def get_segment_keys(self):
-        """:return: keys to each segment compiled in the .h5 file """
-        return self.record.keys()
+    def _get_sample_counts(self):
+        """ Helps to check which segment(s) is a time range located in """
+        sample_counts = []
+        for key in self.seg_keys:
+            sample_counts.append(self.get_seg(key).dataset.shape[1])
+        return sample_counts
 
-    def get_segment(self, key_idx):
+    def _get_sample_counts_acc(self):
+        lst = [self._sample_counts[0]]
+        for v in self._sample_counts[1:]:
+            lst.append(v)
+        return lst
+
+    def get_seg(self, key):
         """
-        :param key_idx: A key to a segment in the internal dictionary, or a index of the key
+        :param key: A key to a segment in the internal dictionary
         :return: A single segment
-
-        .. note:: This works because the internal record will not mutate
         """
-        if isinstance(key_idx, int):
-            lst = list(self.get_segment_keys())
-            return self.Segment(self.record[lst[key_idx]])
-        else:
-            return self.Segment(self.record[key_idx])
+        return self.Segment(self.record[key])
+
+    def get_seg_data(self, idx):
+        """Syntactic sugar for getting all data of a segment """
+        return self.get_seg(self.seg_keys[idx]).dataset
 
     def get_annotation_header(self):
         return self.annotations[0]
@@ -58,18 +71,17 @@ class EcgRecord:
         def __init__(self, dataset):
             """:param: dataset: A dataset in a .h5 file, 2 dimensional, #leads * #sample """
             self.dataset = dataset
-            self.metadata = json.loads(self.dataset.attrs['metadata'])
-            self.metadata_leads = self.metadata['sigheader']
-            self.sample_rate = self.metadata['sample_rate']
+            self.sample_rate = self.get_sample_rate()
+
+        def get_sample_rate(self):
+            return self.get_metadata()['sample_rate']
 
         def get_metadata(self):
-            """:return: Global metadata across all leads """
-            metadata_global = self.metadata.copy()
-            metadata_global.pop('sigheader')
-            return metadata_global
+            return json.loads(self.dataset.attrs['metadata'])
 
         def get_lead_names(self):
-            return [i['name'] for i in self.metadata_leads]
+            metadata = self.get_metadata()
+            return [i['name'] for i in metadata['sigheader']]
 
         def get_lead(self, idx):
             """By index """
@@ -80,38 +92,59 @@ class EcgRecord:
 
             def __init__(self, seg, idx):
                 self.seg = seg  # Link to outer class
-                self.arr_data = self.seg.dataset[idx]
+                self.data = self.seg.dataset[idx]  # 1D array of sample
                 self.metadata = self.seg.metadata_leads[idx]
 
             def get_ecg_values(self) -> np.ndarray:
-                return self.arr_data
+                return self.data
 
-        def get_time_axis(self):
-            """
-            :return: Evenly spaced, incremental time in microseconds, starting from 0
-            Local offset instead of across all segments, for now
-            """
-            num_sample = self.dataset.shape[1]
-            arr = np.arange(num_sample)
-            factor = 10**6 / self.sample_rate
-            if floor(factor) == factor:  # Is an int
-                arr *= int(factor)
-            else:
-                arr = (arr * factor).astype(np.int64)
-            # Converted to time in microseconds as integer, drastically raises efficiency while maintaining precision
-            return pd.to_datetime(pd.Series(arr), unit='us')
+    def locate_seg_idx(self, strt, end):
+        """ Locates the segment(s) the sample_range spans, by index
 
-    def join_lead(self, idx_lead=0):
-        """ Joins values of a specific lead, across the entire record """
-        ln = len(self.get_segment_keys())
-        return np.concatenate([self.get_segment(i).get_lead(idx_lead).get_ecg_values() for i in range(ln)])
+        :param strt: integer start sample-count
+        :param end: integer end sample-count
+        :return: start, end segment-index tuple
+
+        .. note:: In desencding frequency, sample_range should lie in 1 segment, or 2 segments if at edge, \\
+        or multiple segments on sample global view
+        """
+        # Edge case when idx_end = edge of segment start, still need to include that 1 value hence `bisect_right`
+        return bisect_left(self._sample_counts_acc, strt), bisect_right(self._sample_counts_acc, end)
+
+    def get_samples(self, idx_lead, sample_range, step=1):
+        """ Continuous samples of ecg magnitudes, specified by counted range
+
+        :param idx_lead: index of the lead
+        :param sample_range: integer start, end sample-count tuple
+        :param step: every `step`-th value in the data sample is included
+        :return: 1D array of ecg values
+
+        .. note:: optimized for large sample_range
+        .. seealso:: `ecg_plot.get_plot()`
+        """
+        strt, end = sample_range
+        idx_strt, idx_end = self.locate_seg_idx(strt, end)
+        strt = strt - self._sample_counts_acc[idx_strt]
+        end = end - self._sample_counts_acc[idx_end] + 1  # for inclusive end
+        if idx_strt == idx_end:
+            return self.get_seg_data(idx_strt)[idx_lead][strt:end:step]
+        else:
+            parts = [self.get_seg_data(idx_strt)[idx_lead][strt::step]]
+            for i in (idx_strt+1, idx_end):
+                parts.append(self.get_seg_data(i)[idx_lead][idx_lead][:step])
+            return np.concatenate(parts.append(self.get_seg_data(idx_strt)[idx_lead][:end:step]))
+
+    # def join_lead(self, idx_lead=0):
+    #     """ Joins values of a specific lead, across the entire record """
+    #     ln = len(self.seg_keys)
+    #     return np.concatenate([self.get_seg(i).get_lead(idx_lead).get_ecg_values() for i in range(ln)])
 
     @staticmethod
     def example(idx_segment=0, idx_lead=0, path=DATA_PATH.joinpath(selected_record)):
         """Fast process a simple example for testing """
         ecg_record = EcgRecord(path)
-        key = list(ecg_record.get_segment_keys())[idx_segment]
-        segment = ecg_record.get_segment(key)
+        key = list(ecg_record.seg_keys)[idx_segment]
+        segment = ecg_record.get_seg(key)
         return ecg_record, segment, segment.get_lead(idx_lead)
 
 

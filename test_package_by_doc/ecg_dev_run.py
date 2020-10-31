@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -6,33 +5,22 @@ import plotly.graph_objs as go
 # import plotly.express as px
 # import pandas as pd
 
-
-import ecg_record
-
-
-def get_ecg_plot(segment, lead):
-    return go.Figure(
-        data=go.Scatter(
-            x=segment.get_time_axis(),
-            y=lead.get_ecg_values()
-        )
-    )
-
+import ecg_plot
 
 if __name__ == "__main__":
-    ecg_record, seg, lead = ecg_record.EcgRecord.example()
+    fig = ecg_plot.EcgPlot.example()
 
     app = dash.Dash(
         __name__
     )
     server = app.server
 
-    app.title = "Explore graph object"
+    app.title = "development test run"
 
     app.layout = html.Div(children=[
         dcc.Graph(
             id='graph-signal',
-            figure=get_ecg_plot(seg, lead),
+            figure=fig,
         )
     ])
 

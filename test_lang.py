@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
-
+import bisect
+from functools import reduce
 
 if __name__ == "__main__":
     # rng = pd.date_range(pd.Timestamp("2018-03-10 09:00"), periods=3, freq='s')
@@ -19,4 +20,22 @@ if __name__ == "__main__":
     # print(np.argmax(a, axis=0))
     # print(np.argmax(a, axis=1))
 
-    print(10**6 / 2000)
+    # print(10**6 / 2000)
+    #
+    # lst = [20, 40, 60, 80, 100]
+    # lst_new = [0] + lst
+    # # print(reduce(lambda l, v: l.append(l[-1] + v), [lst_new]))
+    # print(lst_new[1:])
+    #
+    # print(bisect.bisect_left(lst, 30))
+    # print(bisect.bisect_right(lst, 30))
+    # print(bisect.bisect_right(lst, 20))
+    # print(bisect.bisect_left(lst, 20))
+    # print(bisect.bisect_left(lst, 10))
+    #
+    # time_range = [10, 20]
+    # print(np.arange(time_range[0], time_range[1]+1))
+
+    print(np.arange(0, 1000 + 1))
+    print(np.linspace(0, 1000, num=1000 + 1))
+

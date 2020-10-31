@@ -75,4 +75,4 @@ if __name__ == "__main__":
     my_record = EcgRecord(DATA_PATH.joinpath(selected_record))
     print(len(my_record.get_segment_keys()))
     for key in my_record.get_segment_keys():
-        print(my_record.get_segment(key).get_metadata())
+        print(my_record.get_seg(key).get_metadata())
