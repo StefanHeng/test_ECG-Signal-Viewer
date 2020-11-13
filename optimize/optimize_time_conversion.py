@@ -56,6 +56,10 @@ def get_readable_time_v4_micro(arr_us):
     return pd.to_datetime(pd.Series(arr_us), unit='us')
 
 
+def get_readable_time_optimized_delta(arr_us):
+    return pd.to_timedelta(pd.Series(arr_us), unit='us')
+
+
 def get_readable_time_v5(arr):
     pd.to_datetime(arr)
 
@@ -85,7 +89,7 @@ def test_time_conversions_arr(sz, stmt, num=3):
                         .repeat(10, num)))
 
 
-def measure_time_convertion_us(sz, num=10):
+def measure_time_conversion_us(sz, num=10):
     return min(timeit.Timer(f'get_readable_time_v4_micro(a_us)',
                 setup=f'import numpy as np; a_us = (np.arange({sz}) * 500.0).astype(np.int64); from __main__ import get_readable_time_v4_micro')
                 .repeat(10, num))
@@ -121,4 +125,4 @@ if __name__ == "__main__":
     # print(get_readable_time_v4_micro(arr))
     a_us_optimize = (np.arange(size) * (10 ** 6) / sample_rate).astype(np.int64)
 
-    print(measure_time_convertion_us(size))
+    print(measure_time_conversion_us(size))

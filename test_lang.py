@@ -3,6 +3,15 @@ import numpy as np
 import bisect
 from functools import reduce
 
+
+def time_str_to_sample_count(time, sample_rate):
+    timestamp = pd.Timestamp(time)
+    timedelta = timestamp - pd.Timestamp('1970-01-01')
+    us = timedelta // pd.Timedelta('1us')
+    print(us * 2, 10**6)
+    return us * sample_rate // (10 ** 6)
+
+
 if __name__ == "__main__":
     # rng = pd.date_range(pd.Timestamp("2018-03-10 09:00"), periods=3, freq='s')
     # print(rng, type(rng))
@@ -36,6 +45,8 @@ if __name__ == "__main__":
     # time_range = [10, 20]
     # print(np.arange(time_range[0], time_range[1]+1))
 
-    print(np.arange(0, 1000 + 1))
-    print(np.linspace(0, 1000, num=1000 + 1))
+    # print(np.arange(0, 1000 + 1))
+    # print(np.linspace(0, 1000, num=1000 + 1))
 
+    print(time_str_to_sample_count('1970-01-01 00:00:13.1558', 2000))
+    print(time_str_to_sample_count('1970-01-01 00:01:13.1558', 2000))
