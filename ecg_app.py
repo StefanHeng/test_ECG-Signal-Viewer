@@ -90,14 +90,17 @@ class EcgApp:
 
             fig = go.Figure(
                 data=go.Scatter(
-                    x=self.get_time_axis(sample_counts),  # TODO: sample_rate uniform across all files?
+                    x=self.get_time_axis(sample_counts),
                     y=ecg_vals
                 )
             )
             fig.update_layout(
-                xaxis_title="time(s)",
-                yaxis_title="ECG Signal Magnitude(mV)",
-                dragmode='pan'
+                title=f'Lead with index [{idx_lead}]',
+                # xaxis_title="time(s)",
+                # yaxis_title="ECG Signal Magnitude(mV)",
+                dragmode='pan',
+                # margin=dict(l=30, r=10, t=10, b=10),
+                # margin={'l': 30, 'r': 10, 't': 10, 'b': 10}
             )
 
             return fig

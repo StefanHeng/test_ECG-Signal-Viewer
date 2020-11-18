@@ -1,0 +1,6 @@
+.figure-block {
+    height: 40em;
+    width: 85%;
+    margin: auto;
+    border: 1px solid var(--gray_1);
+}

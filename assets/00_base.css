@@ -1,0 +1,29 @@
+:root {
+    --primary: #FCA912;
+    --primary_s-3: #1E1305;
+    --secondary: #2C8595;
+    --light-tint: #FAFAF9;
+    --dark-tint: #57514D;
+    --dark: #1D1D1D;
+
+    --gray_-5: rgb(0, 0, 0);
+    --gray_-4: rgb(26, 26, 26);
+    --gray_-3: rgb(51, 51, 51);
+    --gray_-2: rgb(77, 77, 77);
+    --gray_-1: rgb(102, 102, 102);
+    --gray_0: rgb(128, 128, 128);
+    --gray_1: rgb(153, 153, 153);
+    --gray_2: rgb(179, 179, 179);
+    --gray_3: rgb(204, 204, 204);
+    --gray_4: rgb(230, 230, 230);
+    --gray_5: rgb(242, 242, 242);
+}
+
+body {
+    padding: 0;
+    margin: 0;
+}
+
+.main-body {
+    margin: 1em 2em 0 2em;
+}

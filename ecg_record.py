@@ -151,7 +151,7 @@ class EcgRecord:
         us = timedelta // pd.Timedelta('1us')
         # Optimization: integer instead of float arithmetic while preserving accuracy
         count = us * self.sample_rate // (10 ** 6)
-        count = min(max(0, count), self._sample_counts_acc[-1])  # limit range
+        count = min(max(0, count), self._sample_counts_acc[-1] - 1)  # limit range
         return count
 
     @staticmethod
