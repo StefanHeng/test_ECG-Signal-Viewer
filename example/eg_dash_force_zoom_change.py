@@ -87,7 +87,7 @@ def update_limits(relayout_data, d_range):
         #         ecg_app.time_str_to_sample_count(relayout_data['yaxis.range[0]']),
         #         ecg_app.time_str_to_sample_count(relayout_data['yaxis.range[1]'])
         #     ]
-        d_range = ecg_app.parse_plot_lim(relayout_data, d_range)
+        d_range = ecg_app.to_sample_lim(relayout_data, d_range)
         # print('my_d range', ecg_app.parse_plot_lim(relayout_data, d_range))
         # print(d_range)
         # print("drange is", d_range)

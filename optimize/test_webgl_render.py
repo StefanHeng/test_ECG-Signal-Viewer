@@ -7,7 +7,7 @@ import ecg_record
 if __name__ == "__main__":
     ecg_record, seg, lead = ecg_record.EcgRecord.example()
 
-    x_vals = seg.get_time_axis()
+    x_vals = seg.to_time_axis()
     df = pd.DataFrame(dict(x=np.random.randn(N),
                            y=np.random.randn(N)))
 

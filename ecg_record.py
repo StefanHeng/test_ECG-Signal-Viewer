@@ -2,14 +2,10 @@ import h5py
 import json
 import numpy as np
 import pandas as pd
-import vaex as vx
 
-from math import floor
 from bisect import bisect_left, bisect_right
 
-import pathlib
-DATA_PATH = pathlib.Path("/Users/stefanh/Documents/UMich/Research/ECG-Signal-Viewer/data")
-selected_record = "LOG_DHR50526570_09000e6f-001.h5"
+from dev_file import *
 
 
 class EcgRecord:
@@ -118,7 +114,8 @@ class EcgRecord:
         """ Continuous samples of ecg magnitudes, specified by counted range
 
         :param idx_lead: index of the lead
-        :param sample_range: integer start, end sample-count tuple
+        :param strt: start sample count
+        :param end: end sample count
         :param step: every `step`-th value in the data sample is included
         :return: 1D array of ecg values
 
@@ -137,11 +134,6 @@ class EcgRecord:
             parts.append(self.get_seg_data(idx_strt)[idx_lead][:end:step])
             return np.concatenate(parts)
 
-    # def join_lead(self, idx_lead=0):
-    #     """ Joins values of a specific lead, across the entire record """
-    #     ln = len(self.seg_keys)
-    #     return np.concatenate([self.get_seg(i).get_lead(idx_lead).get_ecg_values() for i in range(ln)])
-
     def time_str_to_sample_count(self, time):
         """
         Within range [0, maximum sample count)
@@ -151,7 +143,7 @@ class EcgRecord:
         us = timedelta // pd.Timedelta('1us')
         # Optimization: integer instead of float arithmetic while preserving accuracy
         count = us * self.sample_rate // (10 ** 6)
-        count = min(max(0, count), self._sample_counts_acc[-1] - 1)  # limit range
+        count = min(max(0, count), self._sample_counts_acc[-1] - 1)  # reduce to valid array index
         return count
 
     @staticmethod

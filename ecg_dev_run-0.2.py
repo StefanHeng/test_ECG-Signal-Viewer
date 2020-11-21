@@ -6,7 +6,7 @@ import plotly.graph_objs as go
 # import plotly.express as px
 import pandas as pd
 
-from ecg_plot import DATA_PATH, selected_record
+from dev_file import *
 from ecg_app import EcgApp
 
 DISPLAY_RANGE_INIT = [
@@ -56,14 +56,13 @@ app.layout = html.Div(children=[
                 children=[
                     dcc.Graph(
                         id=id_graph,
-                        # figure=fig,
                         config=d_config,
-                        style={
-                            'width': '95%',
-                            'height': '90%',
-                            'margin': 'auto',
-                            # 'border': '1px solid red'
-                        }
+                        style=dict(
+                            width='95%',
+                            height='90%',
+                            margin='auto',
+                            border='0.1em solid red'
+                        )
                     )
                 ])
         ])
@@ -77,11 +76,10 @@ app.layout = html.Div(children=[
     [State(id_store_d_range, 'data')],
     prevent_initial_call=True)
 def update_limits(relayout_data, d_range):
-    # print("in update limits")
     if relayout_data is None:
         raise dash.exceptions.PreventUpdate
     elif relayout_data is not None:
-        d_range = ecg_app.parse_plot_lim(relayout_data, d_range)
+        d_range = ecg_app.to_sample_lim(relayout_data, d_range)
     else:
         if d_range is None:
             d_range = DISPLAY_RANGE_INIT
@@ -95,19 +93,8 @@ def update_limits(relayout_data, d_range):
 def update_figure(d_range):
     ecg_app._display_range = d_range
     x, y = ecg_app.get_plot_xy_vals(idx_lead)
-    # data = [{
-    #     'x': x,
-    #     'y': y,
-    #     'mode': 'lines'
-    # }]
-    # return {
-    #     'data': data,
-    #     'layout': {
-    #         'uirevision': PRESERVE_UI_STATE,
-    #         'dragmode': 'pan'
-    #     }
-    # }
-    fig['data'] = [{'x': x, 'y': y}]
+    fig['data'][0]['x'] = x
+    fig['data'][0]['y'] = y
     return fig
 
 

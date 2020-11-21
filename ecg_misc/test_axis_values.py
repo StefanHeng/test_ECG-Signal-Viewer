@@ -11,7 +11,7 @@ import ecg_record
 if __name__ == "__main__":
     ecg_record, seg, lead = ecg_record.EcgRecord.example()
 
-    x_vals = seg.get_time_axis()
+    x_vals = seg.to_time_axis()
     # print(x_vals)
     # print(x_vals.shape[0] / (3600 * 24))
     # x_vals = x_vals[:100000]

@@ -6,6 +6,15 @@
     --dark-tint: #57514D;
     --dark: #1D1D1D;
 
+    --secondary_-3: #0B2125;
+    --secondary_-2: #16434B;
+    --secondary_-1: #216470;
+    --secondary_1: #569DAA;
+    --secondary_2: #80B6BF;
+    --secondary_3: #ABCED5;
+    --secondary_4: #D5E7EA;
+
+    /* Negatives for shades */
     --gray_-5: rgb(0, 0, 0);
     --gray_-4: rgb(26, 26, 26);
     --gray_-3: rgb(51, 51, 51);

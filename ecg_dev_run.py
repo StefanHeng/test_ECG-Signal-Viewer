@@ -6,7 +6,7 @@ import plotly.graph_objs as go
 # import plotly.express as px
 import pandas as pd
 
-from ecg_plot import DATA_PATH, selected_record
+from dev_file import *
 from ecg_app import EcgApp
 
 
