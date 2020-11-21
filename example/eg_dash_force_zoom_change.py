@@ -30,7 +30,7 @@ ecg_app = EcgApp(__name__)
 ecg_app.set_curr_record(DATA_PATH.joinpath(selected_record))
 idx_lead = 3
 plot = ecg_app.add_plot(idx_lead)
-fig = ecg_app.get_plot_fig(idx_lead)
+fig = ecg_app.get_lead_fig(idx_lead)
 
 id_graph = 'graph'
 id_d_range = '_display_range'
@@ -104,7 +104,7 @@ def update_limits(relayout_data, d_range):
 def update_figure(d_range):
     # print('in update_figure', d_range)
     ecg_app._display_range = d_range
-    x, y = ecg_app.get_plot_xy_vals(idx_lead)
+    x, y = ecg_app.get_lead_xy_vals(idx_lead)
     data = [{
         'x': x,
         'y': y,

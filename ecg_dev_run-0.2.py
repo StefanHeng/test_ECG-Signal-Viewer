@@ -13,7 +13,7 @@ DISPLAY_RANGE_INIT = [
     [0, 100000],  # 100s
     [-4000, 4000]  # -4V to 4V
 ]
-PRESERVE_UI_STATE = 'keep'  # string val assigned arbitrarily
+# PRESERVE_UI_STATE = 'keep'  # string val assigned arbitrarily
 id_graph = 'graph'
 id_store_d_range = '_display_range'
 id_store_fig = 'id_store_fig'
@@ -28,9 +28,7 @@ d_config = {
 ecg_app = EcgApp(__name__)
 ecg_app.set_curr_record(DATA_PATH.joinpath(selected_record))
 idx_lead = 3
-plot = ecg_app.add_plot(idx_lead)
-fig = ecg_app.get_plot_fig(idx_lead)
-x_vals, y_vals = ecg_app.get_plot_xy_vals(idx_lead)
+fig = ecg_app.get_lead_fig(idx_lead)
 
 app = dash.Dash(
     __name__
@@ -79,7 +77,7 @@ def update_limits(relayout_data, d_range):
     if relayout_data is None:
         raise dash.exceptions.PreventUpdate
     elif relayout_data is not None:
-        d_range = ecg_app.to_sample_lim(relayout_data, d_range)
+        d_range = ecg_app.ui.to_sample_lim(relayout_data, d_range)
     else:
         if d_range is None:
             d_range = DISPLAY_RANGE_INIT
@@ -92,7 +90,7 @@ def update_limits(relayout_data, d_range):
     Input(id_store_d_range, 'data'))
 def update_figure(d_range):
     ecg_app._display_range = d_range
-    x, y = ecg_app.get_plot_xy_vals(idx_lead)
+    x, y = ecg_app.get_lead_xy_vals(idx_lead)
     fig['data'][0]['x'] = x
     fig['data'][0]['y'] = y
     return fig

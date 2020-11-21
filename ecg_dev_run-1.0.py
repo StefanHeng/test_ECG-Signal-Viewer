@@ -7,7 +7,7 @@ import plotly.graph_objs as go
 # import plotly.express as px
 # import pandas as pd
 
-from ecg_plot import DATA_PATH, selected_record
+from dev_file import *
 from ecg_app import EcgApp
 
 DISPLAY_RANGE_INIT = [
@@ -27,8 +27,7 @@ d_config = {
 ecg_app = EcgApp(__name__)
 ecg_app.set_curr_record(DATA_PATH.joinpath(selected_record))
 idxs_fig = [6, 4, 5, 3, 9, 16, 35, 20]  # Arbitrary, for testing only, users should spawn all the leads by selection
-for i in idxs_fig:
-    ecg_app.add_plot(i)
+
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 
@@ -50,14 +49,14 @@ app.layout = html.Div([
                 children=[
                     dcc.Graph(
                         id=str(i),
-                        figure=ecg_app.get_plot_fig(i),
+                        figure=ecg_app.get_lead_fig(i),
                         config=d_config,
-                        style={
-                            'width': '95%',
-                            'height': '90%',
-                            # 'margin': 'auto',
-                            'border': '1px solid red'
-                        }
+                        style=dict(
+                            width='95%',
+                            height='90%',
+                            margin='auto',
+                            border='0.1em solid red'
+                        )
                     )
                 ]) for i in idxs_fig
             # html.Div(children="test") for i in idxs_fig

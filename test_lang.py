@@ -4,12 +4,12 @@ import bisect
 from functools import reduce
 
 
-def time_str_to_sample_count(time, sample_rate):
-    timestamp = pd.Timestamp(time)
-    timedelta = timestamp - pd.Timestamp('1970-01-01')
-    us = timedelta // pd.Timedelta('1us')
-    print(us * 2, 10**6)
-    return us * sample_rate // (10 ** 6)
+# def time_str_to_sample_count(time, sample_rate):
+#     timestamp = pd.Timestamp(time)
+#     timedelta = timestamp - pd.Timestamp('1970-01-01')
+#     us = timedelta // pd.Timedelta('1us')
+#     print(us * 2, 10**6)
+#     return us * sample_rate // (10 ** 6)
 
 
 if __name__ == "__main__":
@@ -48,5 +48,9 @@ if __name__ == "__main__":
     # print(np.arange(0, 1000 + 1))
     # print(np.linspace(0, 1000, num=1000 + 1))
 
-    print(time_str_to_sample_count('1970-01-01 00:00:13.1558', 2000))
-    print(time_str_to_sample_count('1970-01-01 00:01:13.1558', 2000))
+    # print(time_str_to_sample_count('1970-01-01 00:00:13.1558', 2000))
+    # print(time_str_to_sample_count('1970-01-01 00:01:13.1558', 2000))
+
+    d = {0: 'a'}
+    d[2] = 'b'
+    print()

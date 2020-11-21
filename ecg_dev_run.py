@@ -28,7 +28,7 @@ ecg_app = EcgApp(__name__)
 ecg_app.set_curr_record(DATA_PATH.joinpath(selected_record))
 idx_lead = 3
 plot = ecg_app.add_plot(idx_lead)
-fig = ecg_app.get_plot_fig(idx_lead)
+fig = ecg_app.get_lead_fig(idx_lead)
 
 app = dash.Dash(
     __name__
@@ -60,13 +60,13 @@ def update_limits(relayout_data, d_range):
         # print("relayout_data is", relayout_data)
         if 'xaxis.range[0]' in relayout_data:
             d_range[0] = [
-                ecg_app.time_str_to_sample_count(relayout_data['xaxis.range[0]']),
-                ecg_app.time_str_to_sample_count(relayout_data['xaxis.range[1]'])
+                ecg_app._time_str_to_sample_count(relayout_data['xaxis.range[0]']),
+                ecg_app._time_str_to_sample_count(relayout_data['xaxis.range[1]'])
             ]
         elif 'yaxis.range[0]' in relayout_data:
             d_range[1] = [
-                ecg_app.time_str_to_sample_count(relayout_data['yaxis.range[0]']),
-                ecg_app.time_str_to_sample_count(relayout_data['yaxis.range[1]'])
+                ecg_app._time_str_to_sample_count(relayout_data['yaxis.range[0]']),
+                ecg_app._time_str_to_sample_count(relayout_data['yaxis.range[1]'])
             ]
         # print("drange is", d_range)
     else:
@@ -86,7 +86,7 @@ def update_figure(d_range):
     # print(t.microsecond / 500)  # sample count
     ecg_app._display_range = d_range
     # print(ecg_app._display_range)
-    return ecg_app.get_plot_fig(idx_lead)
+    return ecg_app.get_lead_fig(idx_lead)
 
 
 if __name__ == "__main__":

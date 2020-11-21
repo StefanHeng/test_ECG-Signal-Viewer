@@ -29,8 +29,8 @@ ecg_app = EcgApp(__name__)
 ecg_app.set_curr_record(DATA_PATH.joinpath(selected_record))
 idx_lead = 3
 plot = ecg_app.add_plot(idx_lead)
-fig = ecg_app.get_plot_fig(idx_lead)
-x_vals, y_vals = ecg_app.get_plot_xy_vals(idx_lead)
+fig = ecg_app.get_lead_fig(idx_lead)
+x_vals, y_vals = ecg_app.get_lead_xy_vals(idx_lead)
 d_vals = {'x_vals': x_vals, 'y_vals': y_vals}
 
 app = dash.Dash(
@@ -100,7 +100,7 @@ def update_limits(relayout_data, d_range):
     prevent_initial_call=True)
 def update_figure(d_range, dict_vals, graph_lim_ori):
     ecg_app._display_range = d_range
-    x, y = ecg_app.get_plot_xy_vals(idx_lead)
+    x, y = ecg_app.get_lead_xy_vals(idx_lead)
     dict_vals['x_vals'] = x
     dict_vals['y_vals'] = y
     fig.update_traces(
