@@ -14,6 +14,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('dev')
 
+PRESERVE_UI_STATE = 'keep'
 
 class EcgApp:
     """Handles the Dash web app, interface with potentially multiple records
@@ -60,6 +61,12 @@ class EcgApp:
         sample_factor = (end - strt + 1) // (self._display_width * self._display_scale_t)
         return self.curr_recd_figs[idx_lead].get_fig(idx_lead, strt, end, sample_factor)
 
+    def get_plot_xy_vals(self, idx_lead):
+        strt, end = self._display_range[0]
+        # determine if optimization is needed for large sample_range
+        sample_factor = (end - strt + 1) // (self._display_width * self._display_scale_t)
+        return self.curr_recd_figs[idx_lead].get_xy_vals(idx_lead, strt, end, sample_factor)
+
     def time_str_to_sample_count(self, time):
         """For Dash app time display returns a string representation """
         return self.curr_recd.time_str_to_sample_count(time)
@@ -71,6 +78,16 @@ class EcgApp:
         def __init__(self, record):
             self.record = record
 
+        def get_xy_vals(self, idx_lead, strt, end, sample_factor):
+            if sample_factor >= 10:
+                sample_counts = np.linspace(strt, end, num=(end - strt + 1) // sample_factor)
+                return self.get_time_axis(sample_counts), \
+                       self.record.get_samples(idx_lead, strt, end, sample_factor)
+            else:
+                # No need to take steps for small sample_factor
+                return self.get_time_axis(np.arange(strt, end + 1)), \
+                       self.record.get_samples(idx_lead, strt, end)
+
         def get_fig(self, idx_lead, strt, end, sample_factor):
             """
             :param idx_lead: index of lead
@@ -78,32 +95,58 @@ class EcgApp:
 
             .. seealso:: `ecg_record.get_samples`
             """
-            if sample_factor >= 10:
-                sample_counts = np.linspace(strt, end, num=(end - strt + 1) // sample_factor)
-                ecg_vals = self.record.get_samples(idx_lead, strt, end, sample_factor)
-            else:
-                # No need to take steps for small sample_factor
-                sample_counts = np.arange(strt, end + 1)
-                ecg_vals = self.record.get_samples(idx_lead, strt, end)
             # logger.info(f'sample_counts of size {sample_counts.shape[0]} -> {sample_counts}')
             # logger.info(f'ecg_vals of size {ecg_vals.shape[0]} -> {ecg_vals}')
-
-            fig = go.Figure(
-                data=go.Scatter(
-                    x=self.get_time_axis(sample_counts),
-                    y=ecg_vals
-                )
-            )
-            fig.update_layout(
-                title=f'Lead with index [{idx_lead}]',
-                # xaxis_title="time(s)",
-                # yaxis_title="ECG Signal Magnitude(mV)",
-                dragmode='pan',
-                # margin=dict(l=30, r=10, t=10, b=10),
-                # margin={'l': 30, 'r': 10, 't': 10, 'b': 10}
-            )
-
-            return fig
+            time_vals, ecg_vals = self.get_xy_vals(idx_lead, strt, end, sample_factor)
+            # fig = go.Figure(
+            #     data=go.Scatter(
+            #         x=time_vals,
+            #         y=ecg_vals
+            #     )
+            # )
+            # fig.update_layout(
+            #     title=f'Lead with index [{idx_lead}]',
+            #     # xaxis_title="time(s)",
+            #     # yaxis_title="ECG Signal Magnitude(mV)",
+            #     dragmode='pan',
+            #     # margin=dict(l=0, r=0, t=50, b=0),
+            #     # margin={'l': 0, 'r': 0, 't': 50, 'b': 0}
+            # )
+            # return fig
+            data = [{
+                'x': time_vals,
+                'y': ecg_vals,
+                'mode': 'lines'
+            }]
+            return {
+                'data': data,
+                'layout': {
+                    'uirevision': PRESERVE_UI_STATE,
+                    'dragmode': 'pan',
+                    'margin': {'l': 40, 'r': 0, 't': 0, 'b': 15},
+                    'hoverdistance': 0,
+                    'hoverinfo': None,
+                    'xaxis': {
+                        'showspikes': True,
+                        'spikemode': 'toaxis',
+                        'spikesnap': 'data',
+                        'spikedash': 'dot',
+                        'spikethickness': 0.125,
+                        'spikecolor': '#ff0000'
+                    },
+                    'yaxis': {
+                        'showspikes': True,
+                        'spikemode': 'toaxis',
+                        'spikesnap': 'data',
+                        'spikedash': 'dot',
+                        'spikethickness': 0.125,
+                        'spikecolor': '#ff0000'
+                    }
+                },
+                # fig.update_yaxes(showgrid=False, zeroline=False, showticklabels=False,
+                #                  showspikes=True, spikemode='across', spikesnap='cursor', showline=False,
+                #                  spikedash='solid')
+            }
 
         def get_time_axis(self, arr):
             """
@@ -117,10 +160,22 @@ class EcgApp:
             # Converted to time in microseconds as integer, drastically raises efficiency while maintaining precision
             return pd.to_datetime(pd.Series(arr), unit='us')
 
-
-
         # @staticmethod
         # def example(idx_lead=0):
         #     import pathlib
         #     ecg_plot = EcgApp.EcgPlot(DATA_PATH.joinpath(selected_record))
         #     return ecg_plot.get_plot(idx_lead)
+
+    def parse_plot_lim(self, relayout_data, d_range):
+        if 'xaxis.range[0]' in relayout_data:
+            d_range[0] = [
+                self.time_str_to_sample_count(relayout_data['xaxis.range[0]']),
+                self.time_str_to_sample_count(relayout_data['xaxis.range[1]'])
+            ]
+        elif 'yaxis.range[0]' in relayout_data:
+            d_range[1] = [
+                self.time_str_to_sample_count(relayout_data['yaxis.range[0]']),
+                self.time_str_to_sample_count(relayout_data['yaxis.range[1]'])
+            ]
+        return d_range
+

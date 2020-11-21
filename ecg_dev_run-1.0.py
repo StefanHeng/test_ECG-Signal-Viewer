@@ -19,7 +19,8 @@ id_d_range = '_display_range'
 d_config = {
     'responsive': True,
     'scrollZoom': True,
-    'modeBarButtonsToRemove': ['lasso2d', 'select2d'],
+    'modeBarButtonsToRemove': ['zoom2d', 'lasso2d', 'select2d', 'autoScale2d', 'toggleSpikelines',
+                               'hoverClosestCartesian', 'hoverCompareCartesian'],
     'displaylogo': False
 }
 
@@ -54,7 +55,7 @@ app.layout = html.Div([
                         style={
                             'width': '95%',
                             'height': '90%',
-                            'margin': 'auto',
+                            # 'margin': 'auto',
                             'border': '1px solid red'
                         }
                     )

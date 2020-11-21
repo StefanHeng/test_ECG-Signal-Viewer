@@ -17,8 +17,10 @@ DISPLAY_RANGE_INIT = [
 id_fig = 'figure'
 id_d_range = '_display_range'
 d_config = {
+    'responsive': True,
     'scrollZoom': True,
-    'modeBarButtonsToRemove': ['lasso2d', 'select2d'],
+    'modeBarButtonsToRemove': ['zoom2d', 'lasso2d', 'select2d', 'autoScale2d', 'toggleSpikelines',
+                               'hoverClosestCartesian', 'hoverCompareCartesian'],
     'displaylogo': False
 }
 
@@ -76,7 +78,7 @@ def update_limits(relayout_data, d_range):
 
 @app.callback(
     Output(id_fig, 'figure'),
-    Input(id_d_range, 'data'),
+    [Input(id_d_range, 'data')],
     prevent_initial_call=True)
 def update_figure(d_range):
     # print("in create fig")
