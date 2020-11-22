@@ -1,8 +1,8 @@
-import pandas as pd
-import numpy as np
-import bisect
-from functools import reduce
-
+# import pandas as pd
+# import numpy as np
+# import bisect
+# from functools import reduce
+from memory_profiler import profile
 
 # def time_str_to_sample_count(time, sample_rate):
 #     timestamp = pd.Timestamp(time)
@@ -11,6 +11,11 @@ from functools import reduce
 #     print(us * 2, 10**6)
 #     return us * sample_rate // (10 ** 6)
 
+@profile
+def main():
+    d = {0: 'a'}
+    d[2] = 'b'
+    print()
 
 if __name__ == "__main__":
     # rng = pd.date_range(pd.Timestamp("2018-03-10 09:00"), periods=3, freq='s')
@@ -51,6 +56,4 @@ if __name__ == "__main__":
     # print(time_str_to_sample_count('1970-01-01 00:00:13.1558', 2000))
     # print(time_str_to_sample_count('1970-01-01 00:01:13.1558', 2000))
 
-    d = {0: 'a'}
-    d[2] = 'b'
-    print()
+    main()

@@ -5,6 +5,8 @@ import pandas as pd
 
 from bisect import bisect_left, bisect_right
 
+from memory_profiler import profile
+
 from dev_file import *
 
 
@@ -19,24 +21,30 @@ class EcgRecord:
     All .log files joined sequentially will form the entire sampling of all ECG data in the surgery.
     """
 
+    EPOCH_START = pd.Timestamp('1970-01-01')
+    UNIT_1US = pd.Timedelta('1us')
+
+    # @profile
     def __init__(self, path):
         self.record = h5py.File(path, 'r')
         self.seg_keys = list(self.record.keys())  # keys to each segment compiled in the .h5 file
         self.annotations = list(self.record.attrs)
-        self.sample_rate = self.get_sample_rate()
+        self.sample_rate = self._get_sample_rate()
 
         self._sample_counts = self._get_sample_counts()
         self._sample_counts_acc = self._get_sample_counts_acc()  # Accumulated
 
-    def get_sample_rate(self):
-        seg = self.get_seg(self.seg_keys[0])  # Assumption: sample_rate is the same across all segments
+    def _get_sample_rate(self):
+        """Assumes that `sample_rate` is the same across all segments """
+        seg = self.get_seg(self.seg_keys[0])
         return seg.get_metadata()['sample_rate']
+        # return json.loads(self.record[self.seg_keys[0]].attrs['metadata'])['sample_rate']
 
     def _get_sample_counts(self):
         """ Helps to check which segment(s) is a time range located in """
         sample_counts = []
         for key in self.seg_keys:
-            sample_counts.append(self.get_seg(key).dataset.shape[1])
+            sample_counts.append(self.record[key].shape[1])
         return sample_counts
 
     def _get_sample_counts_acc(self):
@@ -53,9 +61,10 @@ class EcgRecord:
         """
         return self.Segment(self.record[key])
 
-    def get_seg_data(self, idx):
-        """Syntactic sugar for getting all data of a segment """
-        return self.get_seg(self.seg_keys[idx]).dataset
+    def get_seg_data(self, idx_seg, idx_lead):
+        """Syntactic sugar for getting data of a single lead of a segment """
+        # return self.get_seg(self.seg_keys[idx_seg]).dataset[idx_lead]
+        return self.record[self.seg_keys[idx_seg]][idx_lead]
 
     def get_annotation_header(self):
         return self.annotations[0]
@@ -82,21 +91,6 @@ class EcgRecord:
             metadata = self.get_metadata()
             return [i['name'] for i in metadata['sigheader']]
 
-        def get_lead(self, idx):
-            """By index """
-            return self.Lead(self, idx)
-
-        class Lead:
-            """Each lead contains the array of data taken """
-
-            def __init__(self, seg, idx):
-                self.seg = seg  # Link to outer class
-                self.data = self.seg.dataset[idx]  # 1D array of sample
-                self.metadata = self.seg.metadata_leads[idx]
-
-            def get_ecg_values(self) -> np.ndarray:
-                return self.data
-
     def locate_seg_idx(self, strt, end):
         """ Locates the segment(s) the sample_range spans, by index
 
@@ -110,6 +104,7 @@ class EcgRecord:
         # Edge case when idx_end = edge of segment start, still need to include that 1 value hence `bisect_right`
         return bisect_left(self._sample_counts_acc, strt), bisect_right(self._sample_counts_acc, end)
 
+    # @profile
     def get_samples(self, idx_lead, strt, end, step=1):
         """ Continuous samples of ecg magnitudes, specified by counted range
 
@@ -120,18 +115,18 @@ class EcgRecord:
         :return: 1D array of ecg values
 
         .. note:: optimized for large sample_range
-        .. seealso:: `ecg_plot.get_plot()`
+        .. seealso:: `EcgApp._Plot.get_fig()`
         """
         idx_strt, idx_end = self.locate_seg_idx(strt, end)
         strt = strt - self._sample_counts_acc[idx_strt]
         end = end - self._sample_counts_acc[idx_end] + 1  # for inclusive end
         if idx_strt == idx_end:
-            return self.get_seg_data(idx_strt)[idx_lead][strt:end:step]
+            return self.get_seg_data(idx_strt, idx_lead)[strt:end:step]
         else:
-            parts = [self.get_seg_data(idx_strt)[idx_lead][strt::step]]
+            parts = [self.get_seg_data(idx_strt, idx_lead)[strt::step]]
             for i in range(idx_strt+1, idx_end):
-                parts.append(self.get_seg_data(i)[idx_lead][::step])
-            parts.append(self.get_seg_data(idx_strt)[idx_lead][:end:step])
+                parts.append(self.get_seg_data(i, idx_lead)[::step])
+            parts.append(self.get_seg_data(idx_strt, idx_lead)[:end:step])
             return np.concatenate(parts)
 
     def time_str_to_sample_count(self, time):
@@ -139,10 +134,9 @@ class EcgRecord:
         Within range [0, maximum sample count)
         """
         timestamp = pd.Timestamp(time)
-        timedelta = timestamp - pd.Timestamp('1970-01-01')
-        us = timedelta // pd.Timedelta('1us')
+        delt_us = (timestamp - self.EPOCH_START) // self.UNIT_1US
         # Optimization: integer instead of float arithmetic while preserving accuracy
-        count = us * self.sample_rate // (10 ** 6)
+        count = delt_us * self.sample_rate // (10 ** 6)
         count = min(max(0, count), self._sample_counts_acc[-1] - 1)  # reduce to valid array index
         return count
 
@@ -152,7 +146,7 @@ class EcgRecord:
         ecg_record = EcgRecord(path)
         key = list(ecg_record.seg_keys)[idx_segment]
         segment = ecg_record.get_seg(key)
-        return ecg_record, segment, segment.get_lead(idx_lead)
+        return ecg_record, segment
 
 
 if __name__ == "__main__":

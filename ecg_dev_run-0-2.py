@@ -1,10 +1,13 @@
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
+import dash_daq as daq
 from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
 # import plotly.express as px
 import pandas as pd
+
+from memory_profiler import profile
 
 from dev_file import *
 from ecg_app import EcgApp
@@ -24,6 +27,8 @@ d_config = {
                                'hoverClosestCartesian', 'hoverCompareCartesian'],
     'displaylogo': False
 }
+id_graph_fix_y = 'graph_fix_y'
+PRIMARY = '#FCA912'
 
 ecg_app = EcgApp(__name__)
 ecg_app.set_curr_record(DATA_PATH.joinpath(selected_record))
@@ -52,6 +57,12 @@ app.layout = html.Div(children=[
             html.Div(
                 className='figure-block',
                 children=[
+                    daq.ToggleSwitch(
+                        id=id_graph_fix_y,
+                        label='Fix yaxis',
+                        color=PRIMARY,
+                        value=False
+                    ),
                     dcc.Graph(
                         id=id_graph,
                         config=d_config,
@@ -59,7 +70,7 @@ app.layout = html.Div(children=[
                             width='95%',
                             height='90%',
                             margin='auto',
-                            border='0.1em solid red'
+                            # border='0.1em solid red'
                         )
                     )
                 ])
@@ -87,12 +98,17 @@ def update_limits(relayout_data, d_range):
 
 @app.callback(
     Output(id_store_fig, 'data'),
-    Input(id_store_d_range, 'data'))
-def update_figure(d_range):
-    ecg_app._display_range = d_range
-    x, y = ecg_app.get_lead_xy_vals(idx_lead)
-    fig['data'][0]['x'] = x
-    fig['data'][0]['y'] = y
+    [Input(id_store_d_range, 'data'),
+     Input(id_graph_fix_y, 'value')])
+def update_figure(d_range, fix_yaxis):
+    changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
+    if id_store_d_range in changed_id:  # Only 1 input change is needed each time
+        ecg_app._display_range = d_range
+        x, y = ecg_app.get_lead_xy_vals(idx_lead)
+        fig['data'][0]['x'] = x
+        fig['data'][0]['y'] = y
+    elif id_graph_fix_y in changed_id:
+        fig['layout']['yaxis']['fixedrange'] = fix_yaxis
     return fig
 
 
@@ -103,5 +119,10 @@ def update_fig(fig_store):
     return fig_store
 
 
-if __name__ == "__main__":
+# @profile
+def main():
     app.run_server(debug=True)
+
+
+if __name__ == "__main__":
+    main()

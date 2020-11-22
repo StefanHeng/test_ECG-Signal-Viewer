@@ -3,6 +3,7 @@ from ecg_record import *
 import numpy as np
 import pandas as pd
 from math import floor
+from copy import deepcopy
 
 import dash
 import dash_core_components as dcc
@@ -22,7 +23,7 @@ class EcgApp:
     """
 
     DISPLAY_RANGE_INIT = [
-        [0, 100000],  # 100s
+        [0, 100000],  # First 50s, given 2000 sample_rate
         [-4000, 4000]  # -4V to 4V
     ]
 
@@ -96,7 +97,7 @@ class EcgApp:
             # logger.info(f'sample_counts of size {sample_counts.shape[0]} -> {sample_counts}')
             # logger.info(f'ecg_vals of size {ecg_vals.shape[0]} -> {ecg_vals}')
             time_vals, ecg_vals = self.get_xy_vals(idx_lead, strt, end)
-            axis_config = dict(
+            xaxis_config = dict(
                 showspikes=True,
                 spikemode='toaxis',
                 spikesnap='data',
@@ -105,6 +106,7 @@ class EcgApp:
                 spikecolor=self.PRIMARY,
                 linecolor=self.SECONDARY_2  # Axis color
             )
+            yaxis_config = deepcopy(xaxis_config)
             return dict(
                 data=[dict(
                     x=time_vals,
@@ -120,8 +122,8 @@ class EcgApp:
                     margin=dict(l=40, r=0, t=0, b=20),
                     hoverdistance=0,
                     hoverinfo=None,
-                    xaxis=axis_config,
-                    yaxis=axis_config
+                    xaxis=xaxis_config,
+                    yaxis=yaxis_config
                 )
             )
 

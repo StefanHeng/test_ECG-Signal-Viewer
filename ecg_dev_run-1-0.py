@@ -7,6 +7,8 @@ import plotly.graph_objs as go
 # import plotly.express as px
 # import pandas as pd
 
+from memory_profiler import profile
+
 from dev_file import *
 from ecg_app import EcgApp
 
@@ -30,6 +32,7 @@ idxs_fig = [6, 4, 5, 3, 9, 16, 35, 20]  # Arbitrary, for testing only, users sho
 
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
+app.title = "development test run"
 
 figs = [
 
@@ -97,6 +100,10 @@ app.layout = html.Div([
 #     return html.Div('Dropdown {} = {}'.format(id['index'], value))
 
 
-if __name__ == "__main__":
-    app.title = "development test run"
+@profile
+def main():
     app.run_server(debug=True)
+
+
+if __name__ == "__main__":
+    main()
