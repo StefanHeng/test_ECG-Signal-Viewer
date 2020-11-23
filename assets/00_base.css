@@ -1,10 +1,20 @@
 :root {
     --primary: #FCA912;
-    --primary_s-3: #1E1305;
     --secondary: #2C8595;
     --light-tint: #FAFAF9;
     --dark-tint: #57514D;
     --dark: #1D1D1D;
+    --dark_primary: #2C2925;
+    --light_primary: #FFFCF6;
+
+    --primary_-4: #1E1305;
+    --primary_-3: #3F2A05;
+    --primary_-2: #7E5509;
+    --primary_-1: #BD7F0E;
+    --primary_1: #FDBA41;
+    --primary_2: #FDCB71;
+    --primary_3: #FEDDA0;
+    --primary_4: #FEEED0;
 
     --secondary_-3: #0B2125;
     --secondary_-2: #16434B;
@@ -26,6 +36,19 @@
     --gray_3: rgb(204, 204, 204);
     --gray_4: rgb(230, 230, 230);
     --gray_5: rgb(242, 242, 242);
+
+    --drop_shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: normal;
+    margin: 0.5em 0 0.125em;
+    color: var(--dark_primary);
+}
+
+p {
+    margin: 0.25rem 0;
+    color: var(--dark_primary);
 }
 
 body {
@@ -36,3 +59,4 @@ body {
 .main-body {
     margin: 1em 2em 0 2em;
 }
+

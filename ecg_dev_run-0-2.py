@@ -28,7 +28,11 @@ d_config = {
     'displaylogo': False
 }
 id_graph_fix_y = 'graph_fix_y'
+id_butn_options = 'button_options'
 PRIMARY = '#FCA912'
+id_div_options = 'div_options'
+id_panel_options = 'panel_options'
+class_switch_pair = 'switch_pair'
 
 ecg_app = EcgApp(__name__)
 ecg_app.set_curr_record(DATA_PATH.joinpath(selected_record))
@@ -36,33 +40,47 @@ idx_lead = 3
 fig = ecg_app.get_lead_fig(idx_lead)
 
 app = dash.Dash(
-    __name__
+    __name__,
+    external_stylesheets=[
+        'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css'
+    ]
 )
+
 server = app.server
 
 app.title = "development test run"
 
+
 app.layout = html.Div(children=[
+    dcc.Store(id=id_store_d_range, data=DISPLAY_RANGE_INIT),
+    dcc.Store(id=id_store_fig, data=fig),
+
     html.Div(
         className="app-header",
         children=[
             html.Div('Dev test run', className="app-header_title")
         ]
     ),
-    dcc.Store(id=id_store_d_range, data=DISPLAY_RANGE_INIT),
-    dcc.Store(id=id_store_fig, data=fig),
+
+    html.Div(id=id_div_options, children=[
+        html.Div(html.Button(id=id_butn_options, className='button', children=[
+            html.I(n_clicks=0, className='fa fa-sliders')
+        ])),
+        html.Div(id=id_panel_options, children=[
+            html.H3('Fix vertical axis: '),
+            html.Div(className=class_switch_pair, children=[
+                html.P('Lead 1: '),
+                # dcc.Markdown('''Lead 1: '''),
+                daq.ToggleSwitch(id=id_graph_fix_y, color=PRIMARY, size=40, value=False),
+            ]),
+        ]),
+    ]),
 
     html.Div(className='main-body', children=[
         html.Div(id='plots', children=[
             html.Div(
                 className='figure-block',
                 children=[
-                    daq.ToggleSwitch(
-                        id=id_graph_fix_y,
-                        label='Fix yaxis',
-                        color=PRIMARY,
-                        value=False
-                    ),
                     dcc.Graph(
                         id=id_graph,
                         config=d_config,
