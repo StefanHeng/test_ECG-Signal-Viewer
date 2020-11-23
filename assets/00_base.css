@@ -16,6 +16,16 @@
     --primary_3: #FEDDA0;
     --primary_4: #FEEED0;
 
+    --primary_a1: rgba(252, 169, 18, 0.1);
+    --primary_a2: rgba(252, 169, 18, 0.2);
+    --primary_a3: rgba(252, 169, 18, 0.3);
+    --primary_a4: rgba(252, 169, 18, 0.4);
+    --primary_a5: rgba(252, 169, 18, 0.5);
+    --primary_a6: rgba(252, 169, 18, 0.6);
+    --primary_a7: rgba(252, 169, 18, 0.7);
+    --primary_a8: rgba(252, 169, 18, 0.8);
+    --primary_a9: rgba(252, 169, 18, 0.9);
+
     --secondary_-3: #0B2125;
     --secondary_-2: #16434B;
     --secondary_-1: #216470;
@@ -30,12 +40,22 @@
     --gray_-3: rgb(51, 51, 51);
     --gray_-2: rgb(77, 77, 77);
     --gray_-1: rgb(102, 102, 102);
-    --gray_0: rgb(128, 128, 128);
+    --gray: rgb(128, 128, 128);
     --gray_1: rgb(153, 153, 153);
     --gray_2: rgb(179, 179, 179);
     --gray_3: rgb(204, 204, 204);
     --gray_4: rgb(230, 230, 230);
     --gray_5: rgb(242, 242, 242);
+
+    --gray_a1: rgba(128, 128, 128, 0.1);
+    --gray_a2: rgba(128, 128, 128, 0.2);
+    --gray_a3: rgba(128, 128, 128, 0.3);
+    --gray_a4: rgba(128, 128, 128, 0.4);
+    --gray_a5: rgba(128, 128, 128, 0.5);
+    --gray_a6: rgba(128, 128, 128, 0.6);
+    --gray_a7: rgba(128, 128, 128, 0.7);
+    --gray_a8: rgba(128, 128, 128, 0.8);
+    --gray_a9: rgba(128, 128, 128, 0.9);
 
     --drop_shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 }

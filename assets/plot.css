@@ -1,6 +1,7 @@
 .figure-block {
+    position: relative;
     height: 30em;
     width: 60%;
     margin: auto;
-    border: 1px solid var(--gray_1);
+    /*border: 1px solid var(--gray_1);*/
 }

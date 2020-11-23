@@ -1,50 +1,40 @@
 #div_options {
-    display: flex;
     position: absolute;
-    top: 6em;
-    left: 2.5%;
+    left: 4em;
+    display: flex;
+    opacity: 0;
+    transition: all 200ms ease-in-out;
     height: auto;
-    border: 1px gray solid;
+    width: 65%;
+    /*border: 1px gray solid;*/
+    padding: 0.125em 0.25em;
     z-index: 100;
 }
 
-#panel_options{
-    display: flex;
-    flex-direction: column;
-    padding: 0 0.5em;
-    border: 1px red solid;
-}
-
-#panel_options > * {
-    margin: 0.125em 0;
-}
-
-.switch_pair {
-    display: flex;
-    align-items: center;
-    border: 1px green solid;
-}
-
-#graph_fix_y {
-    margin-left: 1em;
+#div_options:hover {
+    opacity: 1;
+    transition: all 200ms ease-in-out;
 }
 
 .button {
-    font-size: 1em; /* changes icon size */
-    color: var(--primary);
-    background-color: white;
-    padding: 0.35em 0.5em;
+    font-size: 0.75em; /* changes icon size */
+    color: var(--gray_a8);
+    background-color: transparent;
+    height: 2em;
+    width: 2em;
+    display: flex;
+    align-items: center;  /* Centers the child icon */
+    justify-content: center;
+    margin: 0 0.25em;
     cursor: pointer;
     border-radius: 0.5em;
-    border-color: var(--primary_1);
+    border-color: var(--gray_a4);
     border-style: solid;
-    box-shadow: var(--drop_shadow);
 }
 
 .button:hover {
-    color: white;
-    background-color: var(--primary_2);
-    border-color: transparent;
+    background-color: var(--primary_a4);
+    border-color: var(--primary_a8);
 }
 
 .button:active{

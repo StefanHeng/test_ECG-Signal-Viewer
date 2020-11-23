@@ -75,6 +75,10 @@ class EcgRecord:
         """
         return self.annotations[2:]  # The first 2 elements are header and protocol respectively
 
+    def get_lead_names(self):
+        metadata = self.get_seg(self.seg_keys[0]).get_metadata()
+        return [lead['name'] for lead in metadata['sigheader']]
+
     class Segment:
         """
         Each segment contains multiple `leads` taking in data concurrently
@@ -86,10 +90,6 @@ class EcgRecord:
 
         def get_metadata(self):
             return json.loads(self.dataset.attrs['metadata'])
-
-        def get_lead_names(self):
-            metadata = self.get_metadata()
-            return [i['name'] for i in metadata['sigheader']]
 
     def locate_seg_idx(self, strt, end):
         """ Locates the segment(s) the sample_range spans, by index

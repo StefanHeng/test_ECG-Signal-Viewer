@@ -33,6 +33,7 @@ class EcgApp:
         self.ui = self._Ui(self)
 
         self.curr_recr = None  # Current record
+        self.curr_lead_nms = None
         self.curr_plot = None
         self.curr_figs = None
 
@@ -44,6 +45,7 @@ class EcgApp:
     def set_curr_record(self, record_path):
         """Current record selected to display. Previous record data overridden """
         self.curr_recr = EcgRecord(record_path)
+        self.curr_lead_nms = self.curr_recr.get_lead_names()
         self.curr_plot = self._Plot(self.curr_recr, self)  # A `plot` servers a record
         self.curr_figs = {}
 
