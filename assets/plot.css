@@ -1,7 +1,17 @@
 .figure-block {
-    position: relative;
+    flex-basis: auto;
     height: 30em;
     width: 60%;
-    margin: auto;
-    /*border: 1px solid var(--gray_1);*/
+    padding: 1em 1em 0.5em;
+    margin: 0 auto 1em;
+    border: 1px solid red;
+    box-shadow: var(--drop_shadow);
+}
+
+.name-lead {
+    padding: 0 1em 0.5em;
+}
+
+.figure-container {
+    position: relative;
 }

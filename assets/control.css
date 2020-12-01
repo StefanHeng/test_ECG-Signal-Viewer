@@ -1,17 +1,17 @@
-#div_options {
+.div_options {
     position: absolute;
-    left: 4em;
+    left: 10%;
     display: flex;
     opacity: 0;
     transition: all 200ms ease-in-out;
     height: auto;
-    width: 65%;
+    width: 70%;
     /*border: 1px gray solid;*/
     padding: 0.125em 0.25em;
     z-index: 100;
 }
 
-#div_options:hover {
+.div_options:hover {
     opacity: 1;
     transition: all 200ms ease-in-out;
 }

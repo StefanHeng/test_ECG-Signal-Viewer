@@ -20,7 +20,6 @@ DISP_RANGE_INIT = [
 # PRESERVE_UI_STATE = 'keep'  # string val assigned arbitrarily
 ID_GRA = 'graph'
 IG_STOR_D_RANGE = '_display_range'
-ID_STOR_FIG = 'id_store_fig'
 D_CONFIG = {
     'responsive': True,
     'scrollZoom': True,
@@ -47,11 +46,10 @@ app = dash.Dash(
 
 server = app.server
 
-app.title = "development test run"
+app.title = "Dev test run"
 
 app.layout = html.Div(children=[
     dcc.Store(id=IG_STOR_D_RANGE, data=DISP_RANGE_INIT),
-    dcc.Store(id=ID_STOR_FIG, data=fig),
     dcc.Store(id=ID_STOR_IS_YAXIS_FIXED, data=False),
 
     html.Div(className="app-header", children=[
@@ -70,6 +68,7 @@ app.layout = html.Div(children=[
                     ]),
                     dcc.Graph(
                         id=ID_GRA,
+                        figure=fig,
                         config=D_CONFIG,
                         style=dict(
                             width='95%',
@@ -103,26 +102,20 @@ def update_limits(relayout_data, d_range):
 
 
 @app.callback(
-    Output(ID_STOR_FIG, 'data'),
+    Output(ID_GRA, 'figure'),
     [Input(IG_STOR_D_RANGE, 'data'),
-     Input(ID_IC_FIX_YAXIS, 'n_clicks')])
-def update_figure(d_range, n_clicks):
+     Input(ID_IC_FIX_YAXIS, 'n_clicks')],
+    State(ID_GRA, 'figure'))
+def update_figure(d_range, n_clicks, f):
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     if IG_STOR_D_RANGE in changed_id:  # Only 1 input change is needed each time
         ecg_app._display_range = d_range
         x, y = ecg_app.get_lead_xy_vals(idx_lead)
-        fig['data'][0]['x'] = x
-        fig['data'][0]['y'] = y
+        f['data'][0]['x'] = x
+        f['data'][0]['y'] = y
     elif ID_IC_FIX_YAXIS in changed_id:
-        fig['layout']['yaxis']['fixedrange'] = n_clicks % 2 == 1
-    return fig
-
-
-@app.callback(
-    Output(ID_GRA, 'figure'),
-    Input(ID_STOR_FIG, 'data'))
-def update_fig(fig_store):
-    return fig_store
+        f['layout']['yaxis']['fixedrange'] = n_clicks % 2 == 1
+    return f
 
 
 @app.callback(
