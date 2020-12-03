@@ -1,4 +1,4 @@
-.lead-block {
+.div_lead {
     flex-basis: auto;
     height: 30em;
     width: 60%;
@@ -12,6 +12,6 @@
     padding: 0 1em 0.5em;
 }
 
-.figure-container {
+.div_figure {
     position: relative;
 }

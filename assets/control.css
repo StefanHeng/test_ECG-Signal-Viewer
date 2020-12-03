@@ -11,7 +11,7 @@
     z-index: 100;
 }
 
-.figure-container:hover .div_options {
+.div_figure:hover .div_options {
     opacity: 1;
     transition: all 200ms ease-in-out;
 }
@@ -21,7 +21,7 @@
 /*    transition: all 200ms ease-in-out;*/
 /*}*/
 
-.button {
+.btn {
     font-size: 0.75em; /* changes icon size */
     color: var(--gray_a8);
     background-color: transparent;
@@ -37,12 +37,12 @@
     border-style: solid;
 }
 
-.button:hover {
+.btn:hover {
     background-color: var(--primary_a4);
     border-color: var(--primary_a8);
 }
 
-.button:active{
+.btn:active{
     color: white;
     background-color: var(--primary);
     border-color: transparent;

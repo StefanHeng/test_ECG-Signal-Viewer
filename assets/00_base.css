@@ -80,11 +80,11 @@ body {
     margin: 0;
 }
 
-.main-body {
+.body_main {
     padding: 0.25em 1em 0.5em;
 }
 
-#plots {
+#div_plots {
     display: flex;
     flex-direction: column;
     align-items: center;

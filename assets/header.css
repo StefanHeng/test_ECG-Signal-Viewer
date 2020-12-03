@@ -1,4 +1,4 @@
-.app-header {
+.header {
     height: 2em;
     line-height: 2em;
     font-size: 1.25em;
@@ -7,7 +7,7 @@
     border-bottom: thin lightgrey solid;
 }
 
-.app-header .app-header_title {
+.header .header_title {
     font-size: 1.25em;
     color: var(--primary_-4);
 }
