@@ -1,10 +1,10 @@
-.figure-block {
+.lead-block {
     flex-basis: auto;
     height: 30em;
     width: 60%;
     padding: 1em 1em 0.5em;
     margin: 0 auto 1em;
-    border: 1px solid red;
+    /*border: 1px solid red;*/
     box-shadow: var(--drop_shadow);
 }
 

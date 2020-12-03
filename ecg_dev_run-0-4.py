@@ -1,10 +1,7 @@
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-import dash_daq as daq
 from dash.dependencies import Input, Output, State
-import plotly.graph_objs as go
-import pandas as pd
 
 from memory_profiler import profile
 
@@ -23,7 +20,7 @@ IG_STOR_D_RANGE = '_display_range'
 D_CONFIG = {
     'responsive': True,
     'scrollZoom': True,
-    'modeBarButtonsToRemove': ['zoom2d', 'lasso2d', 'select2d', 'autoScale2d', 'toggleSpikelines',
+    'modeBarButtonsToRemove': ['lasso2d', 'select2d', 'autoScale2d', 'toggleSpikelines',
                                'hoverClosestCartesian', 'hoverCompareCartesian'],
     'displaylogo': False
 }
@@ -58,7 +55,7 @@ app.layout = html.Div(children=[
 
     html.Div(className='main-body', children=[
         html.Div(id='plots', children=[
-            html.Div(className='figure-block', children=[
+            html.Div(className='lead-block', children=[
                 html.P(className='name-lead', children=[ecg_app.curr_lead_nms[idx_lead]]),
                 html.Div(className='figure-container', children=[
                     html.Div(className=ID_DIV_OPTIONS, children=[
@@ -83,6 +80,8 @@ app.layout = html.Div(children=[
     ])
 ])
 
+def get_last_changed_ids():
+    return [p['prop_id'] for p in dash.callback_context.triggered][0]
 
 @app.callback(
     Output(IG_STOR_D_RANGE, 'data'),
@@ -104,16 +103,16 @@ def update_limits(relayout_data, d_range):
 @app.callback(
     Output(ID_GRA, 'figure'),
     [Input(IG_STOR_D_RANGE, 'data'),
-     Input(ID_IC_FIX_YAXIS, 'n_clicks')],
+     Input(ID_BTN_FIX_YAXIS, 'n_clicks')],
     State(ID_GRA, 'figure'))
 def update_figure(d_range, n_clicks, f):
-    changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
+    changed_id = get_last_changed_ids()
     if IG_STOR_D_RANGE in changed_id:  # Only 1 input change is needed each time
         ecg_app._display_range = d_range
         x, y = ecg_app.get_lead_xy_vals(idx_lead)
         f['data'][0]['x'] = x
         f['data'][0]['y'] = y
-    elif ID_IC_FIX_YAXIS in changed_id:
+    elif ID_BTN_FIX_YAXIS in changed_id:
         f['layout']['yaxis']['fixedrange'] = n_clicks % 2 == 1
     return f
 

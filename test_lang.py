@@ -11,11 +11,13 @@ from memory_profiler import profile
 #     print(us * 2, 10**6)
 #     return us * sample_rate // (10 ** 6)
 
+
 @profile
 def main():
     d = {0: 'a'}
     d[2] = 'b'
     print()
+
 
 if __name__ == "__main__":
     # rng = pd.date_range(pd.Timestamp("2018-03-10 09:00"), periods=3, freq='s')

@@ -5,16 +5,21 @@
     opacity: 0;
     transition: all 200ms ease-in-out;
     height: auto;
-    width: 70%;
+    width: 60%;
     /*border: 1px gray solid;*/
     padding: 0.125em 0.25em;
     z-index: 100;
 }
 
-.div_options:hover {
+.figure-container:hover .div_options {
     opacity: 1;
     transition: all 200ms ease-in-out;
 }
+
+/*.div_options:hover {*/
+/*    opacity: 1;*/
+/*    transition: all 200ms ease-in-out;*/
+/*}*/
 
 .button {
     font-size: 0.75em; /* changes icon size */

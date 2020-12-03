@@ -3,11 +3,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State, MATCH
 
-import plotly.graph_objs as go
-# import plotly.express as px
-# import pandas as pd
-
-from memory_profiler import profile
+# from memory_profiler import profile
 
 from dev_file import *
 from ecg_app import EcgApp
@@ -59,7 +55,7 @@ app.layout = html.Div([
 
     html.Div(className='main-body', children=[
         html.Div(id='plots', children=[
-            html.Div(className='figure-block', children=[
+            html.Div(className='lead-block', children=[
                 html.P(className='name-lead', children=[ecg_app.curr_lead_nms[i]]),
                 html.Div(className='figure-container', children=[
                     html.Div(className=ID_DIV_OPN, children=[

@@ -1,16 +1,15 @@
-from ecg_record import *
-
 import numpy as np
 import pandas as pd
 from math import floor
 from copy import deepcopy
 
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
-import plotly.graph_objs as go
+# import dash_core_components as dcc
+# import dash_html_components as html
 
 import logging
+
+from ecg_record import EcgRecord
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('dev')
@@ -66,9 +65,10 @@ class EcgApp:
 
         # Ad-hoc values for now, in the future should be calculated from device info
         # Default starting point, in the future should be retrieved from user
-        _DISPLAY_WIDTH = 100  # in rem, display_width * display_scale_t gets the number of points to render
+        _DISPLAY_WIDTH = 40  # in rem, display_width * display_scale_t gets the number of points to render
         _DISPLAY_SCALE_T = 20  # #continuous time stamps to display in 1rem
         _DISPLAY_SCALE_ECG = 20  # magnitude of ecg in a 1rem
+        SP_RT_READABLE = 125  # Sufficient frequency (Hz) for human differentiable graphing
 
         PRESERVE_UI_STATE = True  # Arbitrarily picked value
         COLOR_PLOT = '#6AA2F9'  # Default blue by plotly
@@ -80,6 +80,9 @@ class EcgApp:
         def __init__(self, record, parent):
             self.recr = record
             self.parn = parent
+            self.min_sample_step = self.recr.sample_rate // self.SP_RT_READABLE
+            # Multiplying factor for converting to time in microseconds
+            self.fac_to_us = 10 ** 6 / self.recr.sample_rate
 
         def get_xy_vals(self, idx_lead, strt, end):
             """
@@ -87,13 +90,16 @@ class EcgApp:
 
             .. seealso:: `ecg_record.get_samples`
             """
-            sample_factor = self._get_sample_factor(strt, end)
-            if sample_factor >= 10:
-                sample_counts = np.linspace(strt, end, num=(end - strt + 1) // sample_factor)
-                return self.to_time_axis(sample_counts), self.recr.get_samples(idx_lead, strt, end, sample_factor)
-            else:
-                # No need to sample, take all data
-                return self.to_time_axis(np.arange(strt, end + 1)), self.recr.get_samples(idx_lead, strt, end)
+            # Always take data as samples instead of entire channel, sample at at least increments of min_sample_step
+            sample_factor = max(self._get_sample_factor(strt, end), self.min_sample_step)
+            # if sample_factor >= 5:
+            #     sample_counts = np.linspace(strt, end, num=(end - strt + 1) // sample_factor)
+            #     return self.to_time_axis(sample_counts), self.recr.get_samples(idx_lead, strt, end, sample_factor)
+            # else:
+            #     # No need to sample, take all data
+            #     return self.to_time_axis(np.arange(strt, end + 1)), self.recr.get_samples(idx_lead, strt, end)
+            sample_counts = np.linspace(strt, end, num=(end - strt + 1) // sample_factor)
+            return self.to_time_axis(sample_counts), self.recr.get_samples(idx_lead, strt, end, sample_factor)
 
         def get_fig(self, idx_lead, strt, end):
             # logger.info(f'sample_counts of size {sample_counts.shape[0]} -> {sample_counts}')
@@ -133,16 +139,16 @@ class EcgApp:
             """
             :return: Evenly spaced array of incremental time stamps in microseconds
             """
-            factor = 10 ** 6 / self.recr.sample_rate
-            if floor(factor) == factor:  # Is an int
-                sample_counts *= int(factor)
+            if floor(self.fac_to_us) == self.fac_to_us:  # Is an int
+                sample_counts *= int(self.fac_to_us)
             else:
-                sample_counts = (sample_counts * factor).astype(np.int64)
+                sample_counts = (sample_counts * self.fac_to_us).astype(np.int64)
             # Converted to time in microseconds as integer, drastically raises efficiency while maintaining precision
             return pd.to_datetime(pd.Series(sample_counts), unit='us')
 
         def _get_sample_factor(self, strt, end):
-            return (end - strt + 1) // (self._DISPLAY_WIDTH * self._DISPLAY_SCALE_T)
+            # If showing a small range, sample_factor which is incremental steps should be at least 1
+            return max((end - strt + 1) // (self._DISPLAY_WIDTH * self._DISPLAY_SCALE_T), 1)
 
     class _Ui:
         # Keys inside `relayoutData`

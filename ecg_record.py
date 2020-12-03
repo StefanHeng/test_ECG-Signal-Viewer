@@ -61,6 +61,9 @@ class EcgRecord:
         """
         return self.Segment(self.record[key])
 
+    def get_seg_by_idx(self, idx_seg):
+        return self.record[self.seg_keys[idx_seg]]
+
     def get_seg_data(self, idx_seg, idx_lead):
         """Syntactic sugar for getting data of a single lead of a segment """
         # return self.get_seg(self.seg_keys[idx_seg]).dataset[idx_lead]
@@ -104,8 +107,8 @@ class EcgRecord:
         # Edge case when idx_end = edge of segment start, still need to include that 1 value hence `bisect_right`
         return bisect_left(self._sample_counts_acc, strt), bisect_right(self._sample_counts_acc, end)
 
-    # @profile
-    def get_samples(self, idx_lead, strt, end, step=1):
+    @profile
+    def get_samples(self, idx_lead, strt, end, step):
         """ Continuous samples of ecg magnitudes, specified by counted range
 
         :param idx_lead: index of the lead
@@ -121,12 +124,12 @@ class EcgRecord:
         strt = strt - self._sample_counts_acc[idx_strt]
         end = end - self._sample_counts_acc[idx_end] + 1  # for inclusive end
         if idx_strt == idx_end:
-            return self.get_seg_data(idx_strt, idx_lead)[strt:end:step]
+            return self.get_seg_by_idx(idx_strt)[idx_lead, strt:end:step]
         else:
-            parts = [self.get_seg_data(idx_strt, idx_lead)[strt::step]]
+            parts = [self.get_seg_by_idx(idx_strt)[idx_lead, strt::step]]
             for i in range(idx_strt+1, idx_end):
-                parts.append(self.get_seg_data(i, idx_lead)[::step])
-            parts.append(self.get_seg_data(idx_strt, idx_lead)[:end:step])
+                parts.append(self.get_seg_by_idx(i)[idx_lead, ::step])
+            parts.append(self.get_seg_by_idx(idx_end)[idx_lead, :end:step])
             return np.concatenate(parts)
 
     def time_str_to_sample_count(self, time):
@@ -141,12 +144,9 @@ class EcgRecord:
         return count
 
     @staticmethod
-    def example(idx_segment=0, idx_lead=0, path=DATA_PATH.joinpath(selected_record)):
+    def example(path=DATA_PATH.joinpath(selected_record)):
         """Fast process a simple example for testing """
-        ecg_record = EcgRecord(path)
-        key = list(ecg_record.seg_keys)[idx_segment]
-        segment = ecg_record.get_seg(key)
-        return ecg_record, segment
+        return EcgRecord(path)
 
 
 if __name__ == "__main__":
