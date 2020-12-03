@@ -36,7 +36,7 @@ CLSNM_IC_LOCK_O = 'fas fa-lock-open'
 ID_STOR_IS_YAXIS_FIXED = 'id_is_yaxis_fixed'
 
 ecg_app = EcgApp(__name__)
-ecg_app.set_curr_record(DATA_PATH.joinpath(selected_record))
+ecg_app.set_record(DATA_PATH.joinpath(record_nm))
 idx_lead = 3
 fig = ecg_app.get_lead_fig(idx_lead)
 

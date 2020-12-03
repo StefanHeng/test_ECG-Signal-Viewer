@@ -22,9 +22,9 @@ if __name__ == "__main__":
 
     idx_segment = 0
     idx_lead = 0
-    ecg_record = EcgRecord(DATA_PATH.joinpath(selected_record))
+    ecg_record = EcgRecord(DATA_PATH.joinpath(record_nm))
     key = list(ecg_record.get_segment_keys())[idx_segment]
-    segment = ecg_record.get_seg(key)
+    segment = ecg_record._get_seg(key)
     print(segment.dataset.shape)
     # time_axis = segment.get_time_axis()
     # print(time_axis.size)

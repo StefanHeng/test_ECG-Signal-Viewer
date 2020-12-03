@@ -21,12 +21,10 @@ from ecg_record import *
 
 # enum SignalType { UNUSED = 0, ECG = 1, BOX = 2, PRESSURE = 3, ANALOG = 4, STIM = 5 };
 
-DATA_PATH = pathlib.Path("/Users/stefanh/Documents/UMich/Research/ECG-Signal-Viewer/data")
-
-selected_record = "LOG_DHR50526570_09000e6f-001.h5"
+from dev_file import *
 
 if __name__ == "__main__":
-    record = h5py.File(DATA_PATH.joinpath(selected_record), 'r')
+    record = h5py.File(DATA_PATH.joinpath(record_nm), 'r')
     files = list(record.keys())  # contains only log files
     print("Keys for a `record`: ")
     print(files)
@@ -72,7 +70,7 @@ if __name__ == "__main__":
     print()
 
     print("several global metadata for each log file: ")
-    my_record = EcgRecord(DATA_PATH.joinpath(selected_record))
-    print(len(my_record.get_segment_keys()))
-    for key in my_record.get_segment_keys():
-        print(my_record.get_seg(key).get_metadata())
+    my_record = EcgRecord(DATA_PATH.joinpath(record_nm))
+    print(len(my_record._seg_keys))
+    for key in my_record._seg_keys:
+        print(my_record._get_seg(key).get_metadata())

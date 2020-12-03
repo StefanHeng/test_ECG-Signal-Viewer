@@ -9,7 +9,7 @@ from dev_file import *
 from ecg_app import EcgApp
 
 D_RNG_INIT = [
-    [0, 100000],
+    [0, 100000],  # First 50s, given 2000 sample_rate
     [-4000, 4000]  # -4V to 4V
 ]
 
@@ -32,7 +32,7 @@ ID_STOR_IS_FIXY = 'id_is_yaxis_fixed'
 # Syntactic sugar
 T = 'type'  # For pattern matching callbacks
 I = 'index'
-D = 'data'  # Keyword for Dash and plotly
+D = 'data'  # Keywords for Dash and plotly
 F = 'figure'
 CNM = 'className'
 
@@ -42,12 +42,12 @@ TXT_HD = 'Ecg Viz'  # Text shown in header
 CNM_MNBD = 'body_main'
 ID_DIV_PLTS = 'div_plots'
 CNM_DIV_LD = 'div_lead'
-TXT_NM_LD = 'name-lead'
+CNM_LD = 'name-lead'
 CNM_DIV_FIG = 'div_figure'
 CNM_BTN = 'btn'
 
 ecg_app = EcgApp(__name__)
-ecg_app.set_curr_record(DATA_PATH.joinpath(selected_record))
+ecg_app.set_record(DATA_PATH.joinpath(record_nm))
 
 app = dash.Dash(
     __name__,
@@ -58,6 +58,13 @@ app.title = "Dev test run"
 # idxs_fig = [6, 4, 5, 3, 9, 16, 35, 20]  # Arbitrary, for testing only, users should spawn all the leads by selection
 idxs_fig = range(8)
 
+
+# Syntactic sugar
+def m_id(typ, idx):
+    """Generate match id """
+    return {T: typ, I: idx}
+
+
 app.layout = html.Div([
     # dcc.Store(id=IG_STOR_D_RNG, data={idx: D_RNG_INIT for idx in idxs_fig}),
     html.Div(className=CNM_HD, children=[
@@ -67,8 +74,9 @@ app.layout = html.Div([
     html.Div(className=CNM_MNBD, children=[
         html.Div(id=ID_DIV_PLTS, children=[
             html.Div(className=CNM_DIV_LD, children=[
+                # All figure data maintained inside layout variable
                 dcc.Store(id={T: ID_STOR_D_RNG, I: idx}, data=D_RNG_INIT),
-                html.P(ecg_app.curr_lead_nms[idx], className=TXT_NM_LD),
+                html.P(ecg_app.curr_lead_nms[idx], className=CNM_LD),
                 html.Div(className=CNM_DIV_FIG, children=[
                     html.Div(className=ID_DIV_OPN, children=[
                         html.Div(html.Button(id={T: ID_BTN_FIXY, I: idx}, className=CNM_BTN, n_clicks=0, children=[
@@ -97,14 +105,15 @@ def get_last_changed_ids():
     return [p['prop_id'] for p in dash.callback_context.triggered][0]
 
 
-def match(id_str):  # Syntactic sugar
+def mch(id_str):
+    """Pattern matching id used in callbacks """
     return {T: id_str, I: MATCH}
 
 
 @app.callback(
-    Output(match(ID_STOR_D_RNG), D),
-    [Input(match(ID_GRA), 'relayoutData')],
-    [State(match(ID_STOR_D_RNG), D)],
+    Output(mch(ID_STOR_D_RNG), D),
+    [Input({T: ID_GRA, I: MATCH}, 'relayoutData')],
+    [State(mch(ID_STOR_D_RNG), D)],
     prevent_initial_call=True)
 def update_limits(relayout_data, d_range):
     if relayout_data is None:
@@ -119,11 +128,11 @@ def update_limits(relayout_data, d_range):
 
 
 @app.callback(
-    Output(match(ID_GRA), F),
-    [Input(match(ID_STOR_D_RNG), D),
-     Input(match(ID_BTN_FIXY), 'n_clicks')],
-    [State(match(ID_GRA), F),
-     State(match(ID_GRA), 'id')])
+    Output({T: ID_GRA, I: MATCH}, F),
+    [Input(mch(ID_STOR_D_RNG), D),
+     Input({T: ID_BTN_FIXY, I: MATCH}, 'n_clicks')],
+    [State({T: ID_GRA, I: MATCH}, F),
+     State({T: ID_GRA, I: MATCH}, 'id')])
 def update_figure(d_range, n_clicks, fig, id_d):
     changed_id = get_last_changed_ids()
     if ID_STOR_D_RNG in changed_id:  # Only 1 input change is needed each time
@@ -136,8 +145,8 @@ def update_figure(d_range, n_clicks, fig, id_d):
 
 
 @app.callback(
-    Output(match(ID_IC_FIXY), CNM),
-    Input(match(ID_BTN_FIXY), 'n_clicks'))
+    Output({T: ID_IC_FIXY, I: MATCH}, CNM),
+    Input({T: ID_BTN_FIXY, I: MATCH}, 'n_clicks'))
 def update_fix_yaxis_icon(n_clicks):
     if n_clicks % 2 == 0:  # Init with yaxis unlocked
         return CNM_IC_LKO

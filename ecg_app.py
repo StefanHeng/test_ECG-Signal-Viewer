@@ -1,50 +1,189 @@
-import numpy as np
-import pandas as pd
-from math import floor
-from copy import deepcopy
-
 import dash
-# import dash_core_components as dcc
-# import dash_html_components as html
+import dash_core_components as dcc
+import dash_html_components as html
+from dash.dependencies import Input, Output, State, MATCH
 
-import logging
+# import logging
 
+# logging.basicConfig(level=logging.DEBUG)
+# logger = logging.getLogger('dev')
+
+from dev_file import *
 from ecg_record import EcgRecord
+from ecg_plot import EcgPlot
+from ecg_ui import EcgUi
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger('dev')
+FA_CSS_LNK = 'https://use.fontawesome.com/releases/v5.8.1/css/all.css'
+
+ID_GRA = 'graph'
+ID_STOR_D_RNG = '_display_range'  # Contains dictionary of each display range
+
+CNM_HD = 'header'
+CNM_HDTT = 'header_title'
+TXT_HD = 'Ecg Viz'  # Text shown in header
+CNM_MNBD = 'body_main'
+
+ID_DPD_RECR = 'record-dropdown'
+ID_DPD_LD_TEMPL = 'lead-template-dropdown'
+
+ID_DIV_PLTS = 'div_plots'
+CNM_DIV_LD = 'div_lead'
+CNM_LD = 'name-lead'
+CNM_DIV_FIG = 'div_figure'
+CNM_GRA = 'plotly-graph'
+
+CONF = dict(  # Configuration for figure
+    responsive=True,
+    scrollZoom=True,
+    modeBarButtonsToRemove=['lasso2d', 'select2d', 'autoScale2d', 'toggleSpikelines',
+                            'hoverClosestCartesian', 'hoverCompareCartesian'],
+    displaylogo=False
+)
+D_RNG_INIT = [
+    [0, 100000],  # First 50s, given 2000 sample_rate
+    [-4000, 4000]  # -4V to 4V
+]
+
+CNM_BTN = 'btn'
+ID_DIV_OPN = 'div_options'
+ID_BTN_FIXY = 'btn_fix_yaxis'
+ID_IC_FIXY = 'ic_fix_yaxis'
+CNM_IC_LK = 'fas fa-lock'  # Font Awesome
+CNM_IC_LKO = 'fas fa-lock-open'
+ID_STOR_IS_FIXY = 'id_is_yaxis_fixed'
+
+# Syntactic sugar
+T = 'type'  # For pattern matching callbacks
+I = 'index'
+D = 'data'  # Keywords for Dash and plotly
+F = 'figure'
+CNM = 'className'
+C = 'children'
+V = 'value'
+
+
+# Syntactic sugar
+def m_id(typ, idx):
+    """Generate match id """
+    return {T: typ, I: idx}
+
+
+def mch(id_str):
+    """Pattern matching id used in callbacks """
+    return {T: id_str, I: MATCH}
 
 
 class EcgApp:
     """Handles the Dash web app, interface with potentially multiple records
 
-    Encapsulates all UI interactions including HTML layout, `callbacks
+    Encapsulates all UI interactions including HTML layout, callbacks
     """
 
-    DISPLAY_RANGE_INIT = [
-        [0, 100000],  # First 50s, given 2000 sample_rate
-        [-4000, 4000]  # -4V to 4V
-    ]
+    LD_TEMPL = {
+        # Arbitrary, for testing only, users should spawn all the leads via UI
+        'dev range(8)': range(8),
+        'dev rand': [6, 4, 5, 3, 9, 16, 35, 20]
+    }
 
     def __init__(self, app_name):
-        self.app_name = app_name
-        self.app = dash.Dash(self.app_name)
-        self.ui = self._Ui(self)
-
         self.curr_recr = None  # Current record
-        self.curr_lead_nms = None
         self.curr_plot = None
-        self.curr_figs = None
+        self.idxs_fig = []
 
-        #
-        self._display_range = self.DISPLAY_RANGE_INIT
+        self.app_name = app_name  # No human-readable meaning, name passed into Dash object
+        self.app = dash.Dash(self.app_name, external_stylesheets=[FA_CSS_LNK])
+        self.app.layout = self._set_layout()
+        self._set_callbacks()
+        self.ui = EcgUi(self)
 
-    def set_curr_record(self, record_path):
+    def run(self, debug=False):
+        self.app.run_server(debug=debug)
+
+    def _set_layout(self):
+        return html.Div([
+            html.Div(className=CNM_HD, children=[
+                html.Div(TXT_HD, className=CNM_HDTT)
+            ]),
+
+            html.Div(className=CNM_MNBD, children=[
+                dcc.Dropdown(
+                    id=ID_DPD_RECR,
+                    options=[
+                        {'label': 'dev record', V: record_nm}
+                    ],
+                    value=record_nm
+                ),
+                dcc.Dropdown(
+                    id=ID_DPD_LD_TEMPL, disabled=True,
+                    options=[
+                        {'label': 'dev range(8)', V: 'dev range(8)'},
+                        {'label': 'dev rand', V: 'dev rand'}
+                    ]
+                ),
+                html.Div(id=ID_DIV_PLTS, children=[
+                    self.get_fig_layout(idx) for idx in self.idxs_fig
+                ])
+            ])
+        ])
+
+    def get_fig_layout(self, idx):
+        return html.Div(
+            className=CNM_DIV_LD, children=[
+                # All figure data maintained inside layout variable
+                dcc.Store(id=m_id(ID_STOR_D_RNG, idx), data=D_RNG_INIT),
+                html.P(self.curr_recr.lead_nms[idx], className=CNM_LD),
+                html.Div(className=CNM_DIV_FIG, children=[
+                    html.Div(className=ID_DIV_OPN, children=[
+                        html.Div(
+                            html.Button(id=m_id(ID_BTN_FIXY, idx), className=CNM_BTN, n_clicks=0, children=[
+                                html.I(id=m_id(ID_IC_FIXY, idx), className=CNM_IC_LKO)
+                            ])),
+                    ]),
+                    dcc.Graph(
+                        id=m_id(ID_GRA, idx), className=CNM_GRA, config=CONF,
+                        figure=self.get_lead_fig(idx, D_RNG_INIT)
+                    )
+                ])
+            ])
+
+    def _set_callbacks(self):
+        self.app.callback(
+            Output(mch(ID_STOR_D_RNG), D),
+            [Input(mch(ID_GRA), 'relayoutData')],
+            [State(mch(ID_STOR_D_RNG), D)],
+            prevent_initial_call=True
+        )(self.update_lims)
+        self.app.callback(
+            Output(ID_DPD_LD_TEMPL, 'disabled'),
+            Input(ID_DPD_RECR, V)
+        )(self.set_record)
+        self.app.callback(
+            Output(ID_DIV_PLTS, C),
+            Input(ID_DPD_LD_TEMPL, V),
+            prevent_initial_call=True
+        )(self._load_figs)
+        self.app.callback(
+            Output(mch(ID_IC_FIXY), CNM),
+            Input(mch(ID_BTN_FIXY), 'n_clicks')
+        )(self.update_fix_yaxis_icon)
+        self.app.callback(
+            Output(mch(ID_GRA), F),
+            [Input(mch(ID_STOR_D_RNG), D),
+             Input(mch(ID_BTN_FIXY), 'n_clicks')],
+            [State(mch(ID_GRA), F),
+             State(mch(ID_GRA), 'id')]
+        )(self.update_figure)
+
+    def set_record(self, recr_nm):
         """Current record selected to display. Previous record data overridden """
-        self.curr_recr = EcgRecord(record_path)
-        self.curr_lead_nms = self.curr_recr.get_lead_names()
-        self.curr_plot = self._Plot(self.curr_recr, self)  # A `plot` servers a record
-        # self.curr_figs = {}
+        self.curr_recr = EcgRecord(DATA_PATH.joinpath(recr_nm))
+        self.curr_plot = EcgPlot(self.curr_recr, self)  # A `plot` servers a record
+        return False
+
+    def _load_figs(self, key_templ):
+        """Set up multiple figures in the APP, original figures shown overridden """
+        self.idxs_fig = self.LD_TEMPL[key_templ]
+        return [self.get_fig_layout(idx) for idx in self.idxs_fig]
 
     def get_lead_fig(self, idx_lead, display_range):
         """
@@ -57,9 +196,6 @@ class EcgApp:
         :return: dictionary that represents a plotly graph
         """
         strt, end = display_range[0]
-        # determine if optimization is needed for large sample_range
-        # self.curr_figs[idx_lead] = self.curr_plot.get_fig(idx_lead, strt, end)
-        # return self.curr_figs[idx_lead]
         return self.curr_plot.get_fig(idx_lead, strt, end)
 
     def get_lead_xy_vals(self, idx_lead, display_range):
@@ -67,124 +203,35 @@ class EcgApp:
         # determine if optimization is needed for large sample_range
         return self.curr_plot.get_xy_vals(idx_lead, strt, end)
 
-    class _Plot:
-        """Handles plotting for a particular `record`, or surgery.
-        """
+    @staticmethod
+    def get_changed_ids():
+        return [p['prop_id'] for p in dash.callback_context.triggered][0]
 
-        # Ad-hoc values for now, in the future should be calculated from device info
-        # Default starting point, in the future should be retrieved from user
-        _DISPLAY_WIDTH = 40  # in rem, display_width * display_scale_t gets the number of points to render
-        _DISPLAY_SCALE_T = 20  # #continuous time stamps to display in 1rem
-        _DISPLAY_SCALE_ECG = 20  # magnitude of ecg in a 1rem
-        SP_RT_READABLE = 125  # Sufficient frequency (Hz) for human differentiable graphing
+    def update_lims(self, relayout_data, d_range):
+        return self.ui.to_sample_lim(relayout_data, d_range)
+        # if relayout_data is None:
+        #     raise dash.exceptions.PreventUpdate
+        # elif relayout_data is not None:
+        #     d_range = self.ui.to_sample_lim(relayout_data, d_range)
+        # else:
+        #     if d_range is None:
+        #         d_range = D_RNG_INIT
+        #         raise dash.exceptions.PreventUpdate
+        # return d_range
 
-        PRESERVE_UI_STATE = True  # Arbitrarily picked value
-        COLOR_PLOT = '#6AA2F9'  # Default blue by plotly
-        PRIMARY = '#FCA912'
-        SECONDARY = '#2C8595'
-        SECONDARY_2 = '#80B6BF'
-        GRAY_0 = '#808080'  # Gray
+    def update_figure(self, d_range, n_clicks, fig, id_d):
+        changed_id = self.get_changed_ids()
+        if ID_STOR_D_RNG in changed_id:  # Only 1 input change is needed each time
+            x, y = self.get_lead_xy_vals(id_d[I], d_range)
+            fig[D][0]['x'] = x  # First plot/figure on the graph
+            fig[D][0]['y'] = y
+        elif ID_BTN_FIXY in changed_id:
+            fig['layout']['yaxis']['fixedrange'] = n_clicks % 2 == 1
+        return fig
 
-        def __init__(self, record, parent):
-            self.recr = record
-            self.parn = parent
-            self.min_sample_step = self.recr.sample_rate // self.SP_RT_READABLE
-            # Multiplying factor for converting to time in microseconds
-            self.fac_to_us = 10 ** 6 / self.recr.sample_rate
-
-        def get_xy_vals(self, idx_lead, strt, end):
-            """
-            :return: plotly line plot's x, y data points, based on current display range
-
-            .. seealso:: `ecg_record.get_samples`
-            """
-            # Always take data as samples instead of entire channel, sample at at least increments of min_sample_step
-            sample_factor = max(self._get_sample_factor(strt, end), self.min_sample_step)
-            # if sample_factor >= 5:
-            #     sample_counts = np.linspace(strt, end, num=(end - strt + 1) // sample_factor)
-            #     return self.to_time_axis(sample_counts), self.recr.get_samples(idx_lead, strt, end, sample_factor)
-            # else:
-            #     # No need to sample, take all data
-            #     return self.to_time_axis(np.arange(strt, end + 1)), self.recr.get_samples(idx_lead, strt, end)
-            sample_counts = np.linspace(strt, end, num=(end - strt + 1) // sample_factor)
-            return self.to_time_axis(sample_counts), self.recr.get_samples(idx_lead, strt, end, sample_factor)
-
-        def get_fig(self, idx_lead, strt, end):
-            # logger.info(f'sample_counts of size {sample_counts.shape[0]} -> {sample_counts}')
-            # logger.info(f'ecg_vals of size {ecg_vals.shape[0]} -> {ecg_vals}')
-            time_vals, ecg_vals = self.get_xy_vals(idx_lead, strt, end)
-            xaxis_config = dict(
-                showspikes=True,
-                spikemode='toaxis',
-                spikesnap='data',
-                spikedash='dot',
-                spikethickness=1,
-                spikecolor=self.PRIMARY,
-                linecolor=self.SECONDARY_2  # Axis color
-            )
-            yaxis_config = deepcopy(xaxis_config)
-            return dict(
-                data=[dict(
-                    x=time_vals,
-                    y=ecg_vals,
-                    mode='lines',
-                    marker=dict(
-                        color=self.COLOR_PLOT,
-                        size=10),
-                )],
-                layout=dict(
-                    uirevision=self.PRESERVE_UI_STATE,
-                    dragmode='pan',
-                    margin=dict(l=40, r=0, t=0, b=20),
-                    hoverdistance=0,
-                    hoverinfo=None,
-                    xaxis=xaxis_config,
-                    yaxis=yaxis_config
-                )
-            )
-
-        def to_time_axis(self, sample_counts):
-            """
-            :return: Evenly spaced array of incremental time stamps in microseconds
-            """
-            if floor(self.fac_to_us) == self.fac_to_us:  # Is an int
-                sample_counts *= int(self.fac_to_us)
-            else:
-                sample_counts = (sample_counts * self.fac_to_us).astype(np.int64)
-            # Converted to time in microseconds as integer, drastically raises efficiency while maintaining precision
-            return pd.to_datetime(pd.Series(sample_counts), unit='us')
-
-        def _get_sample_factor(self, strt, end):
-            # If showing a small range, sample_factor which is incremental steps should be at least 1
-            return max((end - strt + 1) // (self._DISPLAY_WIDTH * self._DISPLAY_SCALE_T), 1)
-
-    class _Ui:
-        # Keys inside `relayoutData`
-        KEY_X_S = 'xaxis.range[0]'  # Start limit for horizontals axis
-        KEY_X_E = 'xaxis.range[1]'
-        KEY_Y_S = 'yaxis.range[0]'
-        KEY_Y_E = 'yaxis.range[1]'
-
-        def __init__(self, parent):
-            self.parn = parent
-
-        def to_sample_lim(self, relayout_data, d_range):
-            """
-            Due to plotly graph_obj internal storage format of `relayoutData`
-
-            :param relayout_data:  Horizontal, vertical plot limit,  as str representation of pandas timestamp
-            :param d_range: Previous sample count range
-            :return: Horizontal, vertical plot limit in terms of sample count
-            """
-            if self.KEY_X_S in relayout_data:
-                d_range[0] = [
-                    self.parn.curr_recr.time_str_to_sample_count(relayout_data[self.KEY_X_S]),
-                    self.parn.curr_recr.time_str_to_sample_count(relayout_data[self.KEY_X_E])
-                ]
-            elif self.KEY_Y_S in relayout_data:
-                d_range[1] = [
-                    self.parn.curr_recr.time_str_to_sample_count(relayout_data[self.KEY_Y_S]),
-                    self.parn.curr_recr.time_str_to_sample_count(relayout_data[self.KEY_Y_E])
-                ]
-            return d_range
-
+    @staticmethod
+    def update_fix_yaxis_icon(n_clicks):
+        if n_clicks % 2 == 0:  # Init with yaxis unlocked
+            return CNM_IC_LKO
+        else:
+            return CNM_IC_LK

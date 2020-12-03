@@ -52,8 +52,8 @@ def test_import():
 def test_h5py_mem_map():
     r = EcgRecord.example()
     # a = r.get_samples(3, 3000, 4000, 8)
-    print(r.seg_keys)
-    dset = r.record[r.seg_keys[3]]
+    print(r._seg_keys)
+    dset = r.record[r._seg_keys[3]]
     a = dset[5, :400000]
     print(dset.shape, type(dset))
 
