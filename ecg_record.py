@@ -107,7 +107,7 @@ class EcgRecord:
         # Edge case when idx_end = edge of segment start, still need to include that 1 value hence `bisect_right`
         return bisect_left(self._sample_counts_acc, strt), bisect_right(self._sample_counts_acc, end)
 
-    @profile
+    # @profile
     def get_samples(self, idx_lead, strt, end, step):
         """ Continuous samples of ecg magnitudes, specified by counted range
 

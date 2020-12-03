@@ -36,9 +36,7 @@ class EcgApp:
         self.curr_plot = None
         self.curr_figs = None
 
-        # A valid range has values in [0, sum of all samples across the entire ecg_record)
-        # Inclusive start and end
-        # one-to-one correspondence with time by `sample_rate`
+        #
         self._display_range = self.DISPLAY_RANGE_INIT
 
     def set_curr_record(self, record_path):
@@ -46,16 +44,26 @@ class EcgApp:
         self.curr_recr = EcgRecord(record_path)
         self.curr_lead_nms = self.curr_recr.get_lead_names()
         self.curr_plot = self._Plot(self.curr_recr, self)  # A `plot` servers a record
-        self.curr_figs = {}
+        # self.curr_figs = {}
 
-    def get_lead_fig(self, idx_lead):
-        strt, end = self._display_range[0]
+    def get_lead_fig(self, idx_lead, display_range):
+        """
+        :param idx_lead: index of lead as stored in .h5 datasets
+        :param display_range: range of sample_counts, inclusive start and end
+
+        .. note:: A valid range has values in [0, sum of all samples across the entire ecg_record),
+        one-to-one correspondence with time by `sample_rate`
+
+        :return: dictionary that represents a plotly graph
+        """
+        strt, end = display_range[0]
         # determine if optimization is needed for large sample_range
-        self.curr_figs[idx_lead] = self.curr_plot.get_fig(idx_lead, strt, end)
-        return self.curr_figs[idx_lead]
+        # self.curr_figs[idx_lead] = self.curr_plot.get_fig(idx_lead, strt, end)
+        # return self.curr_figs[idx_lead]
+        return self.curr_plot.get_fig(idx_lead, strt, end)
 
-    def get_lead_xy_vals(self, idx_lead):
-        strt, end = self._display_range[0]
+    def get_lead_xy_vals(self, idx_lead, display_range):
+        strt, end = display_range[0]
         # determine if optimization is needed for large sample_range
         return self.curr_plot.get_xy_vals(idx_lead, strt, end)
 

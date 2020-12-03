@@ -8,19 +8,17 @@ from dash.dependencies import Input, Output, State, MATCH
 from dev_file import *
 from ecg_app import EcgApp
 
-PRIMARY = '#FCA912'
-
 D_RNG_INIT = [
     [0, 100000],  # 100s
     [-4000, 4000]  # -4V to 4V
 ]
 # PRESERVE_UI_STATE = 'keep'  # string val assigned arbitrarily
 ID_GRA = 'graph'
-IG_STOR_D_RNG = '_display_range'
+IG_STOR_D_RNG = '_display_range'  # Contains dictionary of each display range
 D_CONF = {
     'responsive': True,
     'scrollZoom': True,
-    'modeBarButtonsToRemove': ['zoom2d', 'lasso2d', 'select2d', 'autoScale2d', 'toggleSpikelines',
+    'modeBarButtonsToRemove': ['lasso2d', 'select2d', 'autoScale2d', 'toggleSpikelines',
                                'hoverClosestCartesian', 'hoverCompareCartesian'],
     'displaylogo': False
 }
@@ -43,12 +41,11 @@ app = dash.Dash(
 )
 app.title = "Dev test run"
 
-idxs_fig = [6, 4, 5, 3, 9, 16, 35, 20]  # Arbitrary, for testing only, users should spawn all the leads by selection
+# idxs_fig = [6, 4, 5, 3, 9, 16, 35, 20]  # Arbitrary, for testing only, users should spawn all the leads by selection
+idxs_fig = range(8)
 
 app.layout = html.Div([
-    dcc.Store(id=IG_STOR_D_RNG, data=D_RNG_INIT),
-    dcc.Store(id=ID_STOR_IS_FIXY, data=False),
-
+    # dcc.Store(id=IG_STOR_D_RNG, data={idx: D_RNG_INIT for idx in idxs_fig}),
     html.Div(className="app-header", children=[
         html.Div('Ecg Viz', className="app-header_title")
     ]),
@@ -56,16 +53,17 @@ app.layout = html.Div([
     html.Div(className='main-body', children=[
         html.Div(id='plots', children=[
             html.Div(className='lead-block', children=[
-                html.P(className='name-lead', children=[ecg_app.curr_lead_nms[i]]),
+                dcc.Store(id={T: IG_STOR_D_RNG, I: idx}, data=D_RNG_INIT),
+                html.P(ecg_app.curr_lead_nms[idx], className='name-lead'),
                 html.Div(className='figure-container', children=[
                     html.Div(className=ID_DIV_OPN, children=[
-                        html.Div(html.Button(id={T: ID_BTN_FIXY, I: i}, className='button', children=[
-                            html.I(id={T: ID_IC_FIXY, I: i}, className='fas fa-lock-open', n_clicks=0)
+                        html.Div(html.Button(id={T: ID_BTN_FIXY, I: idx}, className='button', n_clicks=0, children=[
+                            html.I(id={T: ID_IC_FIXY, I: idx}, className='fas fa-lock-open')
                         ])),
                     ]),
                     dcc.Graph(
-                        id={T: ID_GRA, I: i},
-                        figure=ecg_app.get_lead_fig(i),
+                        id={T: ID_GRA, I: idx},
+                        figure=ecg_app.get_lead_fig(idx, D_RNG_INIT),
                         config=D_CONF,
                         style=dict(
                             width='95%',
@@ -75,43 +73,58 @@ app.layout = html.Div([
                         )
                     )
                 ])
-            ]) for i in idxs_fig
+            ]) for idx in idxs_fig
         ])
     ])
 ])
 
 
-# @app.callback(
-#     Output('dynamic-dropdown-container', 'children'),
-#     [Input('dynamic-add-filter', 'n_clicks')],
-#     [State('dynamic-dropdown-container', 'children')])
-# def display_dropdowns(n_clicks, children):
-#     new_element = html.Div([
-#         dcc.Dropdown(
-#             id={
-#                 'type': 'dynamic-dropdown',
-#                 'index': n_clicks
-#             },
-#             options=[{'label': i, 'value': i} for i in ['NYC', 'MTL', 'LA', 'TOKYO']]
-#         ),
-#         html.Div(
-#             id={
-#                 'type': 'dynamic-output',
-#                 'index': n_clicks
-#             }
-#         )
-#     ])
-#     children.append(new_element)
-#     return children
-#
-#
-# @app.callback(
-#     Output({'type': 'dynamic-output', 'index': MATCH}, 'children'),
-#     [Input({'type': 'dynamic-dropdown', 'index': MATCH}, 'value')],
-#     [State({'type': 'dynamic-dropdown', 'index': MATCH}, 'id')],
-# )
-# def display_output(value, id):
-#     return html.Div('Dropdown {} = {}'.format(id['index'], value))
+def get_last_changed_ids():
+    return [p['prop_id'] for p in dash.callback_context.triggered][0]
+
+
+@app.callback(
+    Output({T: IG_STOR_D_RNG, I: MATCH}, 'data'),
+    [Input({T: ID_GRA, I: MATCH}, 'relayoutData')],
+    [State({T: IG_STOR_D_RNG, I: MATCH}, 'data')],
+    prevent_initial_call=True)
+def update_limits(relayout_data, d_range):
+    if relayout_data is None:
+        raise dash.exceptions.PreventUpdate
+    elif relayout_data is not None:
+        d_range = ecg_app.ui.to_sample_lim(relayout_data, d_range)
+    else:
+        if d_range is None:
+            d_range = D_RNG_INIT
+            raise dash.exceptions.PreventUpdate
+    return d_range
+
+
+@app.callback(
+    Output({T: ID_GRA, I: MATCH}, 'figure'),
+    [Input({T: IG_STOR_D_RNG, I: MATCH}, 'data'),
+     Input({T: ID_BTN_FIXY, I: MATCH}, 'n_clicks')],
+    [State({T: ID_GRA, I: MATCH}, 'figure'),
+     State({T: ID_GRA, I: MATCH}, 'id')])
+def update_figure(d_range, n_clicks, f, id_d):
+    changed_id = get_last_changed_ids()
+    if IG_STOR_D_RNG in changed_id:  # Only 1 input change is needed each time
+        x, y = ecg_app.get_lead_xy_vals(id_d[I], d_range)
+        f['data'][0]['x'] = x
+        f['data'][0]['y'] = y
+    elif ID_BTN_FIXY in changed_id:
+        f['layout']['yaxis']['fixedrange'] = n_clicks % 2 == 1
+    return f
+
+
+@app.callback(
+    Output({T: ID_IC_FIXY, I: MATCH}, 'className'),
+    Input({T: ID_BTN_FIXY, I: MATCH}, 'n_clicks'))
+def update_fix_yaxis_icon(n_clicks):
+    if n_clicks % 2 == 0:  # Init with yaxis unlocked
+        return CLSNM_IC_LKO
+    else:
+        return CLSNM_IC_LK
 
 
 # @profile

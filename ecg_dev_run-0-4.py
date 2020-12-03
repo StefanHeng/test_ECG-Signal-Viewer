@@ -47,7 +47,6 @@ app.title = "Dev test run"
 
 app.layout = html.Div(children=[
     dcc.Store(id=IG_STOR_D_RANGE, data=DISP_RANGE_INIT),
-    dcc.Store(id=ID_STOR_IS_YAXIS_FIXED, data=False),
 
     html.Div(className="app-header", children=[
         html.Div('Ecg Viz', className="app-header_title")
@@ -80,8 +79,10 @@ app.layout = html.Div(children=[
     ])
 ])
 
+
 def get_last_changed_ids():
     return [p['prop_id'] for p in dash.callback_context.triggered][0]
+
 
 @app.callback(
     Output(IG_STOR_D_RANGE, 'data'),
