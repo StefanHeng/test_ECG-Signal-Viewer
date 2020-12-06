@@ -1,28 +1,5 @@
-.div_options {
-    position: absolute;
-    left: 10%;
-    display: flex;
-    opacity: 0;
-    transition: all 200ms ease-in-out;
-    height: auto;
-    width: 60%;
-    /*border: 1px gray solid;*/
-    padding: 0.125em 0.25em;
-    z-index: 100;
-}
-
-.div_figure:hover .div_options {
-    opacity: 1;
-    transition: all 200ms ease-in-out;
-}
-
-/*.div_options:hover {*/
-/*    opacity: 1;*/
-/*    transition: all 200ms ease-in-out;*/
-/*}*/
-
 .btn {
-    font-size: 0.75em; /* changes icon size */
+    font-size: 0.75em;  /* changes icon size */
     color: var(--gray_a8);
     background-color: transparent;
     height: 2em;
@@ -39,11 +16,93 @@
 
 .btn:hover {
     background-color: var(--primary_a4);
-    border-color: var(--primary_a8);
+    border-color: var(--primary_a6);
 }
 
 .btn:active{
     color: white;
-    background-color: var(--primary);
+    background-color: var(--primary_a7);
     border-color: transparent;
 }
+
+.opaque_1 {
+    opacity: 1;
+}
+
+.opaque_0 {
+    opacity: 0;
+}
+
+.btn_options_rotate_start {
+    transform: rotate(0deg);
+    color: var(--gray_a8);
+    transition: var(--ease-all);
+}
+
+.btn_options_rotate_end {
+    transform: rotate(90deg);
+    color: var(--primary);
+    transition: var(--ease-all);
+}
+
+.div_options_expand-width {
+    width: 30vw;
+}
+
+.div_options_collapse-width {
+    width: 0;
+}
+
+
+#div_options-bound-box {
+    position: absolute;
+    top: 6em;
+    left: 2.5%;
+    display: flex;
+    z-index: 10;
+    /*border: 1px red solid;*/
+}
+
+#btn_options {
+    font-size: 1.25em;
+    border-radius: 1em;
+    margin-right: 0.5em;
+}
+
+
+#div_options {
+    display: flex;
+    flex: auto;
+    flex-direction: column;
+    font-size: 0.75em;
+    transition: var(--ease-all);
+    /*border: 1px green solid;*/
+}
+
+#div_options > * {
+    width: 100%;
+    margin-bottom: 0.5em;
+}
+
+
+.div_fig-options {
+    position: absolute;
+    left: 10%;
+    display: flex;
+    opacity: 0;
+    transition: var(--ease-all);
+    height: auto;
+    width: 60%;
+    /*border: 1px gray solid;*/
+    padding: 0.125em 0.25em;
+    z-index: 5;
+}
+
+.div_figure:hover .div_fig-options {
+    opacity: 1;
+    transition: var(--ease-all);
+}
+
+
+
+

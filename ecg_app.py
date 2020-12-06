@@ -45,7 +45,7 @@ D_RNG_INIT = [
 ]
 
 CNM_BTN = 'btn'
-ID_DIV_OPN = 'div_options'
+ID_DIV_FIG_OPN = 'div_fig-options'
 ID_BTN_FIXY = 'btn_fix_yaxis'
 ID_IC_FIXY = 'ic_fix_yaxis'
 CNM_IC_LK = 'fas fa-lock'  # Font Awesome
@@ -73,6 +73,10 @@ def mch(id_str):
     return {T: id_str, I: MATCH}
 
 
+def join(*class_nms):  # For Dash className
+    return ' '.join(class_nms)
+
+
 class EcgApp:
     """Handles the Dash web app, interface with potentially multiple records
 
@@ -81,8 +85,8 @@ class EcgApp:
 
     LD_TEMPL = {
         # Arbitrary, for testing only, users should spawn all the leads via UI
-        'dev range(8)': range(8),
-        'dev rand': [6, 4, 5, 3, 9, 16, 35, 20]
+        'range(8)': range(8),
+        'rand': [6, 4, 5, 3, 9, 16, 35, 20]
     }
 
     def __init__(self, app_name):
@@ -107,17 +111,14 @@ class EcgApp:
 
             html.Div(className=CNM_MNBD, children=[
                 dcc.Dropdown(
-                    id=ID_DPD_RECR,
-                    options=[
-                        {'label': 'dev record', V: record_nm}
-                    ],
-                    value=record_nm
+                    id=ID_DPD_RECR, value=record_nm,
+                    options=[{'label': f'{KW_DEV}{record_nm}', V: record_nm}]
                 ),
                 dcc.Dropdown(
                     id=ID_DPD_LD_TEMPL, disabled=True,
                     options=[
-                        {'label': 'dev range(8)', V: 'dev range(8)'},
-                        {'label': 'dev rand', V: 'dev rand'}
+                        {'label': KW_DEV + 'range(8)', V: 'range(8)'},
+                        {'label': KW_DEV + 'random', V: 'rand'}
                     ]
                 ),
                 html.Div(id=ID_DIV_PLTS, children=[
@@ -133,7 +134,7 @@ class EcgApp:
                 dcc.Store(id=m_id(ID_STOR_D_RNG, idx), data=D_RNG_INIT),
                 html.P(self.curr_recr.lead_nms[idx], className=CNM_LD),
                 html.Div(className=CNM_DIV_FIG, children=[
-                    html.Div(className=ID_DIV_OPN, children=[
+                    html.Div(className=ID_DIV_FIG_OPN, children=[
                         html.Div(
                             html.Button(id=m_id(ID_BTN_FIXY, idx), className=CNM_BTN, n_clicks=0, children=[
                                 html.I(id=m_id(ID_IC_FIXY, idx), className=CNM_IC_LKO)
@@ -176,9 +177,12 @@ class EcgApp:
 
     def set_record(self, recr_nm):
         """Current record selected to display. Previous record data overridden """
-        self.curr_recr = EcgRecord(DATA_PATH.joinpath(recr_nm))
-        self.curr_plot = EcgPlot(self.curr_recr, self)  # A `plot` servers a record
-        return False
+        if recr_nm is None:
+            return True
+        else:
+            self.curr_recr = EcgRecord(DATA_PATH.joinpath(recr_nm))
+            self.curr_plot = EcgPlot(self.curr_recr, self)  # A `plot` servers a record
+            return False
 
     def _load_figs(self, key_templ):
         """Set up multiple figures in the APP, original figures shown overridden """
