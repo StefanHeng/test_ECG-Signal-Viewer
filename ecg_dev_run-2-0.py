@@ -20,6 +20,8 @@ ANM_DIV_OPN_CLPW = 'div_options_collapse-width'
 ANM_BTN_OPN_ROTS = 'btn_options_rotate_start'
 ANM_BTN_OPN_ROTE = 'btn_options_rotate_end'
 
+CNM_MY_DPD = 'my_dropdown'
+
 
 # @profile
 def main():
@@ -36,16 +38,16 @@ def main():
             ]),
             html.Div(id=ID_DIV_OPN, children=[
                 dcc.Dropdown(
-                    id=ID_DPD_RECR, value=record_nm,
+                    id=ID_DPD_RECR, className=CNM_MY_DPD, value=record_nm, placeholder='Select patient record file',
                     options=[{'label': f'{KW_DEV}{record_nm}', V: record_nm}]
                 ),
                 dcc.Dropdown(
-                    id=ID_DPD_LD_TEMPL, disabled=True,
+                    id=ID_DPD_LD_TEMPL, className=CNM_MY_DPD, disabled=True, placeholder='Select lead/channel',
                     options=[
                         {'label': KW_DEV + 'range(8)', V: 'range(8)'},
                         {'label': KW_DEV + 'random', V: 'rand'}
                     ]
-                ),
+                )
             ]),
         ]),
 
