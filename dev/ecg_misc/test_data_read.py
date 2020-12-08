@@ -21,7 +21,7 @@ from ecg_record import *
 
 # enum SignalType { UNUSED = 0, ECG = 1, BOX = 2, PRESSURE = 3, ANALOG = 4, STIM = 5 };
 
-from dev_file import *
+from data_link import *
 
 if __name__ == "__main__":
     record = h5py.File(DATA_PATH.joinpath(record_nm), 'r')

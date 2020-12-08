@@ -15,7 +15,7 @@ from copy import deepcopy
 
 from memory_profiler import profile
 
-from dev_file import *
+from data_link import *
 from ecg_app import EcgApp
 from ecg_record import EcgRecord
 
@@ -42,7 +42,7 @@ def test_import():
 
     from memory_profiler import profile
 
-    import dev_file
+    import data_link
     from ecg_app import EcgApp
     from ecg_record import EcgRecord
     print(1)

@@ -5,7 +5,7 @@ from dash.dependencies import Input, Output, State
 
 from memory_profiler import profile
 
-from dev_file import *
+from data_link import *
 from ecg_app import EcgApp
 
 PRIMARY = '#FCA912'
@@ -93,7 +93,7 @@ def update_limits(relayout_data, d_range):
     if relayout_data is None:
         raise dash.exceptions.PreventUpdate
     elif relayout_data is not None:
-        d_range = ecg_app.ui.to_sample_lim(relayout_data, d_range)
+        d_range = ecg_app.ui.relayout_data_to_display_range(relayout_data, d_range)
     else:
         if d_range is None:
             d_range = DISP_RANGE_INIT

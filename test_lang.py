@@ -1,8 +1,9 @@
-# import pandas as pd
-# import numpy as np
-# import bisect
-# from functools import reduce
-from memory_profiler import profile
+import pandas as pd
+import numpy as np
+import bisect
+from functools import reduce
+
+# from memory_profiler import profile
 
 # def time_str_to_sample_count(time, sample_rate):
 #     timestamp = pd.Timestamp(time)
@@ -12,11 +13,11 @@ from memory_profiler import profile
 #     return us * sample_rate // (10 ** 6)
 
 
-@profile
-def main():
-    d = {0: 'a'}
-    d[2] = 'b'
-    print()
+# @profile
+# def main():
+#     d = {0: 'a'}
+#     d[2] = 'b'
+#     print()
 
 
 if __name__ == "__main__":
@@ -58,4 +59,17 @@ if __name__ == "__main__":
     # print(time_str_to_sample_count('1970-01-01 00:00:13.1558', 2000))
     # print(time_str_to_sample_count('1970-01-01 00:01:13.1558', 2000))
 
-    main()
+    # main()
+
+    strt = 0
+    end = 100000
+    a = np.arange(end + 1)
+    step = (end - strt + 1) // 4435
+    print(step)
+    print(a[::step].shape)
+
+    d = {'margin': {'l': 0, 'r': 0, 't': 0, 'b': 200}, 'xaxis': {
+        'rangeslider': {'visible': True, 'bgcolor': 'rgba(229, 236, 246, 0.8)', 'thickness': 1,
+                        'yaxis': {'_template': None, 'rangemode': 'match'}, 'autorange': True,
+                        'range': ['1970-01-01', '1970-01-01 03:51:03.907']}, 'type': 'date',
+        'range': ['1970-01-01 01:58:24.8202', '1970-01-01 02:43:04.2536'], 'autorange': False}}

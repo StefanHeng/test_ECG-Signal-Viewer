@@ -1,2 +1,5 @@
 # test_ECG-Signal-Viewer
-Experiment language, libraries, implementations for project ECG-Signal-Viewer
+Development repository. 
+
+Experiment language, libraries, implementations for release on `Ecg-Signal-Viewer`. 
+

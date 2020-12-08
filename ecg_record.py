@@ -5,9 +5,10 @@ import pandas as pd
 
 from bisect import bisect_left, bisect_right
 
-# from memory_profiler import profile
+from memory_profiler import profile
 
-from dev_file import *
+from data_link import *
+from dev_helper import record_nm
 
 
 class EcgRecord:
@@ -51,6 +52,9 @@ class EcgRecord:
             val = v + lst[i]
             lst.append(val)
         return lst
+
+    def num_sample_count(self):
+        return self._sample_counts_acc[-1] - 1
 
     def _get_seg(self, key):
         """
@@ -126,6 +130,13 @@ class EcgRecord:
             parts.append(self._get_dset_by_idx(idx_end)[idx_lead, :end:step])
             return np.concatenate(parts)
 
+    def get_global_samples(self, idx_lead, step):
+        """ For plot global thumbnail, data taken at large samples """
+        parts = []
+        for k in self._seg_keys:
+            parts.append(self.record[k][idx_lead, ::step])
+        return np.concatenate(parts)
+
     def time_str_to_sample_count(self, time):
         """
         Within range [0, maximum sample count)
@@ -136,6 +147,10 @@ class EcgRecord:
         count = delt_us * self.spl_rate // (10 ** 6)
         count = min(max(0, count), self._sample_counts_acc[-1] - 1)  # reduce to valid array index
         return count
+
+    def sample_count_to_time_str(self, count):
+        time_us = count * (10 ** 6) // self.spl_rate
+        return pd.to_datetime(time_us, unit='us')
 
     @staticmethod
     def example(path=DATA_PATH.joinpath(record_nm)):

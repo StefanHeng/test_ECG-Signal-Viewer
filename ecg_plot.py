@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 
+import plotly.graph_objs as go
+
 from math import floor
 from copy import deepcopy
 
@@ -8,6 +10,11 @@ from copy import deepcopy
 class EcgPlot:
     """Handles plotting for a particular `record`, or surgery.
     """
+
+    D_RNG_INIT = [
+        [0, 100000],  # First 50s, given 2000 sample_rate
+        [-4000, 4000]  # -4V to 4V
+    ]
 
     # Ad-hoc values for now, in the future should be calculated from device info
     # Default starting point, in the future should be retrieved from user
@@ -22,6 +29,7 @@ class EcgPlot:
     SECONDARY = '#2C8595'
     SECONDARY_2 = '#80B6BF'
     GRAY_0 = '#808080'  # Gray
+    DEFAULT_BG = 'rgba(229, 236, 246, 0.8)'
 
     def __init__(self, record, parent):
         self.recr = record
@@ -38,13 +46,17 @@ class EcgPlot:
         """
         # Always take data as samples instead of entire channel, sample at at least increments of min_sample_step
         sample_factor = max(self._get_sample_factor(strt, end), self.min_sample_step)
-        sample_counts = np.linspace(strt, end, num=(end - strt + 1) // sample_factor)
-        return self.to_time_axis(sample_counts), self.recr.get_samples(idx_lead, strt, end, sample_factor)
+        ecg_vals = self.recr.get_samples(idx_lead, strt, end, sample_factor)
+        # Take the size of array,
+        # for integer division almost never perfectly match the size returned by advanced slicing
+        sample_counts = np.linspace(strt, end, num=ecg_vals.shape[0])
+        return self.to_time_axis(sample_counts), ecg_vals
 
     def get_fig(self, idx_lead, strt, end):
         # logger.info(f'sample_counts of size {sample_counts.shape[0]} -> {sample_counts}')
         # logger.info(f'ecg_vals of size {ecg_vals.shape[0]} -> {ecg_vals}')
         time_vals, ecg_vals = self.get_xy_vals(idx_lead, strt, end)
+        # print(f'in get fig: with [{time_vals.shape}] x vals and [{ecg_vals.shape}] y vals')
         xaxis_config = dict(
             showspikes=True,
             spikemode='toaxis',
@@ -62,18 +74,51 @@ class EcgPlot:
                 mode='lines',
                 marker=dict(
                     color=self.COLOR_PLOT,
-                    size=10),
+                    size=1),
             )],
             layout=dict(
-                uirevision=self.PRESERVE_UI_STATE,
+                # uirevision=self.PRESERVE_UI_STATE,
+                plot_bgcolor=self.DEFAULT_BG,
                 dragmode='pan',
-                margin=dict(l=40, r=0, t=0, b=20),
+                margin=dict(l=40, r=0, t=0, b=17),  # Less than default margin, effectively cropping out whitespace
                 hoverdistance=0,
                 hoverinfo=None,
                 xaxis=xaxis_config,
                 yaxis=yaxis_config
             )
         )
+
+    def get_thumb_fig(self, idx_lead):
+        time_vals, ecg_vals = self.get_xy_vals(idx_lead, 0, self.recr.num_sample_count())
+        xaxis_config = dict(
+            # type='date',
+            rangeslider=dict(
+                visible=True,
+                bgcolor=self.DEFAULT_BG,
+                # bordercolor='black',
+                thickness=1
+            )
+        )
+        fig = go.Figure(
+            data=[dict(x=time_vals, y=ecg_vals)],
+            layout=dict(
+                margin=dict(l=0, r=0, t=0, b=200),  # Hence same width and relative placement as the actual figure
+                xaxis=xaxis_config,
+            )
+        )
+        # This `range` is different than the range argument in Figure creation, which crops off data
+        fig['layout']['xaxis']['range'] = [
+            self.recr.sample_count_to_time_str(self.D_RNG_INIT[0][0]),
+            self.recr.sample_count_to_time_str(self.D_RNG_INIT[0][1])
+        ]
+        return fig
+        # return dict(
+        #     data=[dict(x=time_vals, y=ecg_vals)],
+        #     layout=dict(
+        #         margin=dict(l=0, r=0, t=0, b=200),  # Hence same width and relative placement as the actual figure
+        #         xaxis=xaxis_config,
+        #     )
+        # )
 
     def to_time_axis(self, sample_counts):
         """

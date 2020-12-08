@@ -8,15 +8,13 @@ from dash.dependencies import Input, Output, State, MATCH
 # logging.basicConfig(level=logging.DEBUG)
 # logger = logging.getLogger('dev')
 
-from dev_file import *
+from data_link import *
+from dev_helper import *
 from ecg_record import EcgRecord
 from ecg_plot import EcgPlot
 from ecg_ui import EcgUi
 
 FA_CSS_LNK = 'https://use.fontawesome.com/releases/v5.8.1/css/all.css'
-
-ID_GRA = 'graph'
-ID_STOR_D_RNG = '_display_range'  # Contains dictionary of each display range
 
 CNM_HD = 'header'
 CNM_HDTT = 'header_title'
@@ -34,9 +32,15 @@ ID_DPD_LD_TEMPL = 'lead-template-dropdown'
 
 ID_DIV_PLTS = 'div_plots'
 CNM_DIV_LD = 'div_lead'
-CNM_LD = 'name-lead'
-CNM_DIV_FIG = 'div_figure'
-CNM_GRA = 'plotly-graph'
+CNM_DIV_LDNM = 'div_lead-name'
+CNM_LD = 'lead-name'
+CNM_DIV_TMB = 'div_graph-thumbnail'
+CNM_DIV_FIG = 'div_graph'
+CNM_TMB = 'channel-graph-thumbnail'
+CNM_GRA = 'channel-graph'
+ID_TMB = 'figure-thumbnail'
+ID_GRA = 'graph'
+ID_STOR_D_RNG = '_display_range'  # Contains dictionary of each display range
 
 ANM_OPQY = 'opaque_1'  # Transition achieved by changing class
 ANM_OPQN = 'opaque_0'
@@ -52,10 +56,6 @@ CONF = dict(  # Configuration for figure
                             'hoverClosestCartesian', 'hoverCompareCartesian'],
     displaylogo=False
 )
-D_RNG_INIT = [
-    [0, 100000],  # First 50s, given 2000 sample_rate
-    [-4000, 4000]  # -4V to 4V
-]
 
 CNM_BTN = 'btn'
 CNM_MY_DPD = 'my_dropdown'
@@ -76,6 +76,7 @@ CNM = 'className'
 C = 'children'
 V = 'value'
 NC = 'n_clicks'
+L = 'label'
 
 
 # Syntactic sugar
@@ -93,6 +94,11 @@ def join(*class_nms):  # For Dash className
     return ' '.join(class_nms)
 
 
+DEV_TML_S = 'single'
+DEV_TML_RG = 'range(8)'
+DEV_TML_RD = 'rand'
+
+
 class EcgApp:
     """Handles the Dash web app, interface with potentially multiple records
 
@@ -101,8 +107,9 @@ class EcgApp:
 
     LD_TEMPL = {
         # Arbitrary, for testing only, users should spawn all the leads via UI
-        'range(8)': range(8),
-        'rand': [6, 4, 5, 3, 9, 16, 35, 20]
+        DEV_TML_S: [3],
+        DEV_TML_RG: range(8),
+        DEV_TML_RD: [6, 4, 5, 3, 9, 16, 35, 20]
     }
 
     def __init__(self, app_name):
@@ -132,13 +139,14 @@ class EcgApp:
                 html.Div(id=ID_DIV_OPN, children=[
                     dcc.Dropdown(
                         id=ID_DPD_RECR, className=CNM_MY_DPD, value=record_nm, placeholder='Select patient record file',
-                        options=[{'label': f'{KW_DEV}{record_nm}', V: record_nm}]
+                        options=[{L: f'{dev(record_nm)}', V: record_nm}]
                     ),
                     dcc.Dropdown(
                         id=ID_DPD_LD_TEMPL, className=CNM_MY_DPD, disabled=True, placeholder='Select lead/channel',
                         options=[
-                            {'label': KW_DEV + 'range(8)', V: 'range(8)'},
-                            {'label': KW_DEV + 'random', V: 'rand'}
+                            {L: f'{dev(DEV_TML_S)}', V: DEV_TML_S},
+                            {L: f'{dev(DEV_TML_RG)}', V: DEV_TML_RG},
+                            {L: f'{dev(DEV_TML_RD)}', V: DEV_TML_RD},
                         ]
                     )
                 ]),
@@ -155,8 +163,19 @@ class EcgApp:
         return html.Div(
             className=CNM_DIV_LD, children=[
                 # All figure data maintained inside layout variable
-                dcc.Store(id=m_id(ID_STOR_D_RNG, idx), data=D_RNG_INIT),
-                html.P(self.curr_recr.lead_nms[idx], className=CNM_LD),
+                dcc.Store(id=m_id(ID_STOR_D_RNG, idx), data=self.curr_plot.D_RNG_INIT),
+
+                html.Div(className=CNM_DIV_LDNM, children=[
+                    html.P(self.curr_recr.lead_nms[idx], className=CNM_LD)
+                ]),
+
+                html.Div(className=CNM_DIV_TMB, children=[
+                    dcc.Graph(
+                        id=m_id(ID_TMB, idx), className=CNM_TMB,
+                        figure=self.get_thumb_fig(idx)
+                    )
+                ]),
+
                 html.Div(className=CNM_DIV_FIG, children=[
                     html.Div(className=ID_DIV_FIG_OPN, children=[
                         html.Div(
@@ -166,17 +185,19 @@ class EcgApp:
                     ]),
                     dcc.Graph(
                         id=m_id(ID_GRA, idx), className=CNM_GRA, config=CONF,
-                        figure=self.get_lead_fig(idx, D_RNG_INIT)
+                        figure=self.get_lead_fig(idx, self.curr_plot.D_RNG_INIT)
                     )
                 ])
             ])
 
     def _set_callbacks(self):
         self.app.callback(
-            Output(mch(ID_STOR_D_RNG), D),
-            [Input(mch(ID_GRA), 'relayoutData')],
-            [State(mch(ID_STOR_D_RNG), D)],
-            prevent_initial_call=True
+            [Output(mch(ID_STOR_D_RNG), D),
+             Output(mch(ID_TMB), F)],  # Dummy figure, change its range just to change how the RangeSlider looks
+            [Input(mch(ID_GRA), 'relayoutData'),
+             Input(mch(ID_TMB), 'relayoutData')],
+            [State(mch(ID_STOR_D_RNG), D),
+             State(mch(ID_TMB), F)]
         )(self.update_lims)
         self.app.callback(
             Output(ID_DPD_LD_TEMPL, 'disabled'),
@@ -238,6 +259,14 @@ class EcgApp:
         strt, end = display_range[0]
         return self.curr_plot.get_fig(idx_lead, strt, end)
 
+    def get_thumb_fig(self, idx_lead):
+        """
+        Plot across the entire channel
+
+        :return: The figure dummy used for global thumbnail preview
+        """
+        return self.curr_plot.get_thumb_fig(idx_lead)
+
     def get_lead_xy_vals(self, idx_lead, display_range):
         strt, end = display_range[0]
         # determine if optimization is needed for large sample_range
@@ -245,26 +274,49 @@ class EcgApp:
 
     @staticmethod
     def get_changed_ids():
+        """Only 1 input change is needed each time """
         return [p['prop_id'] for p in dash.callback_context.triggered][0]
 
-    def update_lims(self, relayout_data, d_range):
-        return self.ui.to_sample_lim(relayout_data, d_range)
-        # if relayout_data is None:
-        #     raise dash.exceptions.PreventUpdate
-        # elif relayout_data is not None:
-        #     d_range = self.ui.to_sample_lim(relayout_data, d_range)
-        # else:
-        #     if d_range is None:
-        #         d_range = D_RNG_INIT
-        #         raise dash.exceptions.PreventUpdate
-        # return d_range
+    def update_lims(self, r_data_fig, r_data_tmb, d_range, fig_tmb):
+        # return self.ui.to_sample_lim(r_data_fig, d_range)
+        changed_id = self.get_changed_ids()
+        # print(f'in update lim')
+        # print('all ids changed', [p['prop_id'] for p in dash.callback_context.triggered])
+        # print(f'relayout for thumb: {r_data_tmb}')
+        if ID_GRA in changed_id:
+            fig_tmb['layout']['xaxis']['range'] = self.ui.relayout_data_update_xaxis_range(
+                r_data_fig, fig_tmb['layout']['xaxis']['range'])
+            # print('graph updated: ', fig_tmb['layout']['xaxis']['range'])
+            # if self.ui.KEY_X_S in r_data_fig:
+            #     x_strt = r_data_fig[self.ui.KEY_X_S]
+            #     x_end = r_data_fig[self.ui.KEY_X_E]
+            #     fig_tmb['layout']['xaxis']['range'] = [x_strt, x_end]
+                # print(f'graph data changed with layout and x_strt {x_strt} and x_end {x_end}')
+            return self.ui.relayout_data_to_display_range(r_data_fig, d_range), fig_tmb
+        elif ID_TMB in changed_id:
+            d_range = self.ui.relayout_data_update_display_range(r_data_tmb, d_range)
+            # print('preview updated: ', fig_tmb['layout']['xaxis']['range'], f'and d_range[0] is {d_range[0]}')
+            return d_range, fig_tmb
+        else:
+            return d_range, fig_tmb
 
     def update_figure(self, d_range, n_clicks, fig, id_d):
         changed_id = self.get_changed_ids()
-        if ID_STOR_D_RNG in changed_id:  # Only 1 input change is needed each time
+        # print(f'in update fig')
+        # print('all ids changed', [p['prop_id'] for p in dash.callback_context.triggered])
+        if ID_STOR_D_RNG in changed_id:  # Check substring
+            # print('channel fig should update')
             x, y = self.get_lead_xy_vals(id_d[I], d_range)
+            # xn = x.to_numpy()
+            # print(f'x data range is strt: {x[0]}, end: {xn[-1]}')
+            # print(f'stored d_range is {self.curr_recr.sample_count_to_time_str(d_range[0][0]),}, {self.curr_recr.sample_count_to_time_str(d_range[0][1])}')
+
             fig[D][0]['x'] = x  # First plot/figure on the graph
             fig[D][0]['y'] = y
+            fig['layout']['xaxis']['range'] = [
+                self.curr_recr.sample_count_to_time_str(d_range[0][0]),
+                self.curr_recr.sample_count_to_time_str(d_range[0][1])
+            ]
         elif ID_BTN_FIXY in changed_id:
             fig['layout']['yaxis']['fixedrange'] = n_clicks % 2 == 1
         return fig
@@ -280,4 +332,4 @@ class EcgApp:
     def example():
         ecg_app = EcgApp(__name__)
         ecg_app.app.title = "Example run"
-        ecg_app.run(True)
+        return ecg_app

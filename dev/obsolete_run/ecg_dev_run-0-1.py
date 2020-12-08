@@ -6,7 +6,7 @@ import plotly.graph_objs as go
 # import plotly.express as px
 import pandas as pd
 
-from dev_file import *
+from data_link import *
 from ecg_app import EcgApp
 
 DISPLAY_RANGE_INIT = [
