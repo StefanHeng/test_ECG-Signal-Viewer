@@ -19,3 +19,16 @@ for a more detailed development record.
  
 `Design` folder contains design, in particular color choices. 
 
+
+
+## On Code organization 
+Here explains the relations between `ecg_(.*).py` release files. 
+
+- `data_link.py`, specify the local directory for `.h5` record files 
+	- So long as files are processed locally 
+- `ecg_app.py`, encapsulates a Dash app 
+	- Highest level of abstraction 
+- `ecg_record.py`, interface with local `.h5` file 
+- `ecg_ui`, deals with conversion between `plotly` graph object and web app variables format 
+
+
