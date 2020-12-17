@@ -13,17 +13,6 @@ def main():
     ecg_app = EcgApp(__name__)
     ecg_app.app.title = "Dev test run"
 
-    # def update_lims_thumb(relayout_data, d_range):
-    #     print(relayout_data)
-    #     return d_range
-    #
-    # ecg_app.app.callback(
-    #     Output(mch(ID_STOR_D_RNG), D),
-    #     [],
-    #     [State(mch(ID_STOR_D_RNG), D)],
-    #     prevent_initial_call=True
-    # )(update_lims_thumb)
-
     ecg_app.run(True)
 
 

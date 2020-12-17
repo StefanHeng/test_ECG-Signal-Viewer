@@ -147,7 +147,8 @@ class EcgApp:
                             {L: f'{dev(DEV_TML_S)}', V: DEV_TML_S},
                             {L: f'{dev(DEV_TML_RG)}', V: DEV_TML_RG},
                             {L: f'{dev(DEV_TML_RD)}', V: DEV_TML_RD},
-                        ]
+                        ],
+                        value=DEV_TML_S  # Dev only, for fast testing
                     )
                 ]),
             ]),
@@ -192,38 +193,46 @@ class EcgApp:
 
     def _set_callbacks(self):
         self.app.callback(
-            [Output(mch(ID_STOR_D_RNG), D),
-             Output(mch(ID_TMB), F)],  # Dummy figure, change its range just to change how the RangeSlider looks
-            [Input(mch(ID_GRA), 'relayoutData'),
-             Input(mch(ID_TMB), 'relayoutData')],
-            [State(mch(ID_STOR_D_RNG), D),
-             State(mch(ID_TMB), F)]
-        )(self.update_lims)
-        self.app.callback(
-            Output(ID_DPD_LD_TEMPL, 'disabled'),
-            Input(ID_DPD_RECR, V)
-        )(self.set_record)
-        self.app.callback(
-            Output(ID_DIV_PLTS, C),
-            Input(ID_DPD_LD_TEMPL, V),
-            prevent_initial_call=True
-        )(self._load_figs)
-        self.app.callback(
-            Output(mch(ID_IC_FIXY), CNM),
-            Input(mch(ID_BTN_FIXY), NC)
-        )(self.update_fix_yaxis_icon)
-        self.app.callback(
-            Output(mch(ID_GRA), F),
-            [Input(mch(ID_STOR_D_RNG), D),
-             Input(mch(ID_BTN_FIXY), NC)],
-            [State(mch(ID_GRA), F),
-             State(mch(ID_GRA), 'id')]
-        )(self.update_figure)
-        self.app.callback(
             [Output(ID_IC_OPN, CNM),
              Output(ID_DIV_OPN, CNM)],
             Input(ID_BTN_OPN, NC)
         )(self.update_div_options)
+
+        self.app.callback(
+            Output(ID_DPD_LD_TEMPL, 'disabled'),
+            Input(ID_DPD_RECR, V)
+        )(self.set_record)
+
+        self.app.callback(
+            Output(ID_DIV_PLTS, C),
+            Input(ID_DPD_LD_TEMPL, V)
+        )(self._load_figs)
+
+        self.app.callback(
+            [Output(mch(ID_GRA), F),
+             Output(mch(ID_TMB), F)],  # Dummy figure, change its range just to change how the RangeSlider looks
+            [Input(mch(ID_GRA), 'relayoutData'),
+             Input(mch(ID_TMB), 'relayoutData'),
+             Input(mch(ID_BTN_FIXY), NC)],
+            [State(mch(ID_STOR_D_RNG), D),
+             State(mch(ID_GRA), F),
+             State(mch(ID_TMB), F),
+             State(mch(ID_GRA), 'id')],
+            prevent_initial_call=True
+        )(self.update_figure)
+
+        self.app.callback(
+            Output(mch(ID_IC_FIXY), CNM),
+            Input(mch(ID_BTN_FIXY), NC)
+        )(self.update_fix_yaxis_icon)
+
+        # self.app.callback(
+        #     Output(mch(ID_GRA), F),
+        #     [Input(mch(ID_STOR_D_RNG), D),
+        #      Input(mch(ID_BTN_FIXY), NC)],
+        #     [State(mch(ID_GRA), F),
+        #      State(mch(ID_GRA), 'id')]
+        # )(self.update_figure)
 
     def set_record(self, recr_nm):
         """Current record selected to display. Previous record data overridden """
@@ -231,7 +240,7 @@ class EcgApp:
             return True
         else:
             self.curr_recr = EcgRecord(DATA_PATH.joinpath(recr_nm))
-            self.curr_plot = EcgPlot(self.curr_recr, self)  # A `plot` servers a record
+            self.curr_plot = EcgPlot(self.curr_recr, self)  # A `plot` serves a record
             return False
 
     def _load_figs(self, key_templ):
@@ -267,59 +276,61 @@ class EcgApp:
         """
         return self.curr_plot.get_thumb_fig(idx_lead)
 
-    def get_lead_xy_vals(self, idx_lead, display_range):
-        strt, end = display_range[0]
+    def get_lead_xy_vals(self, idx_lead, x_display_range):
+        strt, end = x_display_range
         # determine if optimization is needed for large sample_range
         return self.curr_plot.get_xy_vals(idx_lead, strt, end)
 
     @staticmethod
     def get_changed_ids():
-        """Only 1 input change is needed each time """
+        """Only 1 input change is needed each time
+        :return String representation, caller would check for substring
+        """
         return [p['prop_id'] for p in dash.callback_context.triggered][0]
 
-    def update_lims(self, r_data_fig, r_data_tmb, d_range, fig_tmb):
+    def update_lims(self, layout_fig, layout_tmb, disp_rng, fig_tmb):
         # return self.ui.to_sample_lim(r_data_fig, d_range)
         changed_id = self.get_changed_ids()
-        # print(f'in update lim')
-        # print('all ids changed', [p['prop_id'] for p in dash.callback_context.triggered])
-        # print(f'relayout for thumb: {r_data_tmb}')
         if ID_GRA in changed_id:
             fig_tmb['layout']['xaxis']['range'] = self.ui.relayout_data_update_xaxis_range(
-                r_data_fig, fig_tmb['layout']['xaxis']['range'])
-            # print('graph updated: ', fig_tmb['layout']['xaxis']['range'])
-            # if self.ui.KEY_X_S in r_data_fig:
-            #     x_strt = r_data_fig[self.ui.KEY_X_S]
-            #     x_end = r_data_fig[self.ui.KEY_X_E]
-            #     fig_tmb['layout']['xaxis']['range'] = [x_strt, x_end]
-                # print(f'graph data changed with layout and x_strt {x_strt} and x_end {x_end}')
-            return self.ui.relayout_data_to_display_range(r_data_fig, d_range), fig_tmb
+                layout_fig, fig_tmb['layout']['xaxis']['range'])
+            return self.ui.relayout_data_to_display_range(layout_fig, disp_rng), fig_tmb
         elif ID_TMB in changed_id:
-            d_range = self.ui.relayout_data_update_display_range(r_data_tmb, d_range)
+            disp_rng = self.ui.relayout_data_update_display_range(layout_tmb, disp_rng)
             # print('preview updated: ', fig_tmb['layout']['xaxis']['range'], f'and d_range[0] is {d_range[0]}')
-            return d_range, fig_tmb
+            return disp_rng, fig_tmb
         else:
-            return d_range, fig_tmb
+            return disp_rng, fig_tmb
 
-    def update_figure(self, d_range, n_clicks, fig, id_d):
+    def update_figure(self, layout_fig, layout_tmb, n_clicks, disp_rng, fig_gra, fig_tmb, id_d_fig):
+        """ Update plot in a single call to avoid unnecessary updates, at a point in time, only 1 property change
+
+        :param layout_fig: RelayoutData of actual plot
+        :param layout_tmb: RelayoutData of global preview
+        :param n_clicks: Number of clicks for the Fix Yaxis button
+        :param disp_rng: Internal synchronized display range
+        :param fig_gra: Graph object dictionary of actual plot
+        :param fig_tmb: Graph object dictionary of global preview
+        :param id_d_fig: Pattern matching ID, tells which lead/channel changed
+        """
         changed_id = self.get_changed_ids()
-        # print(f'in update fig')
-        # print('all ids changed', [p['prop_id'] for p in dash.callback_context.triggered])
-        if ID_STOR_D_RNG in changed_id:  # Check substring
-            # print('channel fig should update')
-            x, y = self.get_lead_xy_vals(id_d[I], d_range)
-            # xn = x.to_numpy()
-            # print(f'x data range is strt: {x[0]}, end: {xn[-1]}')
-            # print(f'stored d_range is {self.curr_recr.sample_count_to_time_str(d_range[0][0]),}, {self.curr_recr.sample_count_to_time_str(d_range[0][1])}')
-
-            fig[D][0]['x'] = x  # First plot/figure on the graph
-            fig[D][0]['y'] = y
-            fig['layout']['xaxis']['range'] = [
-                self.curr_recr.sample_count_to_time_str(d_range[0][0]),
-                self.curr_recr.sample_count_to_time_str(d_range[0][1])
-            ]
+        if ID_GRA in changed_id:  # RelayoutData changed
+            if layout_fig is not None and self.ui.KEY_X_S in layout_fig:
+                x, y = self.get_lead_xy_vals(id_d_fig[I], self.ui.get_display_range(fig_gra['layout'])[0])
+                fig_gra[D][0]['x'] = x  # First (and only) plot/figure on the graph
+                fig_gra[D][0]['y'] = y
+        elif ID_TMB in changed_id:  # Changes in thumbnail figure have to be range change
+            # d = self.ui.get_x_display_range(fig_tmb['layout'])
+            # print(f'display range is {d}')
+            x, y = self.get_lead_xy_vals(id_d_fig[I], self.ui.get_x_display_range(fig_tmb['layout']))
+            # print(f'size of x: {x.shape} and sample factor is {self.curr_plot._get_sample_factor(d[0], d[1])}')
+            fig_gra[D][0]['x'] = x
+            fig_gra[D][0]['y'] = y
+            # print(fig_tmb['layout']['xaxis']['range'])
+            fig_gra['layout']['xaxis']['range'] = fig_tmb['layout']['xaxis']['range']
         elif ID_BTN_FIXY in changed_id:
-            fig['layout']['yaxis']['fixedrange'] = n_clicks % 2 == 1
-        return fig
+            fig_gra['layout']['yaxis']['fixedrange'] = n_clicks % 2 == 1
+        return fig_gra, fig_tmb
 
     @staticmethod
     def update_fix_yaxis_icon(n_clicks):

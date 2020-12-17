@@ -119,13 +119,15 @@ class EcgRecord:
         .. seealso:: `EcgApp._Plot.get_fig()`
         """
         idx_strt, idx_end = self._locate_seg_idx(strt, end)
-        strt = strt - self._sample_counts_acc[idx_strt]
-        end = end - self._sample_counts_acc[idx_end] + 1  # for inclusive end
+        if idx_strt != 0:
+            strt = strt - self._sample_counts_acc[idx_strt-1]
+        if idx_end != 0:
+            end = end - self._sample_counts_acc[idx_end-1] + 1  # for inclusive end
         if idx_strt == idx_end:
             return self._get_dset_by_idx(idx_strt)[idx_lead, strt:end:step]
         else:
             parts = [self._get_dset_by_idx(idx_strt)[idx_lead, strt::step]]
-            for i in range(idx_strt+1, idx_end):
+            for i in range(idx_strt+1, idx_end + 1):  # for range()'s exclusive end
                 parts.append(self._get_dset_by_idx(i)[idx_lead, ::step])
             parts.append(self._get_dset_by_idx(idx_end)[idx_lead, :end:step])
             return np.concatenate(parts)

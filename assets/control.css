@@ -122,12 +122,11 @@
     transition: var(--ease-all);
     height: auto;
     width: 60%;
-    /*border: 1px gray solid;*/
     padding: 0.125em 0.25em;
     z-index: 5;
 }
 
-.div_figure:hover .div_fig-options {
+.div_graph:hover .div_fig-options {
     opacity: 1;
     transition: var(--ease-all);
 }

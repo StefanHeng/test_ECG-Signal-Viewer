@@ -3,6 +3,8 @@ import numpy as np
 import bisect
 from functools import reduce
 
+from ecg_record import EcgRecord
+
 # from memory_profiler import profile
 
 # def time_str_to_sample_count(time, sample_rate):
@@ -61,15 +63,23 @@ if __name__ == "__main__":
 
     # main()
 
-    strt = 0
-    end = 100000
-    a = np.arange(end + 1)
-    step = (end - strt + 1) // 4435
-    print(step)
-    print(a[::step].shape)
+    # strt = 0
+    # end = 100000
+    # a = np.arange(end + 1)
+    # step = (end - strt + 1) // 4435
+    # print(step)
+    # print(a[::step].shape)
+    #
+    # d = {'margin': {'l': 0, 'r': 0, 't': 0, 'b': 200}, 'xaxis': {
+    #     'rangeslider': {'visible': True, 'bgcolor': 'rgba(229, 236, 246, 0.8)', 'thickness': 1,
+    #                     'yaxis': {'_template': None, 'rangemode': 'match'}, 'autorange': True,
+    #                     'range': ['1970-01-01', '1970-01-01 03:51:03.907']}, 'type': 'date',
+    #     'range': ['1970-01-01 01:58:24.8202', '1970-01-01 02:43:04.2536'], 'autorange': False}}
 
-    d = {'margin': {'l': 0, 'r': 0, 't': 0, 'b': 200}, 'xaxis': {
-        'rangeslider': {'visible': True, 'bgcolor': 'rgba(229, 236, 246, 0.8)', 'thickness': 1,
-                        'yaxis': {'_template': None, 'rangemode': 'match'}, 'autorange': True,
-                        'range': ['1970-01-01', '1970-01-01 03:51:03.907']}, 'type': 'date',
-        'range': ['1970-01-01 01:58:24.8202', '1970-01-01 02:43:04.2536'], 'autorange': False}}
+    # d = [24386254, 27727814]
+    d = [24633501, 27727814]
+    s = 6876
+    rec = EcgRecord.example()
+    print((d[1] - d[0]) / 10306)
+    a = rec.get_samples(3, d[0], d[1], s)
+    print(a, a.shape)

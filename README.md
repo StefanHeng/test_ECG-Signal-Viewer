@@ -1,7 +1,7 @@
 # test_ECG-Signal-Viewer
 Development repository. 
 
-Experiment language, libraries; development & test on new features for release on `Ecg-Signal-Viewer`. 
+Experiment language, libraries; development & test on new features for release on [Ecg-Signal-Viewer](https://github.com/StefanHeng/Ecg-Signal-Viewer). 
 
 
 
