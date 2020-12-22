@@ -91,6 +91,7 @@ def mch(id_str):
 
 
 def join(*class_nms):  # For Dash className
+    """Join string arguments into whitespace-separated single string """
     return ' '.join(class_nms)
 
 
@@ -148,7 +149,7 @@ class EcgApp:
                             {L: f'{dev(DEV_TML_RG)}', V: DEV_TML_RG},
                             {L: f'{dev(DEV_TML_RD)}', V: DEV_TML_RD},
                         ],
-                        value=DEV_TML_S  # Dev only, for fast testing
+                        # value=DEV_TML_S  # Dev only, for fast testing
                     )
                 ]),
             ]),
@@ -226,14 +227,6 @@ class EcgApp:
             Input(mch(ID_BTN_FIXY), NC)
         )(self.update_fix_yaxis_icon)
 
-        # self.app.callback(
-        #     Output(mch(ID_GRA), F),
-        #     [Input(mch(ID_STOR_D_RNG), D),
-        #      Input(mch(ID_BTN_FIXY), NC)],
-        #     [State(mch(ID_GRA), F),
-        #      State(mch(ID_GRA), 'id')]
-        # )(self.update_figure)
-
     def set_record(self, recr_nm):
         """Current record selected to display. Previous record data overridden """
         if recr_nm is None:
@@ -245,7 +238,7 @@ class EcgApp:
 
     def _load_figs(self, key_templ):
         """Set up multiple figures in the APP, original figures shown overridden """
-        self.idxs_fig = self.LD_TEMPL[key_templ]
+        self.idxs_fig = self.LD_TEMPL[key_templ] if key_templ is not None else []
         return [self.get_fig_layout(idx) for idx in self.idxs_fig]
 
     @staticmethod
@@ -282,25 +275,11 @@ class EcgApp:
         return self.curr_plot.get_xy_vals(idx_lead, strt, end)
 
     @staticmethod
-    def get_changed_ids():
+    def get_last_changed_id():
         """Only 1 input change is needed each time
         :return String representation, caller would check for substring
         """
         return [p['prop_id'] for p in dash.callback_context.triggered][0]
-
-    def update_lims(self, layout_fig, layout_tmb, disp_rng, fig_tmb):
-        # return self.ui.to_sample_lim(r_data_fig, d_range)
-        changed_id = self.get_changed_ids()
-        if ID_GRA in changed_id:
-            fig_tmb['layout']['xaxis']['range'] = self.ui.relayout_data_update_xaxis_range(
-                layout_fig, fig_tmb['layout']['xaxis']['range'])
-            return self.ui.relayout_data_to_display_range(layout_fig, disp_rng), fig_tmb
-        elif ID_TMB in changed_id:
-            disp_rng = self.ui.relayout_data_update_display_range(layout_tmb, disp_rng)
-            # print('preview updated: ', fig_tmb['layout']['xaxis']['range'], f'and d_range[0] is {d_range[0]}')
-            return disp_rng, fig_tmb
-        else:
-            return disp_rng, fig_tmb
 
     def update_figure(self, layout_fig, layout_tmb, n_clicks, disp_rng, fig_gra, fig_tmb, id_d_fig):
         """ Update plot in a single call to avoid unnecessary updates, at a point in time, only 1 property change
@@ -313,20 +292,17 @@ class EcgApp:
         :param fig_tmb: Graph object dictionary of global preview
         :param id_d_fig: Pattern matching ID, tells which lead/channel changed
         """
-        changed_id = self.get_changed_ids()
+        changed_id = self.get_last_changed_id()
         if ID_GRA in changed_id:  # RelayoutData changed
             if layout_fig is not None and self.ui.KEY_X_S in layout_fig:
                 x, y = self.get_lead_xy_vals(id_d_fig[I], self.ui.get_display_range(fig_gra['layout'])[0])
                 fig_gra[D][0]['x'] = x  # First (and only) plot/figure on the graph
                 fig_gra[D][0]['y'] = y
+                fig_tmb['layout']['xaxis']['range'] = fig_gra['layout']['xaxis']['range']
         elif ID_TMB in changed_id:  # Changes in thumbnail figure have to be range change
-            # d = self.ui.get_x_display_range(fig_tmb['layout'])
-            # print(f'display range is {d}')
             x, y = self.get_lead_xy_vals(id_d_fig[I], self.ui.get_x_display_range(fig_tmb['layout']))
-            # print(f'size of x: {x.shape} and sample factor is {self.curr_plot._get_sample_factor(d[0], d[1])}')
             fig_gra[D][0]['x'] = x
             fig_gra[D][0]['y'] = y
-            # print(fig_tmb['layout']['xaxis']['range'])
             fig_gra['layout']['xaxis']['range'] = fig_tmb['layout']['xaxis']['range']
         elif ID_BTN_FIXY in changed_id:
             fig_gra['layout']['yaxis']['fixedrange'] = n_clicks % 2 == 1
@@ -344,3 +320,4 @@ class EcgApp:
         ecg_app = EcgApp(__name__)
         ecg_app.app.title = "Example run"
         return ecg_app
+

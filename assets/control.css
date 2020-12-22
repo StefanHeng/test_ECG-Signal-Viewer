@@ -60,10 +60,7 @@
     left: 2.5%;
     display: flex;
     z-index: 10;
-    /*border: 1px red solid;*/
-    -webkit-backdrop-filter: blur(15px);
     border-radius: 0.35em;
-    background: rgba(var(--light_primary), 0.9);
 }
 
 #btn_options {
@@ -81,8 +78,8 @@
     font-size: 0.75em;
     transition: var(--ease-all);
     border-radius: 0.35em;
-    background: var(--primary_a01);
-    /*box-shadow: var(--drop-shadow_c);*/
+    background: rgba(var(--light_primary), 0.9);
+    -webkit-backdrop-filter: blur(15px);
     /*border: 1px green solid;*/
 }
 

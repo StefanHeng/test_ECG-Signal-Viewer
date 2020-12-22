@@ -19,7 +19,7 @@ class EcgPlot:
     # Ad-hoc values for now, in the future should be calculated from device info
     # Default starting point, in the future should be retrieved from user
     _DISPLAY_WIDTH = 30  # in rem, display_width * display_scale_t gets the number of points to render
-    _DISPLAY_SCALE_T = 15  # #continuous time stamps to display in 1rem
+    _DISPLAY_SCALE_T = 20  # #continuous time stamps to display in 1rem
     _DISPLAY_SCALE_ECG = 20  # magnitude of ecg in a 1rem
     SP_RT_READABLE = 125  # Sufficient frequency (Hz) for human differentiable graphing
 
@@ -56,7 +56,6 @@ class EcgPlot:
         # logger.info(f'sample_counts of size {sample_counts.shape[0]} -> {sample_counts}')
         # logger.info(f'ecg_vals of size {ecg_vals.shape[0]} -> {ecg_vals}')
         time_vals, ecg_vals = self.get_xy_vals(idx_lead, strt, end)
-        # print(f'in get fig: with [{time_vals.shape}] x vals and [{ecg_vals.shape}] y vals')
         xaxis_config = dict(
             showspikes=True,
             spikemode='toaxis',
@@ -79,9 +78,9 @@ class EcgPlot:
             layout=dict(
                 plot_bgcolor=self.DEFAULT_BG,
                 dragmode='pan',
-                margin=dict(l=40, r=20, t=0, b=17),  # Less than default margin, effectively cropping out whitespace
+                margin=dict(l=40, r=30, t=0, b=17),  # Less than default margin, effectively cropping out whitespace
                 hoverdistance=0,
-                hoverinfo=None,
+                # hoverinfo=None,
                 xaxis=xaxis_config,
                 yaxis=yaxis_config
             )
@@ -89,6 +88,8 @@ class EcgPlot:
 
     def get_thumb_fig(self, idx_lead):
         time_vals, ecg_vals = self.get_xy_vals(idx_lead, 0, self.recr.num_sample_count())
+        rang = self.parn.ui.get_ignore_noise_range(ecg_vals)
+        ecg_vals = self.parn.ui.strip_noise(ecg_vals, rang[0], rang[1])
         xaxis_config = dict(
             rangeslider=dict(
                 visible=True,
@@ -100,7 +101,7 @@ class EcgPlot:
         fig = go.Figure(
             data=[dict(x=time_vals, y=ecg_vals)],
             layout=dict(
-                margin=dict(l=40, r=20, t=0, b=200),  # Hence same width and relative placement as the actual figure
+                margin=dict(l=40, r=30, t=0, b=200),  # Hence same width and relative placement as the actual figure
                 xaxis=xaxis_config,
             )
         )
@@ -109,6 +110,7 @@ class EcgPlot:
             self.recr.sample_count_to_time_str(self.D_RNG_INIT[0][0]),
             self.recr.sample_count_to_time_str(self.D_RNG_INIT[0][1])
         ]
+        fig['layout']['yaxis']['range'] = rang
         return fig
 
     def to_time_axis(self, sample_counts):

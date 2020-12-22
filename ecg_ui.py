@@ -1,3 +1,8 @@
+import numpy as np
+
+from random import random
+
+
 class EcgUi:
     # Keys inside `relayoutData`
     KEY_X_S = 'xaxis.range[0]'  # Start limit for horizontals axis
@@ -6,6 +11,9 @@ class EcgUi:
     KEY_Y_E = 'yaxis.range[1]'
 
     KEY_X_RNG = 'xaxis.range'
+
+    NUM_SAMPLES = 29  # Number of samples to take for randomization
+    PERCENT_NUM = 5  # Number for a rough percentile sample count, based on NUM_SAMPLES
 
     def __init__(self, parent):
         self.parn = parent
@@ -29,41 +37,30 @@ class EcgUi:
             self.parn.curr_recr.time_str_to_sample_count(x_range[1])
         ]
 
-    def relayout_data_to_display_range(self, layout_fig, disp_rng):
+    @staticmethod
+    def strip_noise(vals, bot, top):
+        """ For thumbnail range, gives accurate range given by setting outliers to 0
         """
-        Modifies parameter passed in, updates horizontal, vertical plot limit in terms of sample count
-        Due to plotly graph_obj internal storage format of `relayoutData`
+        return np.vectorize(lambda x: x if bot < x < top else 0)(vals)
 
-        :param layout_fig:  Horizontal, vertical plot limit,  as str representation of pandas timestamp
-        :param disp_rng: Previous sample count range
-        """
-        # print(f'In update d_range, {layout_fig}')
-        if self.KEY_X_S in layout_fig:
-            disp_rng[0] = [
-                self.parn.curr_recr.time_str_to_sample_count(layout_fig[self.KEY_X_S]),
-                self.parn.curr_recr.time_str_to_sample_count(layout_fig[self.KEY_X_E])
-            ]
-        # if self.KEY_Y_S in layout_fig:
-        #     disp_rng[1] = [
-        #         self.parn.curr_recr.time_str_to_sample_count(layout_fig[self.KEY_Y_S]),
-        #         self.parn.curr_recr.time_str_to_sample_count(layout_fig[self.KEY_Y_E])
-        #     ]
+    def get_ignore_noise_range(self, vals):  # TODO
+        """ Returns an initial, pseudo range of ECG values given a set of samples
 
-    def relayout_data_update_display_range(self, layout_fig, disp_rng):
-        if self.KEY_X_RNG in layout_fig:
-            x_strt, x_end = layout_fig[self.KEY_X_RNG]
-            disp_rng[0] = [
-                self.parn.curr_recr.time_str_to_sample_count(x_strt),
-                self.parn.curr_recr.time_str_to_sample_count(x_end)
-            ]
-        return disp_rng
+        A multiple of percentile range, should include all non-outliers
 
-    def relayout_data_update_xaxis_range(self, layout_fig, xaxis_range):
-        """ Update if relayout_data change is present """
-        if self.KEY_X_S in layout_fig:
-            return [
-                layout_fig[self.KEY_X_S],
-                layout_fig[self.KEY_X_E]
-            ]
-        else:
-            return xaxis_range
+        Should skip outliers/noise and include the majority of values
+
+        :return: Start and end values """
+        # Through randomization
+        samples = []
+        n = vals.shape[0]  # vals should be a numpy array
+        for i in range(self.NUM_SAMPLES):
+            samples.append(int(random() * (n+1)))  # Uniform distribution, with slight inaccuracy
+        samples.sort()  # Small array size makes sorting efficient
+        # print(f'samples is {samples}')
+        # idx_med = self.NUM_SAMPLES // 2
+        # med = samples[idx_med]
+        half_range = max(samples[self.PERCENT_NUM-1], samples[-self.PERCENT_NUM])  # For symmetry
+        half_range *= 20  # By nature of ECG waveform signals
+        return -half_range, half_range
+

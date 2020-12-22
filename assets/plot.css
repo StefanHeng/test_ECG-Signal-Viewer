@@ -3,7 +3,7 @@
     flex-direction: column;
     flex-basis: auto;
     height: 35em;  /* Having percentages heights all the way down causes plotly graph to collapse to 0 size in update for unknown reason */
-    width: 60%;
+    width: 90%;
     margin: 0 auto 1em;
     /*border: 1px solid red;*/
     box-shadow: var(--drop-shadow_m);
@@ -31,24 +31,23 @@
 .div_graph-thumbnail {
     height: 5.55em;
     overflow: hidden;
-    /*border: 1px green solid;*/
 }
 
 .channel-graph-thumbnail {
     height: 18em;
-    margin: -8.35em 0 0 -0.75em; /* Hack: Carefully crafted values so that the plot that made global range possible disappears */
+    margin-top: -8.35em; /* Hack: Carefully crafted values so that the plot that made global range possible disappears */
+    /*border: 1px green solid;*/
 }
 
 .div_graph {
     /*height: 85%;*/
     flex: 1;
     position: relative;
-    overflow: hidden;
-    /*border: 1px red solid;*/
+    /*overflow: hidden;*/
+    /*border: 1px green solid;*/
 }
 
 .channel-graph {
     width: 100%;
     height: 100%;
-    /*border: 1px green solid;*/
 }
