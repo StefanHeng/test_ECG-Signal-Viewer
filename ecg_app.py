@@ -123,7 +123,7 @@ def join(*class_nms):  # For Dash className
     return ' '.join(class_nms)
 
 
-DEV_TML_S = 'single'
+DEV_TML_S = 'single -> 1: I'
 DEV_TML_RG = 'range(8)'
 DEV_TML_RD = 'rand'
 
@@ -136,9 +136,9 @@ class EcgApp:
 
     LD_TEMPL = {
         # Arbitrary, for testing only, users should spawn all the leads via UI
-        DEV_TML_S: [3],
+        DEV_TML_S: [0],
         DEV_TML_RG: list(range(8)),
-        DEV_TML_RD: [6, 4, 5, 3, 9, 16, 35, 20]
+        DEV_TML_RD: [6, 5, 3, 16, 35]
     }
 
     def __init__(self, app_name):
@@ -374,8 +374,9 @@ class EcgApp:
                     {L: f'{idx + 1}: {nm}', V: idx, 'disabled': idx in self.idxs_fig}
                     for idx, nm in enumerate(self.curr_rec.lead_nms)
                 ]
-            else:
-                return lead_options
+            else:  # Reset layout
+                self.idxs_fig = []
+                return [{L: f'{idx+1}: {nm}', V: idx} for idx, nm in enumerate(self.curr_rec.lead_nms)]
         elif ID_RDO_LD_ADD in changed_id:  # A new lead layout should be appended, due to click in modal
             self.idxs_fig.append(idx_lead)
             lead_options[idx_lead]['disabled'] = True
@@ -391,8 +392,8 @@ class EcgApp:
                 self.idxs_fig = self.LD_TEMPL[template]
                 return [self.get_fig_layout(idx) for idx in self.idxs_fig]
             else:
-                self.idxs_fig = None
-                return None
+                self.idxs_fig = []
+                return []
         elif ID_RDO_LD_ADD in changed_id:
             plots.append(self.get_fig_layout(idx_lead))
             return plots

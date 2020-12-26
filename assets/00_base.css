@@ -71,6 +71,8 @@
         0 0 1px rgba(0, 0, 0, 0.4),
         0 0 2px rgba(0, 0, 0, 0.4);
     --ease-all: all 200ms ease-in-out;
+
+    --round-corner: 0.35em;
 }
 
 h1, h2, h3, h4, h5, h6 {
