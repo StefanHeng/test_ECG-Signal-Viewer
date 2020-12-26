@@ -1,28 +1,24 @@
 .btn {
-    font-size: 0.75em; /* changes icon size */
-    color: var(--gray_a8);
-    background-color: transparent;
     height: 2em;
     width: 2em;
+    margin: 0;
+    padding: 0;
+
     display: flex;
     align-items: center; /* Centers the child icon */
     justify-content: center;
-    margin: 0 0.25em;
-    cursor: pointer;
-    border-radius: 0.5em;
-    border-color: var(--gray_a4);
-    border-style: solid;
+
+    /*font-size: 0.75em; !* changes icon size *!*/
+    border-radius: 1em;
+    background-color: transparent;
 }
 
 .btn:hover {
-    background-color: var(--primary_a4);
-    border-color: var(--primary_a6);
+    background-color: var(--primary_a3);
 }
 
 .btn:active {
-    color: white;
-    background-color: var(--primary_a7);
-    border-color: transparent;
+    background-color: var(--primary_a5);
 }
 
 .opaque_1 {
@@ -41,7 +37,7 @@
 
 .btn_options_rotate_end {
     transform: rotate(90deg);
-    color: var(--primary);
+    color: var(--btn_dark);
     transition: var(--ease-all);
 }
 
@@ -56,23 +52,27 @@
 
 #div_options-bound-box {
     position: fixed;
-    top: 6em;
-    left: 2.5%;
+    left: 5%;
+    top: 6%;
     display: flex;
     z-index: 10;
     border-radius: 0.35em;
 }
 
 #btn_options {
+    height: 2em;
+    width: 2em;
+
     font-size: 1.25em;
     border-radius: 1em;
-    border-color: var(--primary);
+    border-color: transparent;
     margin-right: 0.5em;
-    box-shadow: var(--drop-shadow_m);
+    align-self: center;
 }
 
-
 #div_options {
+    max-width: 30em;
+
     display: flex;
     flex-direction: column;
     font-size: 0.75em;
@@ -113,18 +113,78 @@
 
 .div_fig-options {
     position: absolute;
-    left: 10%;
-    display: flex;
-    opacity: 0;
-    transition: var(--ease-all);
+    left: 5%;
     height: auto;
     width: 60%;
     padding: 0.125em 0.25em;
     z-index: 5;
+
+    display: flex;
+    flex-direction: row;
+
+    opacity: 0;
+    transition: var(--ease-all);
 }
 
 .div_graph:hover .div_fig-options {
     opacity: 1;
+}
+
+
+.btn_fig-options {
+    border-radius: 0.5em;
+}
+
+
+#div_add {
+    width: 90%;
+
     transition: var(--ease-all);
 }
 
+.modal-content {
+    max-width: 25em;
+}
+
+.modal-title { /* Direct parent of content of header by Bootstrap */
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.title_add-lead {
+    margin: 0;
+}
+
+#btn_modal-close {
+    width: 1em;
+    height: 1em;
+    margin-left: auto;
+}
+
+#btn_modal-close:hover {
+    color: var(--gray_-4);
+    background: transparent;
+}
+
+#btn_modal-close:active {
+    color: var(--gray_-5);
+    background: transparent;
+}
+
+#modal-body_add {
+    padding: 0;
+    max-height: 50vh;
+}
+
+.list-group-item {
+    margin: 0;
+}
+
+.list-group-item-action:active {
+    color: #fff;
+    background-color: #1a1a1a;
+    border-color: #1a1a1a
+}

@@ -47,7 +47,7 @@ CNM_DIV_FIG = 'div_figure'
 CNM_BTN = 'btn'
 
 ecg_app = EcgApp(__name__)
-ecg_app.set_record(DATA_PATH.joinpath(record_nm))
+ecg_app.update_template_dropdown_and_add_options(DATA_PATH.joinpath(record_nm))
 
 app = dash.Dash(
     __name__,
@@ -81,7 +81,7 @@ app.layout = html.Div([
             html.Div(className=CNM_DIV_LD, children=[
                 # All figure data maintained inside layout variable
                 dcc.Store(id=m_id(ID_STOR_D_RNG, idx), data=D_RNG_INIT),
-                html.P(ecg_app.curr_recr.lead_nms[idx], className=CNM_LD),
+                html.P(ecg_app.curr_rec.lead_nms[idx], className=CNM_LD),
                 html.Div(className=CNM_DIV_FIG, children=[
                     html.Div(className=ID_DIV_OPN, children=[
                         html.Div(html.Button(id=m_id(ID_BTN_FIXY, idx), className=CNM_BTN, n_clicks=0, children=[

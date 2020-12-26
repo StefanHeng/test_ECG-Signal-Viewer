@@ -1,11 +1,13 @@
 :root {
-    --primary: #FCA912;
-    --secondary: #2C8595;
+    --primry: #FCA912;
+    --secondy: #2C8595;
     --light-tint: #FAFAF9;
     --dark-tint: #57514D;
     --dark: #1D1D1D;
     --dark_primary: #2C2925;
     --light_primary: #FFFCF6;
+
+    --btn_dark: #55595c;
 
     --primary_-4: #1E1305;
     --primary_-3: #3F2A05;
@@ -88,12 +90,21 @@ body {
     position: relative;
 }
 
+:root {
+}
+
 .body_main {
     padding: 0.25em 1em 0.5em;
     margin-top: 4em; /* Reserve room for header */
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 #div_plots {
+    width: 90%;
+
     display: flex;
     flex-direction: column;
     align-items: center;

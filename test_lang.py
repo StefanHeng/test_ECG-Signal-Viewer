@@ -3,7 +3,13 @@ import numpy as np
 import bisect
 from functools import reduce
 
+import dash
+import dash_html_components as html
+import dash_core_components as dcc
+import dash_bootstrap_components as dbc
+
 from ecg_record import EcgRecord
+from ecg_app import *
 
 # from memory_profiler import profile
 
@@ -77,9 +83,20 @@ if __name__ == "__main__":
     #     'range': ['1970-01-01 01:58:24.8202', '1970-01-01 02:43:04.2536'], 'autorange': False}}
 
     # d = [24386254, 27727814]
-    d = [24633501, 27727814]
-    s = 6876
-    rec = EcgRecord.example()
-    print((d[1] - d[0]) / 10306)
-    a = rec.get_samples(3, d[0], d[1], s)
-    print(a, a.shape)
+    # d = [24633501, 27727814]
+    # s = 6876
+    # rec = EcgRecord.example()
+    # print((d[1] - d[0]) / 10306)
+    # a = rec.get_samples(3, d[0], d[1], s)
+    # print(a, a.shape)
+
+    # print(dbc.themes.LUX)
+
+    app = dash.Dash()
+    app.layout = html.Div(className=CNM_HD, children=[
+        html.Button(id=ID_BTN_OPN, className=CNM_BTN, n_clicks=0, children=[
+            'sdad'
+        ]),
+        html.H1(TXT_HD, className=CNM_HDTT)
+    ])
+    app.run_server(debug=True)

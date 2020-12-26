@@ -26,7 +26,7 @@ d_config = {
 }
 
 ecg_app = EcgApp(__name__)
-ecg_app.set_record(DATA_PATH.joinpath(record_nm))
+ecg_app.update_template_dropdown_and_add_options(DATA_PATH.joinpath(record_nm))
 idx_lead = 3
 plot = ecg_app.add_plot(idx_lead)
 fig = ecg_app.get_lead_fig(idx_lead)

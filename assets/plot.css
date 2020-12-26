@@ -1,11 +1,12 @@
 .div_lead {
+    height: 25em;  /* Having percentages heights all the way down causes plotly graph to collapse to 0 size in update for unknown reason */
+    width: 100%;
+    margin: 0 auto 1em;
+
     display: flex;
     flex-direction: column;
     flex-basis: auto;
-    height: 35em;  /* Having percentages heights all the way down causes plotly graph to collapse to 0 size in update for unknown reason */
-    width: 90%;
-    margin: 0 auto 1em;
-    /*border: 1px solid red;*/
+
     box-shadow: var(--drop-shadow_m);
     transition: var(--ease-all);
 }
@@ -29,22 +30,21 @@
 }
 
 .div_graph-thumbnail {
-    height: 5.55em;
+    height: 4em;
     overflow: hidden;
+    /*border: 1px green solid;*/
 }
 
 .channel-graph-thumbnail {
     height: 18em;
-    margin-top: -8.35em; /* Hack: Carefully crafted values so that the plot that made global range possible disappears */
+    /* Hack: Carefully crafted values so that the plot that made global range possible disappears */
+    margin-top: -6.875em;
     /*border: 1px green solid;*/
 }
 
 .div_graph {
-    /*height: 85%;*/
     flex: 1;
     position: relative;
-    /*overflow: hidden;*/
-    /*border: 1px green solid;*/
 }
 
 .channel-graph {

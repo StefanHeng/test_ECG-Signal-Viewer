@@ -47,7 +47,7 @@ CNM_DIV_FIG = 'div_figure'
 CNM_BTN = 'btn'
 
 ecg_app = EcgApp(__name__)
-ecg_app.set_record(DATA_PATH.joinpath(record_nm))
+ecg_app.update_template_dropdown_and_add_options(DATA_PATH.joinpath(record_nm))
 
 app = dash.Dash(
     __name__,

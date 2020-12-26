@@ -15,7 +15,7 @@ class EcgUi:
     NUM_SAMPLES = 29  # Number of samples to take for randomization
     PERCENT_NUM = 5  # Number for a rough percentile sample count, based on NUM_SAMPLES
 
-    def __init__(self, parent):
+    def __init__(self, parent):  # Linked record automatically updates by parent
         self.parn = parent
 
     def get_display_range(self, layout_fig):
@@ -25,16 +25,16 @@ class EcgUi:
         """
         x_range = layout_fig['xaxis']['range']
         return [[
-            self.parn.curr_recr.time_str_to_sample_count(x_range[0]),
-            self.parn.curr_recr.time_str_to_sample_count(x_range[1])],
+            self.parn.curr_rec.time_str_to_sample_count(x_range[0]),
+            self.parn.curr_rec.time_str_to_sample_count(x_range[1])],
             layout_fig['yaxis']['range']
         ]
 
     def get_x_display_range(self, layout_fig):
         x_range = layout_fig['xaxis']['range']
         return [
-            self.parn.curr_recr.time_str_to_sample_count(x_range[0]),
-            self.parn.curr_recr.time_str_to_sample_count(x_range[1])
+            self.parn.curr_rec.time_str_to_sample_count(x_range[0]),
+            self.parn.curr_rec.time_str_to_sample_count(x_range[1])
         ]
 
     @staticmethod

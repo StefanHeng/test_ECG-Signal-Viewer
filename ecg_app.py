@@ -1,7 +1,8 @@
 import dash
-import dash_core_components as dcc
 import dash_html_components as html
-from dash.dependencies import Input, Output, State, MATCH
+import dash_core_components as dcc
+import dash_bootstrap_components as dbc
+from dash.dependencies import Input, Output, State, MATCH, ALL
 
 # import logging
 
@@ -40,7 +41,28 @@ CNM_TMB = 'channel-graph-thumbnail'
 CNM_GRA = 'channel-graph'
 ID_TMB = 'figure-thumbnail'
 ID_GRA = 'graph'
-ID_STOR_D_RNG = '_display_range'  # Contains dictionary of each display range
+ID_STOR_D_RNG = 'store_display_range'  # Contains dictionary of each display range
+
+ID_DIV_ADD = 'div_add'
+ID_BTN_ADD = 'btn_add'
+ID_IC_ADD = 'ic_add'
+CNM_IC_ADD = 'fas fa-plus'
+
+ID_MD_ADD = 'modal_add'
+ID_MDHD_ADD = 'modal-header_add'
+CNM_MDTT = 'modal_title'
+CNM_ADD_LD = 'title_add-lead'
+TXT_ADD_LD = 'Add a lead/channel: '
+ID_BTN_MD_CLS = 'btn_modal-close'
+CNM_IC_MD_CLS = 'fas fa-times'
+ID_MDBD_ADD = 'modal-body_add'
+ID_DIV_MD_ADD = 'div_modal-add'
+
+CNM_BTS_LST = 'list-group'  # For Bootstrap CSS
+CNM_BTS_LST_ITM = 'list-group-item list-group-item-action'
+ID_MD_LD_ITM = 'modal_lead-selection-item'
+ID_STOR_IDX_ADD = 'store_lead-idx-add'  # Current index of lead to add to layout
+ID_RDO_LD_ADD = 'radio-group_lead-add'
 
 ANM_OPQY = 'opaque_1'  # Transition achieved by changing class
 ANM_OPQN = 'opaque_0'
@@ -60,6 +82,7 @@ CONF = dict(  # Configuration for figure
 CNM_BTN = 'btn'
 CNM_MY_DPD = 'my_dropdown'
 ID_DIV_FIG_OPN = 'div_fig-options'
+CNM_BTN_FIG_OPN = 'btn_fig-options'
 ID_BTN_FIXY = 'btn_fix_yaxis'
 ID_IC_FIXY = 'ic_fix_yaxis'
 CNM_IC_LK = 'fas fa-lock'  # Font Awesome
@@ -67,7 +90,7 @@ CNM_IC_LKO = 'fas fa-lock-open'
 ID_STOR_IS_FIXY = 'id_is_yaxis_fixed'
 
 # Syntactic sugar
-T = 'type'  # For pattern matching callbacks
+T = 'type'  # For Dash pattern matching callbacks
 I = 'index'
 
 D = 'data'  # Keywords for Dash and plotly
@@ -90,6 +113,10 @@ def mch(id_str):
     return {T: id_str, I: MATCH}
 
 
+def all_(id_str):
+    return {T: id_str, I: ALL}
+
+
 def join(*class_nms):  # For Dash className
     """Join string arguments into whitespace-separated single string """
     return ' '.join(class_nms)
@@ -109,17 +136,19 @@ class EcgApp:
     LD_TEMPL = {
         # Arbitrary, for testing only, users should spawn all the leads via UI
         DEV_TML_S: [3],
-        DEV_TML_RG: range(8),
+        DEV_TML_RG: list(range(8)),
         DEV_TML_RD: [6, 4, 5, 3, 9, 16, 35, 20]
     }
 
     def __init__(self, app_name):
-        self.curr_recr = None  # Current record
+        self.curr_rec = None  # Current record
         self.curr_plot = None
         self.idxs_fig = []
 
         self.app_name = app_name  # No human-readable meaning, name passed into Dash object
-        self.app = dash.Dash(self.app_name, external_stylesheets=[FA_CSS_LNK])
+        self.app = dash.Dash(self.app_name, external_stylesheets=[
+            FA_CSS_LNK
+        ])
         self.app.layout = self._set_layout()
         self._set_callbacks()
         self.ui = EcgUi(self)
@@ -130,17 +159,23 @@ class EcgApp:
     def _set_layout(self):
         return html.Div([
             html.Div(className=CNM_HD, children=[
-                html.Div(TXT_HD, className=CNM_HDTT)
-            ]),
-
-            html.Div(id=ID_BBX_DIV_OPN, children=[
                 html.Button(id=ID_BTN_OPN, className=CNM_BTN, n_clicks=0, children=[
                     html.I(id=ID_IC_OPN, className=CNM_IC_BR)
                 ]),
+
+                html.H1(TXT_HD, className=CNM_HDTT),
+
+                html.Button(id=ID_BTN_ADD, className=CNM_BTN, n_clicks=0, children=[
+                    html.I(id=ID_IC_ADD, className=CNM_IC_ADD)
+                ]),
+            ]),
+
+            html.Div(id=ID_BBX_DIV_OPN, children=[
                 html.Div(id=ID_DIV_OPN, children=[
                     dcc.Dropdown(
-                        id=ID_DPD_RECR, className=CNM_MY_DPD, value=record_nm, placeholder='Select patient record file',
-                        options=[{L: f'{dev(record_nm)}', V: record_nm}]
+                        id=ID_DPD_RECR, className=CNM_MY_DPD, placeholder='Select patient record file',
+                        options=[{L: f'{dev(record_nm)}', V: record_nm}],
+                        # value=record_nm
                     ),
                     dcc.Dropdown(
                         id=ID_DPD_LD_TEMPL, className=CNM_MY_DPD, disabled=True, placeholder='Select lead/channel',
@@ -157,6 +192,23 @@ class EcgApp:
             html.Div(className=CNM_MNBD, children=[
                 html.Div(id=ID_DIV_PLTS, children=[
                     self.get_fig_layout(idx) for idx in self.idxs_fig
+                ]),
+
+                dcc.Store(id=ID_STOR_IDX_ADD),
+                html.Div(id=ID_DIV_ADD, children=[
+                    dbc.Modal(id=ID_MD_ADD, centered=True, is_open=False, scrollable=True, children=[
+                        dbc.ModalHeader(id=ID_MDHD_ADD, children=[
+                            html.H5(TXT_ADD_LD, className=CNM_ADD_LD),
+                            html.Button(id=ID_BTN_MD_CLS, className=CNM_BTN, n_clicks=0, children=[
+                                html.I(className=CNM_IC_MD_CLS)
+                            ])
+                        ]),
+                        dbc.ModalBody(id=ID_MDBD_ADD, children=[
+                            # html.Div(id=ID_DIV_MD_ADD, className=CNM_BTS_LST)
+                            # Design hack, list group items handled internally by radio button group
+                            dcc.RadioItems(id=ID_RDO_LD_ADD, className=CNM_BTS_LST, labelClassName=CNM_BTS_LST_ITM)
+                        ])
+                    ])
                 ])
             ])
         ])
@@ -168,7 +220,7 @@ class EcgApp:
                 dcc.Store(id=m_id(ID_STOR_D_RNG, idx), data=self.curr_plot.D_RNG_INIT),
 
                 html.Div(className=CNM_DIV_LDNM, children=[
-                    html.P(self.curr_recr.lead_nms[idx], className=CNM_LD)
+                    html.P(self.curr_rec.lead_nms[idx], className=CNM_LD)
                 ]),
 
                 html.Div(className=CNM_DIV_TMB, children=[
@@ -181,9 +233,10 @@ class EcgApp:
                 html.Div(className=CNM_DIV_FIG, children=[
                     html.Div(className=ID_DIV_FIG_OPN, children=[
                         html.Div(
-                            html.Button(id=m_id(ID_BTN_FIXY, idx), className=CNM_BTN, n_clicks=0, children=[
-                                html.I(id=m_id(ID_IC_FIXY, idx), className=CNM_IC_LKO)
-                            ])),
+                            html.Button(id=m_id(ID_BTN_FIXY, idx), className=join(CNM_BTN, CNM_BTN_FIG_OPN),
+                                        n_clicks=0, children=[
+                                    html.I(id=m_id(ID_IC_FIXY, idx), className=CNM_IC_LKO)
+                                ])),
                     ]),
                     dcc.Graph(
                         id=m_id(ID_GRA, idx), className=CNM_GRA, config=CONF,
@@ -197,17 +250,55 @@ class EcgApp:
             [Output(ID_IC_OPN, CNM),
              Output(ID_DIV_OPN, CNM)],
             Input(ID_BTN_OPN, NC)
-        )(self.update_div_options)
+        )(self.toggle_div_options)
+
+        # self.app.callback(
+        #     Output(ID_STOR_IDX_ADD, D),
+        #     Input(mch(ID_MD_LD_ITM), NC),
+        #     State(mch(ID_MD_LD_ITM), 'id')
+        # )(self.set_last_add_idx)
 
         self.app.callback(
-            Output(ID_DPD_LD_TEMPL, 'disabled'),
+            [Output(ID_DPD_LD_TEMPL, 'disabled'),
+             Output(ID_BTN_ADD, 'disabled')],
             Input(ID_DPD_RECR, V)
-        )(self.set_record)
+        )(self.toggle_disable)
+
+        self.app.callback(
+            Output(ID_RDO_LD_ADD, 'options'),
+            [Input(ID_DPD_RECR, V),
+             Input(ID_DPD_LD_TEMPL, V),
+             Input(ID_RDO_LD_ADD, V)],
+            [State(ID_RDO_LD_ADD, 'options')]
+        )(self.update_template_dropdown_and_add_options)
 
         self.app.callback(
             Output(ID_DIV_PLTS, C),
-            Input(ID_DPD_LD_TEMPL, V)
-        )(self._load_figs)
+            [Input(ID_DPD_LD_TEMPL, V),
+             Input(ID_RDO_LD_ADD, V)],
+            State(ID_DIV_PLTS, C)
+        )(self.update_lead_layout)
+
+        # self.app.callback(
+        #     [Output(ID_DIV_PLTS, C),
+        #      Output(ID_DIV_ADD, CNM),
+        #      Output(all_(ID_MD_LD_ITM), CNM)],
+        #     [Input(ID_DPD_LD_TEMPL, V),
+        #      Input(mch(ID_MD_LD_ITM), NC)],
+        #     [State(mch(ID_MD_LD_ITM), 'id'),
+        #      State(ID_DIV_PLTS, C),
+        #      State(ID_DIV_ADD, CNM),
+        #      State(all_(ID_MD_LD_ITM), CNM)]
+        # )(self.update_leads)
+
+        self.app.callback(
+            Output(ID_MD_ADD, 'is_open'),
+            [Input(ID_BTN_ADD, NC),
+             Input(ID_BTN_MD_CLS, NC),
+             Input(ID_RDO_LD_ADD, V)],
+            [State(ID_MD_ADD, 'is_open')],
+            prevent_initial_call=True
+        )(self.toggle_modal)
 
         self.app.callback(
             [Output(mch(ID_GRA), F),
@@ -227,26 +318,104 @@ class EcgApp:
             Input(mch(ID_BTN_FIXY), NC)
         )(self.update_fix_yaxis_icon)
 
-    def set_record(self, recr_nm):
-        """Current record selected to display. Previous record data overridden """
-        if recr_nm is None:
-            return True
-        else:
-            self.curr_recr = EcgRecord(DATA_PATH.joinpath(recr_nm))
-            self.curr_plot = EcgPlot(self.curr_recr, self)  # A `plot` serves a record
-            return False
-
-    def _load_figs(self, key_templ):
-        """Set up multiple figures in the APP, original figures shown overridden """
-        self.idxs_fig = self.LD_TEMPL[key_templ] if key_templ is not None else []
-        return [self.get_fig_layout(idx) for idx in self.idxs_fig]
-
     @staticmethod
-    def update_div_options(n_clicks):
+    def toggle_div_options(n_clicks):
+        """ Animation on global options setting """
         if n_clicks % 2 == 0:
             return join(CNM_IC_BR, ANM_BTN_OPN_ROTE), join(ANM_DIV_OPN_EXPW, ANM_OPQY)
         else:
             return join(CNM_IC_BR, ANM_BTN_OPN_ROTS), join(ANM_DIV_OPN_CLPW, ANM_OPQN)
+
+    @staticmethod
+    def toggle_disable(rec_nm):
+        return (False, False) if rec_nm is not None else (True, True)
+
+    def update_template_dropdown_and_add_options(self, rec_nm, template, idx_lead, lead_options):
+        """Display lead figures based on current record and template selected, and based on lead selection in modal
+
+        Initializes lead selections
+
+        :param rec_nm: Name of record selected on dropdown
+        :param template: Name of template selected on dropdown
+        :param idx_lead: Index of changed lead
+        :param lead_options: Layout on all selections
+
+        .. note:: Previous record and figure overridden
+        .. note:: Selections in modal are disabled if corresponding lead is shown
+        """
+        # Shared output must be in a single function call per Dash callback
+
+        changed_id = self.get_last_changed_id()
+        if ID_DPD_RECR in changed_id:
+            if rec_nm is not None:
+                self.curr_rec = EcgRecord(DATA_PATH.joinpath(rec_nm))
+                self.curr_plot = EcgPlot(self.curr_rec, self)  # A `plot` serves a record
+                # Must generate selections now, for users could not select a template, and customize lead by single add
+                return [{L: f'{idx+1}: {nm}', V: idx} for idx, nm in enumerate(self.curr_rec.lead_nms)]
+            else:
+                return lead_options  # Keep unchanged
+        elif ID_DPD_LD_TEMPL in changed_id:
+            if template is not None:
+                self.idxs_fig = self.LD_TEMPL[template]
+                # Template dropdown is of course not disabled
+                return [
+                    {L: f'{idx + 1}: {nm}', V: idx, 'disabled': idx in self.idxs_fig}
+                    for idx, nm in enumerate(self.curr_rec.lead_nms)
+                ]
+            else:
+                return lead_options
+        elif ID_RDO_LD_ADD in changed_id:  # A new lead layout should be appended, due to click in modal
+            self.idxs_fig.append(idx_lead)
+            lead_options[idx_lead]['disabled'] = True
+            # Hides the modal on first and any single click
+            return lead_options
+        else:
+            return lead_options
+
+    def update_lead_layout(self, template, idx_lead, plots):
+        changed_id = self.get_last_changed_id()
+        if ID_DPD_LD_TEMPL in changed_id:
+            if template is not None:
+                self.idxs_fig = self.LD_TEMPL[template]
+                return [self.get_fig_layout(idx) for idx in self.idxs_fig]
+            else:
+                self.idxs_fig = None
+                return None
+        elif ID_RDO_LD_ADD in changed_id:
+            plots.append(self.get_fig_layout(idx_lead))
+            return plots
+        else:
+            return plots
+
+    def update_leads(self, key_templ, n_clicks, id_d, plots, class_name_add, item_class_names):
+        """Set up multiple lead/channel, original figures shown overridden,
+         or append corresponding lead/channel by modal lead selection
+
+        :param key_templ: Value of dropdown on template selected
+        :param n_clicks: #clicks for the clicked lead option
+        :param id_d: Pattern-matching id for the clicked lead option
+        :param plots: Current app layout
+        :param class_name_add: class of the add button div, used for opacity change
+        :param item_class_names: list of class of lead options in add modal
+        """
+        changed_id = self.get_last_changed_id()
+        if ID_MD_LD_ITM in changed_id:
+            idx = id_d[I]
+            self.idxs_fig.append(idx)
+            # Hides the modal on first and any single click
+            return plots, class_name_add, join(ID_MD_LD_ITM, 'disabled'), plots.append(self.get_fig_layout(idx))
+        else:
+            if key_templ is not None:
+                self.idxs_fig = self.LD_TEMPL[key_templ]
+                return [self.get_fig_layout(idx) for idx in self.idxs_fig], ANM_OPQY, [
+                    join(ID_MD_LD_ITM, 'disabled' if idx in self.idxs_fig else '') for idx in self.idxs_fig
+                ], item_class_names
+            else:
+                return [], ANM_OPQN, item_class_names
+
+    @staticmethod
+    def toggle_modal(n_clicks_add, n_clicks_close, idx_lead, is_open):
+        return not is_open
 
     def get_lead_fig(self, idx_lead, display_range):
         """

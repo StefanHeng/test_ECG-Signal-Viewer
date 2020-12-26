@@ -27,7 +27,7 @@ d_config = {
 }
 
 ecg_app = EcgApp(__name__)
-ecg_app.set_record(DATA_PATH.joinpath(record_nm))
+ecg_app.update_template_dropdown_and_add_options(DATA_PATH.joinpath(record_nm))
 idxs_fig = [6, 4, 5, 3, 9, 16, 35, 20]  # Arbitrary, for testing only, users should spawn all the leads by selection
 
 
