@@ -1,26 +1,3 @@
-.btn {
-    height: 2em;
-    width: 2em;
-    margin: 0;
-    padding: 0;
-
-    display: flex;
-    align-items: center; /* Centers the child icon */
-    justify-content: center;
-
-    /*font-size: 0.75em; !* changes icon size *!*/
-    border-radius: 1em;
-    background-color: transparent;
-}
-
-.btn:hover {
-    background-color: var(--primary_a3);
-}
-
-.btn:active {
-    background-color: var(--primary_a5);
-}
-
 .opaque_1 {
     opacity: 1;
 }
@@ -59,17 +36,6 @@
     border-radius: 0.35em;
 }
 
-#btn_options {
-    height: 2em;
-    width: 2em;
-
-    font-size: 1.25em;
-    border-radius: 1em;
-    border-color: transparent;
-    margin-right: 0.5em;
-    align-self: center;
-}
-
 #div_options {
     max-width: 30em;
 
@@ -96,20 +62,6 @@
     margin-bottom: 0;
 }
 
-.my_dropdown .VirtualizedSelectOption {
-    background: var(--primary_a1);
-    -webkit-backdrop-filter: blur(15px);
-}
-
-.my_dropdown .VirtualizedSelectFocusedOption {
-    background: var(--primary_a4);
-    -webkit-backdrop-filter: blur(15px);
-}
-
-.Select * {
-    background: rgba(var(--light_primary), 0.3);
-}
-
 
 .div_fig-options {
     position: absolute;
@@ -131,60 +83,9 @@
 }
 
 
-.btn_fig-options {
-    border-radius: 0.5em;
-}
-
-
 #div_add {
     width: 90%;
 
     transition: var(--ease-all);
 }
 
-.modal-content {
-    max-width: 25em;
-}
-
-.modal-title { /* Direct parent of content of header by Bootstrap */
-    width: 100%;
-    display: flex;
-    flex-direction: row;
-    justify-content: flex-start;
-    align-items: center;
-}
-
-.title_add-lead {
-    margin: 0;
-}
-
-#btn_modal-close {
-    width: 1em;
-    height: 1em;
-    margin-left: auto;
-}
-
-#btn_modal-close:hover {
-    color: var(--gray_-4);
-    background: transparent;
-}
-
-#btn_modal-close:active {
-    color: var(--gray_-5);
-    background: transparent;
-}
-
-#modal-body_add {
-    padding: 0;
-    max-height: 50vh;
-}
-
-.list-group-item {
-    margin: 0;
-}
-
-.list-group-item-action:active {
-    color: #fff;
-    background-color: #1a1a1a;
-    border-color: #1a1a1a
-}

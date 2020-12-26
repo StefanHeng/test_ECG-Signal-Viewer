@@ -1,0 +1,14 @@
+.my_dropdown .VirtualizedSelectOption {
+    background: var(--primary_a1);
+    -webkit-backdrop-filter: blur(15px);
+}
+
+.my_dropdown .VirtualizedSelectFocusedOption {
+    background: var(--primary_a4);
+    -webkit-backdrop-filter: blur(15px);
+}
+
+.Select * {
+    background: rgba(var(--light_primary), 0.3);
+}
+

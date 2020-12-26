@@ -1,0 +1,3 @@
+.input_null { /* Design hack, crop off the radio input circle */
+    margin-left: -1.7em;
+}

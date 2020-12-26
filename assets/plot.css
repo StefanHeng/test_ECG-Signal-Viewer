@@ -1,3 +1,11 @@
+#div_plots {
+    width: 90%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
 .div_lead {
     height: 25em;  /* Having percentages heights all the way down causes plotly graph to collapse to 0 size in update for unknown reason */
     width: 100%;

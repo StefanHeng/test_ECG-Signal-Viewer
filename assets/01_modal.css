@@ -1,0 +1,31 @@
+.modal-content {
+    max-width: 25em;
+}
+
+.modal-title { /* Direct parent of content of header by Bootstrap */
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.title_add-lead {
+    margin: 0;
+}
+
+#modal-body_add {
+    padding: 0;
+    max-height: 50vh;
+}
+
+.list-group-item {
+    margin: 0;
+}
+
+.list-group-item-action:active {
+    color: #fff;
+    background-color: #1a1a1a;
+    border-color: #1a1a1a
+}
+

@@ -63,6 +63,7 @@ CNM_BTS_LST_ITM = 'list-group-item list-group-item-action'
 ID_MD_LD_ITM = 'modal_lead-selection-item'
 ID_STOR_IDX_ADD = 'store_lead-idx-add'  # Current index of lead to add to layout
 ID_RDO_LD_ADD = 'radio-group_lead-add'
+CNM_RDO_ITM_IPT = 'input_null'
 
 ANM_OPQY = 'opaque_1'  # Transition achieved by changing class
 ANM_OPQN = 'opaque_0'
@@ -178,7 +179,7 @@ class EcgApp:
                         # value=record_nm
                     ),
                     dcc.Dropdown(
-                        id=ID_DPD_LD_TEMPL, className=CNM_MY_DPD, disabled=True, placeholder='Select lead/channel',
+                        id=ID_DPD_LD_TEMPL, className=CNM_MY_DPD, disabled=True, placeholder='Select lead/channel template',
                         options=[
                             {L: f'{dev(DEV_TML_S)}', V: DEV_TML_S},
                             {L: f'{dev(DEV_TML_RG)}', V: DEV_TML_RG},
@@ -194,20 +195,16 @@ class EcgApp:
                     self.get_fig_layout(idx) for idx in self.idxs_fig
                 ]),
 
-                dcc.Store(id=ID_STOR_IDX_ADD),
-                html.Div(id=ID_DIV_ADD, children=[
-                    dbc.Modal(id=ID_MD_ADD, centered=True, is_open=False, scrollable=True, children=[
-                        dbc.ModalHeader(id=ID_MDHD_ADD, children=[
-                            html.H5(TXT_ADD_LD, className=CNM_ADD_LD),
-                            html.Button(id=ID_BTN_MD_CLS, className=CNM_BTN, n_clicks=0, children=[
-                                html.I(className=CNM_IC_MD_CLS)
-                            ])
-                        ]),
-                        dbc.ModalBody(id=ID_MDBD_ADD, children=[
-                            # html.Div(id=ID_DIV_MD_ADD, className=CNM_BTS_LST)
-                            # Design hack, list group items handled internally by radio button group
-                            dcc.RadioItems(id=ID_RDO_LD_ADD, className=CNM_BTS_LST, labelClassName=CNM_BTS_LST_ITM)
+                dbc.Modal(id=ID_MD_ADD, centered=True, is_open=False, scrollable=True, children=[
+                    dbc.ModalHeader(id=ID_MDHD_ADD, children=[
+                        html.H5(TXT_ADD_LD, className=CNM_ADD_LD),
+                        html.Button(id=ID_BTN_MD_CLS, className=CNM_BTN, n_clicks=0, children=[
+                            html.I(className=CNM_IC_MD_CLS)
                         ])
+                    ]),
+                    dbc.ModalBody(id=ID_MDBD_ADD, children=[
+                        dbc.RadioItems(id=ID_RDO_LD_ADD, className=CNM_BTS_LST,
+                                       labelClassName=CNM_BTS_LST_ITM, inputClassName=CNM_RDO_ITM_IPT)
                     ])
                 ])
             ])
@@ -245,18 +242,38 @@ class EcgApp:
                 ])
             ])
 
+    def get_lead_fig(self, idx_lead, display_range):
+        """
+        :param idx_lead: index of lead as stored in .h5 datasets
+        :param display_range: range of sample_counts, inclusive start and end
+
+        .. note:: A valid range has values in [0, sum of all samples across the entire ecg_record),
+        one-to-one correspondence with time by `sample_rate`
+
+        :return: dictionary that represents a plotly graph
+        """
+        strt, end = display_range[0]
+        return self.curr_plot.get_fig(idx_lead, strt, end)
+
+    def get_thumb_fig(self, idx_lead):
+        """
+        Plot across the entire channel
+
+        :return: The figure dummy used for global thumbnail preview
+        """
+        return self.curr_plot.get_thumb_fig(idx_lead)
+
+    def get_lead_xy_vals(self, idx_lead, x_display_range):
+        strt, end = x_display_range
+        # determine if optimization is needed for large sample_range
+        return self.curr_plot.get_xy_vals(idx_lead, strt, end)
+
     def _set_callbacks(self):
         self.app.callback(
             [Output(ID_IC_OPN, CNM),
              Output(ID_DIV_OPN, CNM)],
             Input(ID_BTN_OPN, NC)
         )(self.toggle_div_options)
-
-        # self.app.callback(
-        #     Output(ID_STOR_IDX_ADD, D),
-        #     Input(mch(ID_MD_LD_ITM), NC),
-        #     State(mch(ID_MD_LD_ITM), 'id')
-        # )(self.set_last_add_idx)
 
         self.app.callback(
             [Output(ID_DPD_LD_TEMPL, 'disabled'),
@@ -278,18 +295,6 @@ class EcgApp:
              Input(ID_RDO_LD_ADD, V)],
             State(ID_DIV_PLTS, C)
         )(self.update_lead_layout)
-
-        # self.app.callback(
-        #     [Output(ID_DIV_PLTS, C),
-        #      Output(ID_DIV_ADD, CNM),
-        #      Output(all_(ID_MD_LD_ITM), CNM)],
-        #     [Input(ID_DPD_LD_TEMPL, V),
-        #      Input(mch(ID_MD_LD_ITM), NC)],
-        #     [State(mch(ID_MD_LD_ITM), 'id'),
-        #      State(ID_DIV_PLTS, C),
-        #      State(ID_DIV_ADD, CNM),
-        #      State(all_(ID_MD_LD_ITM), CNM)]
-        # )(self.update_leads)
 
         self.app.callback(
             Output(ID_MD_ADD, 'is_open'),
@@ -317,6 +322,13 @@ class EcgApp:
             Output(mch(ID_IC_FIXY), CNM),
             Input(mch(ID_BTN_FIXY), NC)
         )(self.update_fix_yaxis_icon)
+
+    @staticmethod
+    def get_last_changed_id():
+        """Only 1 input change is needed each time
+        :return String representation, caller would check for substring
+        """
+        return [p['prop_id'] for p in dash.callback_context.triggered][0]
 
     @staticmethod
     def toggle_div_options(n_clicks):
@@ -387,68 +399,9 @@ class EcgApp:
         else:
             return plots
 
-    def update_leads(self, key_templ, n_clicks, id_d, plots, class_name_add, item_class_names):
-        """Set up multiple lead/channel, original figures shown overridden,
-         or append corresponding lead/channel by modal lead selection
-
-        :param key_templ: Value of dropdown on template selected
-        :param n_clicks: #clicks for the clicked lead option
-        :param id_d: Pattern-matching id for the clicked lead option
-        :param plots: Current app layout
-        :param class_name_add: class of the add button div, used for opacity change
-        :param item_class_names: list of class of lead options in add modal
-        """
-        changed_id = self.get_last_changed_id()
-        if ID_MD_LD_ITM in changed_id:
-            idx = id_d[I]
-            self.idxs_fig.append(idx)
-            # Hides the modal on first and any single click
-            return plots, class_name_add, join(ID_MD_LD_ITM, 'disabled'), plots.append(self.get_fig_layout(idx))
-        else:
-            if key_templ is not None:
-                self.idxs_fig = self.LD_TEMPL[key_templ]
-                return [self.get_fig_layout(idx) for idx in self.idxs_fig], ANM_OPQY, [
-                    join(ID_MD_LD_ITM, 'disabled' if idx in self.idxs_fig else '') for idx in self.idxs_fig
-                ], item_class_names
-            else:
-                return [], ANM_OPQN, item_class_names
-
     @staticmethod
     def toggle_modal(n_clicks_add, n_clicks_close, idx_lead, is_open):
         return not is_open
-
-    def get_lead_fig(self, idx_lead, display_range):
-        """
-        :param idx_lead: index of lead as stored in .h5 datasets
-        :param display_range: range of sample_counts, inclusive start and end
-
-        .. note:: A valid range has values in [0, sum of all samples across the entire ecg_record),
-        one-to-one correspondence with time by `sample_rate`
-
-        :return: dictionary that represents a plotly graph
-        """
-        strt, end = display_range[0]
-        return self.curr_plot.get_fig(idx_lead, strt, end)
-
-    def get_thumb_fig(self, idx_lead):
-        """
-        Plot across the entire channel
-
-        :return: The figure dummy used for global thumbnail preview
-        """
-        return self.curr_plot.get_thumb_fig(idx_lead)
-
-    def get_lead_xy_vals(self, idx_lead, x_display_range):
-        strt, end = x_display_range
-        # determine if optimization is needed for large sample_range
-        return self.curr_plot.get_xy_vals(idx_lead, strt, end)
-
-    @staticmethod
-    def get_last_changed_id():
-        """Only 1 input change is needed each time
-        :return String representation, caller would check for substring
-        """
-        return [p['prop_id'] for p in dash.callback_context.triggered][0]
 
     def update_figure(self, layout_fig, layout_tmb, n_clicks, disp_rng, fig_gra, fig_tmb, id_d_fig):
         """ Update plot in a single call to avoid unnecessary updates, at a point in time, only 1 property change

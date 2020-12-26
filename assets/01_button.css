@@ -1,0 +1,57 @@
+.btn {
+    height: 2em;
+    width: 2em;
+    margin: 0;
+    padding: 0;
+
+    display: flex;
+    align-items: center; /* Centers the child icon */
+    justify-content: center;
+
+    /*font-size: 0.75em; !* changes icon size *!*/
+    border-radius: 1em;
+    background-color: transparent;
+}
+
+.btn:hover {
+    background-color: var(--primary_a3);
+}
+
+.btn:active {
+    background-color: var(--primary_a5);
+}
+
+
+#btn_options {
+    height: 2em;
+    width: 2em;
+
+    font-size: 1.25em;
+    border-radius: 1em;
+    border-color: transparent;
+    margin-right: 0.5em;
+    align-self: center;
+}
+
+
+.btn_fig-options {
+    border-radius: 0.5em;
+}
+
+
+#btn_modal-close {
+    width: 1em;
+    height: 1em;
+    margin-left: auto;
+}
+
+#btn_modal-close:hover {
+    color: var(--gray_-4);
+    background: transparent;
+}
+
+#btn_modal-close:active {
+    color: var(--gray_-5);
+    background: transparent;
+}
+
