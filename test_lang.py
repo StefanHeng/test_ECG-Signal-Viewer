@@ -84,12 +84,12 @@ if __name__ == "__main__":
     #     'range': ['1970-01-01 01:58:24.8202', '1970-01-01 02:43:04.2536'], 'autorange': False}}
 
     # d = [24386254, 27727814]
-    # d = [24633501, 27727814]
-    # s = 6876
-    # rec = EcgRecord.example()
-    # print((d[1] - d[0]) / 10306)
-    # a = rec.get_samples(3, d[0], d[1], s)
-    # print(a, a.shape)
+    d = [24633501, 27727814]
+    s = 6876
+    rec = EcgRecord.example()
+    print((d[1] - d[0]) / s)
+    a = rec.get_samples(3, d[0], d[1], s)
+    print(a, a.shape)
 
     # print(dbc.themes.LUX)
 
@@ -98,6 +98,6 @@ if __name__ == "__main__":
     # m = re.match("^{\"index\":([0-9]+)", s)
     # print(m.group(1))  # Returns the first parenthesised subgroup
 
-    print(pd.Timestamp('1970-01-01'))
-    print(str(pd.Timestamp('1970-01-01')))
+    # print(pd.Timestamp('1970-01-01'))
+    # print(str(pd.Timestamp('1970-01-01')))
 

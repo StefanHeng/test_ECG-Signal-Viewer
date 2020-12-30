@@ -4,6 +4,7 @@ import dash_core_components as dcc
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State, MATCH, ALL
 
+import concurrent.futures
 # import logging
 
 # logging.basicConfig(level=logging.DEBUG)
@@ -140,6 +141,8 @@ class EcgApp:
         DEV_TML_RG: list(range(8)),
         DEV_TML_RD: [6, 5, 3, 16, 35]
     }
+
+    MAX_NUM_LD = 8
 
     def __init__(self, app_name):
         self.curr_rec = None  # Current record
@@ -316,7 +319,7 @@ class EcgApp:
             [State(all_(ID_GRA), F),
              State(all_(ID_TMB), F)],
             prevent_initial_call=True
-        )(self.update_figure)
+        )(self.update_figures)
 
         self.app.callback(
             Output(mch(ID_IC_FIXY), CNM),
@@ -363,7 +366,7 @@ class EcgApp:
                 self.curr_rec = EcgRecord(DATA_PATH.joinpath(rec_nm))
                 self.curr_plot = EcgPlot(self.curr_rec, self)  # A `plot` serves a record
                 # Must generate selections now, for users could not select a template, and customize lead by single add
-                return [{L: f'{idx+1}: {nm}', V: idx} for idx, nm in enumerate(self.curr_rec.lead_nms)]
+                return [{L: f'{idx + 1}: {nm}', V: idx} for idx, nm in enumerate(self.curr_rec.lead_nms)]
             else:
                 return lead_options  # Keep unchanged
         elif ID_DPD_LD_TEMPL in changed_id:
@@ -376,7 +379,7 @@ class EcgApp:
                 ]
             else:  # Reset layout
                 self.idxs_fig = []
-                return [{L: f'{idx+1}: {nm}', V: idx} for idx, nm in enumerate(self.curr_rec.lead_nms)]
+                return [{L: f'{idx + 1}: {nm}', V: idx} for idx, nm in enumerate(self.curr_rec.lead_nms)]
         elif ID_RDO_LD_ADD in changed_id:  # A new lead layout should be appended, due to click in modal
             self.idxs_fig.append(idx_lead)
             lead_options[idx_lead]['disabled'] = True
@@ -416,7 +419,7 @@ class EcgApp:
                 return i
         return -1  # Not intended to reach here
 
-    def update_figure(self, layouts_fig, layouts_tmb, ns_clicks, figs_gra, figs_tmb):
+    def update_figures(self, layouts_fig, layouts_tmb, ns_clicks, figs_gra, figs_tmb):
         """ Update plot in a single call to avoid unnecessary updates, at a point in time, only 1 property change
 
         :param layouts_fig: RelayoutData of actual plot
@@ -433,14 +436,20 @@ class EcgApp:
             idx_idx_changed = self._get_fig_index_by_index(idx_changed)
             if layouts_fig is not None and self.ui.KEY_X_S in layouts_fig[idx_idx_changed]:
                 self.curr_disp_rng[0] = self.ui.get_x_display_range((figs_gra[idx_idx_changed])['layout'])
+                strt, end = self.curr_disp_rng[0]
+                sample_factor = self.curr_plot.get_sample_factor(strt, end)
+                x_vals = self.curr_plot.get_x_vals(strt, end, sample_factor)
+                args = [(figs_gra, idx_idx, idx_lead, strt, end, sample_factor)
+                        for idx_idx, idx_lead in enumerate(self.idxs_fig)]
+                # Multi-threading for mainly IO
+                with concurrent.futures.ThreadPoolExecutor(max_workers=self.MAX_NUM_LD) as executor:
+                    executor.map(lambda p: self._set_y_vals(*p), args)
+
                 x_layout_range = self.ui.get_x_layout_range(layouts_fig[idx_idx_changed])
-                for idx_idx, idx_lead in enumerate(self.idxs_fig):  # Lines up with number of figures plotted
-                    # TODO: Concurrency
-                    x, y = self.get_lead_xy_vals(idx_lead, self.curr_disp_rng[0])
-                    figs_gra[idx_idx][D][0]['x'] = x  # First (and only) plot/figure on the graph
-                    figs_gra[idx_idx][D][0]['y'] = y
+                for idx_idx in range(len(self.idxs_fig)):  # Lines up with number of figures plotted
+                    # Short execution time, no need to multi-process
+                    figs_gra[idx_idx][D][0]['x'] = x_vals
                     figs_gra[idx_idx]['layout']['xaxis']['range'] = x_layout_range
-                    # figs_tmb['layout']['xaxis']['range'] = figs_gra['layout']['xaxis']['range']
         # elif ID_TMB in changed_id:  # Changes in thumbnail figure have to be range change
         #     x, y = self.get_lead_xy_vals(id_d_fig[I], self.ui.get_x_display_range(fig_tmb['layout']))
         #     fig_gra[D][0]['x'] = x
@@ -449,6 +458,10 @@ class EcgApp:
         elif ID_BTN_FIXY in changed_id:
             figs_gra['layout']['yaxis']['fixedrange'] = ns_clicks % 2 == 1
         return figs_gra, figs_tmb
+
+    def _set_y_vals(self, figs_gra, idx_idx, idx_lead, strt, end, sample_factor):
+        y_vals = self.curr_plot.get_y_vals(idx_lead, strt, end, sample_factor)
+        figs_gra[idx_idx][D][0]['y'] = y_vals
 
     @staticmethod
     def update_fix_yaxis_icon(n_clicks):
@@ -462,4 +475,3 @@ class EcgApp:
         ecg_app = EcgApp(__name__)
         ecg_app.app.title = "Example run"
         return ecg_app
-

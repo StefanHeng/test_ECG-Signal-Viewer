@@ -52,6 +52,24 @@ class EcgPlot:
         sample_counts = np.linspace(strt, end, num=ecg_vals.shape[0])
         return self.to_time_axis(sample_counts), ecg_vals
 
+    def get_sample_factor(self, strt, end):
+        return max(self._get_sample_factor(strt, end), self.min_sample_step)
+
+    @staticmethod
+    def _count_indexing_num(strt, end, step):
+        """Counts the number of elements as result of numpy array indexing """
+        num = (end - strt) // step
+        if (end - strt) % step != 0:
+            num += 1
+        return num
+
+    def get_x_vals(self, strt, end, sample_factor):
+        sample_counts = np.linspace(strt, end, num=self._count_indexing_num(strt, end, sample_factor))
+        return self.to_time_axis(sample_counts)
+
+    def get_y_vals(self, idx_lead, strt, end, sample_factor):
+        return self.rec.get_samples(idx_lead, strt, end, sample_factor)
+
     def get_fig(self, idx_lead, strt, end):
         # logger.info(f'sample_counts of size {sample_counts.shape[0]} -> {sample_counts}')
         # logger.info(f'ecg_vals of size {ecg_vals.shape[0]} -> {ecg_vals}')
