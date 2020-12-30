@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import bisect
 from functools import reduce
+import re
 
 import dash
 import dash_html_components as html
@@ -92,11 +93,11 @@ if __name__ == "__main__":
 
     # print(dbc.themes.LUX)
 
-    app = dash.Dash()
-    app.layout = html.Div(className=CNM_HD, children=[
-        html.Button(id=ID_BTN_OPN, className=CNM_BTN, n_clicks=0, children=[
-            'sdad'
-        ]),
-        html.H1(TXT_HD, className=CNM_HDTT)
-    ])
-    app.run_server(debug=True)
+    # s = "{\"index\":1,\"type\":\"graph\"}.relayoutData"
+    # print(s)
+    # m = re.match("^{\"index\":([0-9]+)", s)
+    # print(m.group(1))  # Returns the first parenthesised subgroup
+
+    print(pd.Timestamp('1970-01-01'))
+    print(str(pd.Timestamp('1970-01-01')))
+

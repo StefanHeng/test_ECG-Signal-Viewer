@@ -23,6 +23,7 @@ class EcgRecord:
     """
 
     EPOCH_START = pd.Timestamp('1970-01-01')
+    TIME_STRT = str(EPOCH_START)
     UNIT_1US = pd.Timedelta('1us')
 
     # @profile
@@ -38,6 +39,7 @@ class EcgRecord:
 
         self._sample_counts = self._get_sample_counts()
         self._sample_counts_acc = self._get_sample_counts_acc()  # Accumulated
+        self.TIME_END = str(self.sample_count_to_time_str(self._sample_counts_acc[-1]))
 
     def _get_sample_counts(self):
         """ Helps to check which segment(s) is a time range located in """
@@ -153,6 +155,13 @@ class EcgRecord:
     def sample_count_to_time_str(self, count):
         time_us = count * (10 ** 6) // self.spl_rate
         return pd.to_datetime(time_us, unit='us')
+
+    def get_range(self):
+        """ Human-readable, inclusive start and exclusive end time of current record """
+        return [
+            self.sample_count_to_time_str(0),
+            self.sample_count_to_time_str(self._sample_counts_acc[-1])
+        ]
 
     @staticmethod
     def example(path=DATA_PATH.joinpath(record_nm)):

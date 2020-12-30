@@ -11,7 +11,7 @@ class EcgPlot:
     """Handles plotting for a particular `record`, or surgery.
     """
 
-    D_RNG_INIT = [
+    DISP_RNG_INIT = [
         [0, 100000],  # First 50s, given 2000 sample_rate
         [-4000, 4000]  # -4V to 4V
     ]
@@ -32,11 +32,11 @@ class EcgPlot:
     DEFAULT_BG = 'rgba(229, 236, 246, 0.8)'
 
     def __init__(self, record, parent):
-        self.recr = record
+        self.rec = record
         self.parn = parent
-        self.min_sample_step = self.recr.spl_rate // self.SP_RT_READABLE
+        self.min_sample_step = self.rec.spl_rate // self.SP_RT_READABLE
         # Multiplying factor for converting to time in microseconds
-        self.FAC_TO_US = 10 ** 6 / self.recr.spl_rate
+        self.FAC_TO_US = 10 ** 6 / self.rec.spl_rate
 
     def get_xy_vals(self, idx_lead, strt, end):
         """
@@ -46,7 +46,7 @@ class EcgPlot:
         """
         # Always take data as samples instead of entire channel, sample at at least increments of min_sample_step
         sample_factor = max(self._get_sample_factor(strt, end), self.min_sample_step)
-        ecg_vals = self.recr.get_samples(idx_lead, strt, end, sample_factor)
+        ecg_vals = self.rec.get_samples(idx_lead, strt, end, sample_factor)
         # Take the size of array,
         # for integer division almost never perfectly match the size returned by advanced slicing
         sample_counts = np.linspace(strt, end, num=ecg_vals.shape[0])
@@ -57,15 +57,16 @@ class EcgPlot:
         # logger.info(f'ecg_vals of size {ecg_vals.shape[0]} -> {ecg_vals}')
         time_vals, ecg_vals = self.get_xy_vals(idx_lead, strt, end)
         xaxis_config = dict(
-            showspikes=True,
-            spikemode='toaxis',
-            spikesnap='data',
-            spikedash='dot',
-            spikethickness=1,
-            spikecolor=self.PRIMARY,
-            linecolor=self.SECONDARY_2  # Axis color
+            # showspikes=True,
+            # spikemode='toaxis',
+            # spikesnap='data',
+            # spikedash='dot',
+            # spikethickness=1,
+            # spikecolor=self.PRIMARY,
+            # linecolor=self.SECONDARY_2  # Axis color
+            # range=self.rec.get_range()
         )
-        yaxis_config = deepcopy(xaxis_config)
+        # yaxis_config = deepcopy(xaxis_config)
         return dict(
             data=[dict(
                 x=time_vals,
@@ -82,12 +83,12 @@ class EcgPlot:
                 hoverdistance=0,
                 # hoverinfo=None,
                 xaxis=xaxis_config,
-                yaxis=yaxis_config
+                # yaxis=yaxis_config
             )
         )
 
     def get_thumb_fig(self, idx_lead):
-        time_vals, ecg_vals = self.get_xy_vals(idx_lead, 0, self.recr.num_sample_count())
+        time_vals, ecg_vals = self.get_xy_vals(idx_lead, 0, self.rec.num_sample_count())
         rang = self.parn.ui.get_ignore_noise_range(ecg_vals)
         ecg_vals = self.parn.ui.strip_noise(ecg_vals, rang[0], rang[1])
         xaxis_config = dict(
@@ -107,8 +108,8 @@ class EcgPlot:
         )
         # Note: This `range` is different than the range argument in Figure creation, which crops off data
         fig['layout']['xaxis']['range'] = [
-            self.recr.sample_count_to_time_str(self.D_RNG_INIT[0][0]),
-            self.recr.sample_count_to_time_str(self.D_RNG_INIT[0][1])
+            self.rec.sample_count_to_time_str(self.DISP_RNG_INIT[0][0]),
+            self.rec.sample_count_to_time_str(self.DISP_RNG_INIT[0][1])
         ]
         fig['layout']['yaxis']['range'] = rang
         return fig

@@ -1,4 +1,5 @@
 import numpy as np
+import re
 
 from random import random
 
@@ -22,7 +23,10 @@ class EcgUi:
         """
         :param layout_fig: Layout of Plotly graph object
         :return: 2*2 List of List containing x and y axis range
+
+        .. note:: By sample count
         """
+        print(layout_fig)
         x_range = layout_fig['xaxis']['range']
         return [[
             self.parn.curr_rec.time_str_to_sample_count(x_range[0]),
@@ -36,6 +40,16 @@ class EcgUi:
             self.parn.curr_rec.time_str_to_sample_count(x_range[0]),
             self.parn.curr_rec.time_str_to_sample_count(x_range[1])
         ]
+
+    def get_x_layout_range(self, layout_fig):
+        """
+        .. note:: In human-readable time stamp
+        """
+        # Clip start time from below to 0, end time from above to maximum sample count
+        # str comparison suffices
+        strt = max(layout_fig[self.KEY_X_S], self.parn.curr_rec.TIME_STRT)
+        end = min(layout_fig[self.KEY_X_E], self.parn.curr_rec.TIME_END)
+        return [strt, end]
 
     @staticmethod
     def strip_noise(vals, bot, top):
@@ -63,4 +77,10 @@ class EcgUi:
         half_range = max(samples[self.PERCENT_NUM-1], samples[-self.PERCENT_NUM])  # For symmetry
         half_range *= 20  # By nature of ECG waveform signals
         return -half_range, half_range
+
+    @staticmethod
+    def get_pattern_match_index(str_id):
+        """ Per pattern-matching index construction by Dash """
+        # e.g. 1 in `{"index":1,"type":"graph"}.relayoutData`
+        return int(re.match("^{\"index\":([0-9]+)", str_id).group(1))
 

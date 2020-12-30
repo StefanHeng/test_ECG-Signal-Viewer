@@ -124,8 +124,8 @@ def join(*class_nms):  # For Dash className
 
 
 DEV_TML_S = 'single -> 1: I'
-DEV_TML_RG = 'range(8)'
-DEV_TML_RD = 'rand'
+DEV_TML_RG = 'range(8) -> [1, 8]'
+DEV_TML_RD = 'rand -> [7, 6, 4, 17, 36]'
 
 
 class EcgApp:
@@ -145,6 +145,7 @@ class EcgApp:
         self.curr_rec = None  # Current record
         self.curr_plot = None
         self.idxs_fig = []
+        self.curr_disp_rng = EcgPlot.DISP_RNG_INIT
 
         self.app_name = app_name  # No human-readable meaning, name passed into Dash object
         self.app = dash.Dash(self.app_name, external_stylesheets=[
@@ -179,7 +180,8 @@ class EcgApp:
                         # value=record_nm
                     ),
                     dcc.Dropdown(
-                        id=ID_DPD_LD_TEMPL, className=CNM_MY_DPD, disabled=True, placeholder='Select lead/channel template',
+                        id=ID_DPD_LD_TEMPL, className=CNM_MY_DPD, disabled=True,
+                        placeholder='Select lead/channel template',
                         options=[
                             {L: f'{dev(DEV_TML_S)}', V: DEV_TML_S},
                             {L: f'{dev(DEV_TML_RG)}', V: DEV_TML_RG},
@@ -214,7 +216,7 @@ class EcgApp:
         return html.Div(
             className=CNM_DIV_LD, children=[
                 # All figure data maintained inside layout variable
-                dcc.Store(id=m_id(ID_STOR_D_RNG, idx), data=self.curr_plot.D_RNG_INIT),
+                # dcc.Store(id=m_id(ID_STOR_D_RNG, idx), data=self.curr_plot.D_RNG_INIT),
 
                 html.Div(className=CNM_DIV_LDNM, children=[
                     html.P(self.curr_rec.lead_nms[idx], className=CNM_LD)
@@ -237,7 +239,7 @@ class EcgApp:
                     ]),
                     dcc.Graph(
                         id=m_id(ID_GRA, idx), className=CNM_GRA, config=CONF,
-                        figure=self.get_lead_fig(idx, self.curr_plot.D_RNG_INIT)
+                        figure=self.get_lead_fig(idx, self.curr_disp_rng)
                     )
                 ])
             ])
@@ -306,15 +308,13 @@ class EcgApp:
         )(self.toggle_modal)
 
         self.app.callback(
-            [Output(mch(ID_GRA), F),
-             Output(mch(ID_TMB), F)],  # Dummy figure, change its range just to change how the RangeSlider looks
-            [Input(mch(ID_GRA), 'relayoutData'),
-             Input(mch(ID_TMB), 'relayoutData'),
-             Input(mch(ID_BTN_FIXY), NC)],
-            [State(mch(ID_STOR_D_RNG), D),
-             State(mch(ID_GRA), F),
-             State(mch(ID_TMB), F),
-             State(mch(ID_GRA), 'id')],
+            [Output(all_(ID_GRA), F),
+             Output(all_(ID_TMB), F)],  # Dummy figure, change its range just to change how the RangeSlider looks
+            [Input(all_(ID_GRA), 'relayoutData'),
+             Input(all_(ID_TMB), 'relayoutData'),
+             Input(all_(ID_BTN_FIXY), NC)],
+            [State(all_(ID_GRA), F),
+             State(all_(ID_TMB), F)],
             prevent_initial_call=True
         )(self.update_figure)
 
@@ -404,32 +404,51 @@ class EcgApp:
     def toggle_modal(n_clicks_add, n_clicks_close, idx_lead, is_open):
         return not is_open
 
-    def update_figure(self, layout_fig, layout_tmb, n_clicks, disp_rng, fig_gra, fig_tmb, id_d_fig):
+    def _get_fig_index_by_index(self, index):
+        """ Gets the index of the index stored in `idxs_fig`
+
+        One-to-one correspondence with the order of children figures
+
+        Precondition: index is a member of `idxs_fig`
+        """
+        for i, idx in enumerate(self.idxs_fig):
+            if idx == index:
+                return i
+        return -1  # Not intended to reach here
+
+    def update_figure(self, layouts_fig, layouts_tmb, ns_clicks, figs_gra, figs_tmb):
         """ Update plot in a single call to avoid unnecessary updates, at a point in time, only 1 property change
 
-        :param layout_fig: RelayoutData of actual plot
-        :param layout_tmb: RelayoutData of global preview
-        :param n_clicks: Number of clicks for the Fix Yaxis button
-        :param disp_rng: Internal synchronized display range
-        :param fig_gra: Graph object dictionary of actual plot
-        :param fig_tmb: Graph object dictionary of global preview
-        :param id_d_fig: Pattern matching ID, tells which lead/channel changed
+        :param layouts_fig: RelayoutData of actual plot
+        :param layouts_tmb: RelayoutData of global preview
+        :param ns_clicks: Number of clicks for the Fix Yaxis button
+        :param figs_gra: Graph object dictionary of actual plot
+        :param figs_tmb: Graph object dictionary of global preview
         """
+        # Each ALL pattern-matching ID, is an array
         changed_id = self.get_last_changed_id()
-        if ID_GRA in changed_id:  # RelayoutData changed
-            if layout_fig is not None and self.ui.KEY_X_S in layout_fig:
-                x, y = self.get_lead_xy_vals(id_d_fig[I], self.ui.get_display_range(fig_gra['layout'])[0])
-                fig_gra[D][0]['x'] = x  # First (and only) plot/figure on the graph
-                fig_gra[D][0]['y'] = y
-                fig_tmb['layout']['xaxis']['range'] = fig_gra['layout']['xaxis']['range']
-        elif ID_TMB in changed_id:  # Changes in thumbnail figure have to be range change
-            x, y = self.get_lead_xy_vals(id_d_fig[I], self.ui.get_x_display_range(fig_tmb['layout']))
-            fig_gra[D][0]['x'] = x
-            fig_gra[D][0]['y'] = y
-            fig_gra['layout']['xaxis']['range'] = fig_tmb['layout']['xaxis']['range']
+        # print(changed_id)
+        if ID_GRA in changed_id:  # RelayoutData changed, graph has pattern matched ID
+            idx_changed = self.ui.get_pattern_match_index(changed_id)
+            idx_idx_changed = self._get_fig_index_by_index(idx_changed)
+            if layouts_fig is not None and self.ui.KEY_X_S in layouts_fig[idx_idx_changed]:
+                self.curr_disp_rng[0] = self.ui.get_x_display_range((figs_gra[idx_idx_changed])['layout'])
+                x_layout_range = self.ui.get_x_layout_range(layouts_fig[idx_idx_changed])
+                for idx_idx, idx_lead in enumerate(self.idxs_fig):  # Lines up with number of figures plotted
+                    # TODO: Concurrency
+                    x, y = self.get_lead_xy_vals(idx_lead, self.curr_disp_rng[0])
+                    figs_gra[idx_idx][D][0]['x'] = x  # First (and only) plot/figure on the graph
+                    figs_gra[idx_idx][D][0]['y'] = y
+                    figs_gra[idx_idx]['layout']['xaxis']['range'] = x_layout_range
+                    # figs_tmb['layout']['xaxis']['range'] = figs_gra['layout']['xaxis']['range']
+        # elif ID_TMB in changed_id:  # Changes in thumbnail figure have to be range change
+        #     x, y = self.get_lead_xy_vals(id_d_fig[I], self.ui.get_x_display_range(fig_tmb['layout']))
+        #     fig_gra[D][0]['x'] = x
+        #     fig_gra[D][0]['y'] = y
+        #     fig_gra['layout']['xaxis']['range'] = fig_tmb['layout']['xaxis']['range']
         elif ID_BTN_FIXY in changed_id:
-            fig_gra['layout']['yaxis']['fixedrange'] = n_clicks % 2 == 1
-        return fig_gra, fig_tmb
+            figs_gra['layout']['yaxis']['fixedrange'] = ns_clicks % 2 == 1
+        return figs_gra, figs_tmb
 
     @staticmethod
     def update_fix_yaxis_icon(n_clicks):
