@@ -26,7 +26,6 @@ class EcgUi:
 
         .. note:: By sample count
         """
-        print(layout_fig)
         x_range = layout_fig['xaxis']['range']
         return [[
             self.parn.curr_rec.time_str_to_sample_count(x_range[0]),

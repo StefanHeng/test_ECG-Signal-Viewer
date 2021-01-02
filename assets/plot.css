@@ -9,28 +9,45 @@
 .div_lead {
     height: 12em;  /* Having percentages heights all the way down causes plotly graph to collapse to 0 size in update for unknown reason */
     width: 100%;
-    margin: 0 auto 1em;
+    /*margin: 0 auto 1em;*/
 
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     flex-basis: auto;
 
-    box-shadow: var(--drop-shadow_m);
+    /*box-shadow: var(--bottom-border);*/
     transition: var(--ease-all);
+    border-top: var(--border);
+}
+
+#div_plots > :first-child {
+    border-top: none;
+}
+
+#div_plots > :last-child {
+    border-bottom: none;
 }
 
 .div_lead > div {
-    margin: 0 1em 0.5em;
-}
-.div_lead > :first-child {
-    margin: 0.5em 1em 0.5em;
+    height: 100%;
+    /*margin: 0 1em 0.25em;*/
+
+    /*border: 1px solid red;*/
 }
 
-.div_lead > :last-child {
-    margin: 0 1em 0;
-}
+/*.div_lead > :first-child {*/
+/*    margin: 0.25em 1em 0.25em;*/
+/*}*/
+
+/*.div_lead > :last-child {*/
+/*    !*margin: 0 1em 0;*!*/
+/*}*/
 
 .div_lead-name {
+    width: 4em;
+
+    margin-top: 0.25em;
+    /*border-right: var(--border);*/
 }
 
 .lead-name {

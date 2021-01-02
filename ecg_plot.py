@@ -87,19 +87,17 @@ class EcgPlot:
                 x=time_vals,
                 y=ecg_vals,
                 mode='lines',
-                marker=dict(
-                    color=self.COLOR_PLOT,
-                    size=1),
-                width=0.5
+                line=dict(
+                    color=self.SECONDARY,
+                    width=0.5),
             )],
             layout=dict(
-                plot_bgcolor=self.DEFAULT_BG,
+                plot_bgcolor='transparent',
                 dragmode='pan',
-                margin=dict(l=40, r=30, t=0, b=17),  # Less than default margin, effectively cropping out whitespace
+                margin=dict(l=45, r=30, t=0, b=17),  # Less than default margin, effectively cropping out whitespace
                 hoverdistance=0,
                 # hoverinfo=None,
                 xaxis=xaxis_config,
-                line={"width": 0.5},  # TODO: set width
                 # yaxis=yaxis_config
             )
         )

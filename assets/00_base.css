@@ -60,6 +60,16 @@
     --gray_a8: rgba(128, 128, 128, 0.8);
     --gray_a9: rgba(128, 128, 128, 0.9);
 
+    --black_a1: rgba(0, 0, 0, 0.1);
+    --black_a2: rgba(0, 0, 0, 0.2);
+    --black_a3: rgba(0, 0, 0, 0.3);
+    --black_a4: rgba(0, 0, 0, 0.4);
+    --black_a5: rgba(0, 0, 0, 0.5);
+    --black_a6: rgba(0, 0, 0, 0.6);
+    --black_a7: rgba(0, 0, 0, 0.7);
+    --black_a8: rgba(0, 0, 0, 0.8);
+    --black_a9: rgba(0, 0, 0, 0.9);
+
     --drop-shadow_s:
         0 0 1px rgba(0, 0, 0, 0.3),
         0 1px 2px rgba(0, 0, 0, 0.3);
@@ -71,6 +81,9 @@
         0 0 1px rgba(0, 0, 0, 0.4),
         0 0 2px rgba(0, 0, 0, 0.4);
     --ease-all: all 200ms ease-in-out;
+
+    /*--bottom-border: 0 1px 0 rgba(0, 0, 0, 0.3);*/
+    --border: 1px solid var(--black_a3);
 
     --round-corner: 0.35em;
 }
