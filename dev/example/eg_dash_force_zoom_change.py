@@ -27,7 +27,7 @@ DISPLAY_RANGE_INIT = [
 
 
 ecg_app = EcgApp(__name__)
-ecg_app.update_template_dropdown_and_add_options(DATA_PATH.joinpath(selected_record))
+ecg_app.update_template_dropdown_add_options_lead_layout_figures(DATA_PATH.joinpath(selected_record))
 idx_lead = 3
 plot = ecg_app.add_plot(idx_lead)
 fig = ecg_app.get_lead_fig(idx_lead)

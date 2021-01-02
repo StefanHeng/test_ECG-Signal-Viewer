@@ -14,7 +14,7 @@ def main():
     ecg_app.app.layout = html.Div(className=CNM_DIV_TMB, children=[
         dcc.Graph(
             id=ID_TMB, className=CNM_TMB,
-            figure=ecg_app.get_thumb_fig(3)
+            figure=ecg_app.get_thumb_fig_skeleton(3)
         )
     ])
 

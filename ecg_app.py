@@ -4,6 +4,8 @@ import dash_core_components as dcc
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State, MATCH, ALL
 
+import plotly.graph_objs as go
+
 import concurrent.futures
 # import logging
 
@@ -21,7 +23,10 @@ FA_CSS_LNK = 'https://use.fontawesome.com/releases/v5.8.1/css/all.css'
 CNM_HD = 'header'
 CNM_HDTT = 'header_title'
 TXT_HD = 'Ecg Viz'  # Text shown in header
+ID_FD_TMB = 'fade_graph-thumbnail'
+ID_FD_MN = 'fade_body-main'
 CNM_MNBD = 'body_main'
+ID_STOR_IDXS_LD = 'store_idxs_lead'
 
 ID_BBX_DIV_OPN = 'div_options-bound-box'
 ID_DIV_OPN = 'div_options'
@@ -147,8 +152,9 @@ class EcgApp:
     def __init__(self, app_name):
         self.curr_rec = None  # Current record
         self.curr_plot = None
-        self.idxs_fig = []
+        self.idxs_lead = []
         self.curr_disp_rng = EcgPlot.DISP_RNG_INIT
+        self.fig_tmb = None
 
         self.app_name = app_name  # No human-readable meaning, name passed into Dash object
         self.app = dash.Dash(self.app_name, external_stylesheets=[
@@ -195,22 +201,31 @@ class EcgApp:
                 ]),
             ]),
 
-            html.Div(className=CNM_MNBD, children=[
-                html.Div(id=ID_DIV_PLTS, children=[
-                    self.get_fig_layout(idx) for idx in self.idxs_fig
-                ]),
-
-                dbc.Modal(id=ID_MD_ADD, centered=True, is_open=False, scrollable=True, children=[
-                    dbc.ModalHeader(id=ID_MDHD_ADD, children=[
-                        html.H5(TXT_ADD_LD, className=CNM_ADD_LD),
-                        html.Button(id=ID_BTN_MD_CLS, className=CNM_BTN, n_clicks=0, children=[
-                            html.I(className=CNM_IC_MD_CLS)
-                        ])
+            # dcc.Store(id=ID_STOR_IDXS_LD, data=[]),
+            dbc.Fade(id=ID_FD_MN, is_in=True, children=[
+                html.Div(className=CNM_MNBD, children=[
+                    html.Div(className=CNM_DIV_TMB, children=[
+                        dcc.Graph(  # Dummy figure, change its range just to change how the RangeSlider looks
+                            # Need a dummy for unknown reason so that Dash loads the layout
+                            id=ID_TMB, className=CNM_TMB, figure=go.Figure()
+                        )
                     ]),
-                    dbc.ModalBody(id=ID_MDBD_ADD, children=[
-                        dbc.RadioItems(id=ID_RDO_LD_ADD, className=CNM_BTS_LST,
-                                       labelClassName=CNM_BTS_LST_ITM, inputClassName=CNM_RDO_ITM_IPT)
+                    html.Div(id=ID_DIV_PLTS, children=[
+                        self.get_fig_layout(idx) for idx in self.idxs_lead
                     ])
+                ])
+            ]),
+
+            dbc.Modal(id=ID_MD_ADD, centered=True, is_open=False, scrollable=True, children=[
+                dbc.ModalHeader(id=ID_MDHD_ADD, children=[
+                    html.H5(TXT_ADD_LD, className=CNM_ADD_LD),
+                    html.Button(id=ID_BTN_MD_CLS, className=CNM_BTN, n_clicks=0, children=[
+                        html.I(className=CNM_IC_MD_CLS)
+                    ])
+                ]),
+                dbc.ModalBody(id=ID_MDBD_ADD, children=[
+                    dbc.RadioItems(id=ID_RDO_LD_ADD, className=CNM_BTS_LST,
+                                   labelClassName=CNM_BTS_LST_ITM, inputClassName=CNM_RDO_ITM_IPT)
                 ])
             ])
         ])
@@ -223,13 +238,6 @@ class EcgApp:
 
                 html.Div(className=CNM_DIV_LDNM, children=[
                     html.P(self.curr_rec.lead_nms[idx], className=CNM_LD)
-                ]),
-
-                html.Div(className=CNM_DIV_TMB, children=[
-                    dcc.Graph(
-                        id=m_id(ID_TMB, idx), className=CNM_TMB,
-                        figure=self.get_thumb_fig(idx)
-                    )
                 ]),
 
                 html.Div(className=CNM_DIV_FIG, children=[
@@ -260,13 +268,13 @@ class EcgApp:
         strt, end = display_range[0]
         return self.curr_plot.get_fig(idx_lead, strt, end)
 
-    def get_thumb_fig(self, idx_lead):
-        """
-        Plot across the entire channel
-
-        :return: The figure dummy used for global thumbnail preview
-        """
-        return self.curr_plot.get_thumb_fig(idx_lead)
+    # def get_thumb_fig_skeleton(self):
+    #     """
+    #
+    #
+    #     :return: The
+    #     """
+    #     return self.curr_plot._get_thumb_fig_skeleton(self.idxs_lead)
 
     def get_lead_xy_vals(self, idx_lead, x_display_range):
         strt, end = x_display_range
@@ -287,19 +295,35 @@ class EcgApp:
         )(self.toggle_disable)
 
         self.app.callback(
-            Output(ID_RDO_LD_ADD, 'options'),
-            [Input(ID_DPD_RECR, V),
-             Input(ID_DPD_LD_TEMPL, V),
-             Input(ID_RDO_LD_ADD, V)],
-            [State(ID_RDO_LD_ADD, 'options')]
-        )(self.update_template_dropdown_and_add_options)
+            Output(ID_FD_MN, 'is_in'),
+            Input(ID_DPD_LD_TEMPL, V)
+        )(self.toggle_fade)
 
         self.app.callback(
-            Output(ID_DIV_PLTS, C),
-            [Input(ID_DPD_LD_TEMPL, V),
-             Input(ID_RDO_LD_ADD, V)],
-            State(ID_DIV_PLTS, C)
-        )(self.update_lead_layout)
+            # To invoke changes in global preview add trace below, without having to join all 3 functions into 1
+            [Output(ID_DIV_PLTS, C),
+             Output(ID_RDO_LD_ADD, 'options'),
+             Output(all_(ID_GRA), F),
+             Output(ID_TMB, F)],
+            [Input(ID_DPD_RECR, V),
+             Input(ID_DPD_LD_TEMPL, V),
+             Input(ID_RDO_LD_ADD, V),
+             Input(all_(ID_GRA), 'relayoutData'),
+             Input(ID_TMB, 'relayoutData'),
+             Input(all_(ID_BTN_FIXY), NC)],
+            [State(ID_DIV_PLTS, C),
+             State(ID_RDO_LD_ADD, 'options'),
+             State(all_(ID_GRA), F),
+             State(ID_TMB, F)],
+            prevent_initial_call=True
+        )(self.update_template_dropdown_add_options_lead_layout_figures)
+
+        # self.app.callback(
+        #     Output(ID_DIV_PLTS, C),
+        #     [Input(ID_DPD_LD_TEMPL, V),
+        #      Input(ID_RDO_LD_ADD, V)],
+        #
+        # )(self.update_lead_layout)
 
         self.app.callback(
             Output(ID_MD_ADD, 'is_open'),
@@ -310,16 +334,16 @@ class EcgApp:
             prevent_initial_call=True
         )(self.toggle_modal)
 
-        self.app.callback(
-            [Output(all_(ID_GRA), F),
-             Output(all_(ID_TMB), F)],  # Dummy figure, change its range just to change how the RangeSlider looks
-            [Input(all_(ID_GRA), 'relayoutData'),
-             Input(all_(ID_TMB), 'relayoutData'),
-             Input(all_(ID_BTN_FIXY), NC)],
-            [State(all_(ID_GRA), F),
-             State(all_(ID_TMB), F)],
-            prevent_initial_call=True
-        )(self.update_figures)
+        # self.app.callback(
+        #     [Output(all_(ID_GRA), F),
+        #      Output(ID_TMB, F)],
+        #     [Input(all_(ID_GRA), 'relayoutData'),
+        #      Input(ID_TMB, 'relayoutData'),
+        #      Input(all_(ID_BTN_FIXY), NC)],
+        #     [State(all_(ID_GRA), F),
+        #      State(ID_TMB, F)],
+        #     prevent_initial_call=True
+        # )(self.update_figures)
 
         self.app.callback(
             Output(mch(ID_IC_FIXY), CNM),
@@ -345,57 +369,125 @@ class EcgApp:
     def toggle_disable(rec_nm):
         return (False, False) if rec_nm is not None else (True, True)
 
-    def update_template_dropdown_and_add_options(self, rec_nm, template, idx_lead, lead_options):
+    @staticmethod
+    def toggle_fade(template):
+        return template is not None
+
+    def update_template_dropdown_add_options_lead_layout_figures(
+            self, rec_nm, template, idx_lead_selected, layouts_fig, layout_tmb, ns_clicks,
+            plots, lead_options, figs_gra, fig_tmb):
         """Display lead figures based on current record and template selected, and based on lead selection in modal
 
         Initializes lead selections
 
+        # Inputs
         :param rec_nm: Name of record selected on dropdown
         :param template: Name of template selected on dropdown
-        :param idx_lead: Index of changed lead
+        :param idx_lead_selected: Index of changed lead
+
+        :param layouts_fig: RelayoutData of actual plot
+        :param layout_tmb: RelayoutData of global preview
+        :param ns_clicks: Number of clicks for the Fix Yaxis button
+
+        # States
+        :param plots: Div list of of lead currently on plot
         :param lead_options: Layout on all selections
+
+        :param figs_gra: Graph object dictionary of actual plot
+        :param fig_tmb: Graph object dictionary of global preview
 
         .. note:: Previous record and figure overridden
         .. note:: Selections in modal are disabled if corresponding lead is shown
         """
         # Shared output must be in a single function call per Dash callback
-
+        # => Forced to update in a single function call
         changed_id = self.get_last_changed_id()
         if ID_DPD_RECR in changed_id:
             if rec_nm is not None:
                 self.curr_rec = EcgRecord(DATA_PATH.joinpath(rec_nm))
                 self.curr_plot = EcgPlot(self.curr_rec, self)  # A `plot` serves a record
+                # An empty preview and hidden, see `EcgPlot.Thumbnail`
+                self.fig_tmb = EcgPlot.Thumbnail(self.curr_rec, self.curr_plot)
+                fig_tmb = self.fig_tmb.fig
                 # Must generate selections now, for users could not select a template, and customize lead by single add
-                return [{L: f'{idx + 1}: {nm}', V: idx} for idx, nm in enumerate(self.curr_rec.lead_nms)]
-            else:
-                return lead_options  # Keep unchanged
+                lead_options = [{L: f'{idx + 1}: {nm}', V: idx} for idx, nm in enumerate(self.curr_rec.lead_nms)]
+            # else:
+            #     return idxs_lead, plots, lead_options  # Keep unchanged
         elif ID_DPD_LD_TEMPL in changed_id:
             if template is not None:
-                self.idxs_fig = self.LD_TEMPL[template]
-                # Template dropdown is of course not disabled
-                return [
-                    {L: f'{idx + 1}: {nm}', V: idx, 'disabled': idx in self.idxs_fig}
-                    for idx, nm in enumerate(self.curr_rec.lead_nms)
-                ]
+                self.idxs_lead = self.LD_TEMPL[template]
+                plots = [self.get_fig_layout(idx) for idx in self.idxs_lead]
+                # lead_options = [  # Override
+                #     {L: f'{idx + 1}: {nm}', V: idx, 'disabled': idx in self.idxs_lead}
+                #     for idx, nm in enumerate(self.curr_rec.lead_nms)
+                # ]
+                # Lead options must already set
+                for idx in self.idxs_lead:
+                    lead_options[idx]['disabled'] = True
+                fig_tmb = self.fig_tmb.thumb_fig_add_trace(self.idxs_lead, override=True)
             else:  # Reset layout
-                self.idxs_fig = []
-                return [{L: f'{idx + 1}: {nm}', V: idx} for idx, nm in enumerate(self.curr_rec.lead_nms)]
+                self.idxs_lead = []
+                plots = 0
+                # All options are not disabled
+                lead_options = [{L: f'{idx + 1}: {nm}', V: idx} for idx, nm in enumerate(self.curr_rec.lead_nms)]
+                # Basically removes all trace without adding
+                fig_tmb = self.fig_tmb.thumb_fig_add_trace([], override=True)
         elif ID_RDO_LD_ADD in changed_id:  # A new lead layout should be appended, due to click in modal
-            self.idxs_fig.append(idx_lead)
-            lead_options[idx_lead]['disabled'] = True
+            self.idxs_lead.append(idx_lead_selected)
+            plots.append(self.get_fig_layout(idx_lead_selected))
+            lead_options[idx_lead_selected]['disabled'] = True
+            fig_tmb = self.fig_tmb.thumb_fig_add_trace([idx_lead_selected], override=False)
             # Hides the modal on first and any single click
-            return lead_options
-        else:
-            return lead_options
+        #     return lead_options
+        # else:
+        #     return lead_options
+
+        elif ID_GRA in changed_id:  # RelayoutData changed, graph has pattern matched ID
+            idx_changed = self.ui.get_pattern_match_index(changed_id)
+            idx_idx_changed = self._get_fig_index_by_index(idx_changed)
+            if layouts_fig is not None and self.ui.KEY_X_S in layouts_fig[idx_idx_changed]:
+                self.curr_disp_rng[0] = self.ui.get_x_display_range((figs_gra[idx_idx_changed])['layout'])
+                # print(fig_tmb['layout'])
+                fig_tmb['layout']['xaxis']['range'] = x_layout_range = \
+                    self.ui.get_x_layout_range(layouts_fig[idx_idx_changed])
+                self._update_lead_figures(figs_gra, x_layout_range)
+        elif ID_TMB in changed_id:  # Changes in thumbnail figure have to be range change
+            # Workaround: At first app start, ID_TMB is in changed_id for unknown reason
+            if 'xaxis' in fig_tmb['layout']:
+                self.curr_disp_rng[0] = self.ui.get_x_display_range(fig_tmb['layout'])
+                self._update_lead_figures(figs_gra, fig_tmb['layout']['xaxis']['range'])
+
+            # x, y = self.get_lead_xy_vals(id_d_fig[I], self.ui.get_x_display_range(fig_tmb['layout']))
+            # fig_gra[D][0]['x'] = x
+            # fig_gra[D][0]['y'] = y
+            # fig_gra['layout']['xaxis']['range'] = fig_tmb['layout']['xaxis']['range']
+        # elif ID_BTN_FIXY in changed_id:
+        #     figs_gra['layout']['yaxis']['fixedrange'] = ns_clicks % 2 == 1
+        return plots, lead_options, figs_gra, fig_tmb
+
+    def _update_lead_figures(self, figs_gra, x_layout_range):
+        strt, end = self.curr_disp_rng[0]
+        sample_factor = self.curr_plot.get_sample_factor(strt, end)
+        x_vals = self.curr_plot.get_x_vals(strt, end, sample_factor)
+        args = [(figs_gra, idx_idx, idx_lead, strt, end, sample_factor)
+                for idx_idx, idx_lead in enumerate(self.idxs_lead)]
+        # Multi-threading for mainly IO
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.MAX_NUM_LD) as executor:
+            executor.map(lambda p: self._set_y_vals(*p), args)
+
+        for idx_idx in range(len(self.idxs_lead)):  # Lines up with number of figures plotted
+            # Short execution time, no need to multi-process
+            figs_gra[idx_idx][D][0]['x'] = x_vals
+            figs_gra[idx_idx]['layout']['xaxis']['range'] = x_layout_range
 
     def update_lead_layout(self, template, idx_lead, plots):
         changed_id = self.get_last_changed_id()
         if ID_DPD_LD_TEMPL in changed_id:
             if template is not None:
-                self.idxs_fig = self.LD_TEMPL[template]
-                return [self.get_fig_layout(idx) for idx in self.idxs_fig]
+                self.idxs_lead = self.LD_TEMPL[template]
+                return [self.get_fig_layout(idx) for idx in self.idxs_lead]
             else:
-                self.idxs_fig = []
+                self.idxs_lead = []
                 return []
         elif ID_RDO_LD_ADD in changed_id:
             plots.append(self.get_fig_layout(idx_lead))
@@ -414,50 +506,51 @@ class EcgApp:
 
         Precondition: index is a member of `idxs_fig`
         """
-        for i, idx in enumerate(self.idxs_fig):
+        for i, idx in enumerate(self.idxs_lead):
             if idx == index:
                 return i
         return -1  # Not intended to reach here
 
-    def update_figures(self, layouts_fig, layouts_tmb, ns_clicks, figs_gra, figs_tmb):
-        """ Update plot in a single call to avoid unnecessary updates, at a point in time, only 1 property change
-
-        :param layouts_fig: RelayoutData of actual plot
-        :param layouts_tmb: RelayoutData of global preview
-        :param ns_clicks: Number of clicks for the Fix Yaxis button
-        :param figs_gra: Graph object dictionary of actual plot
-        :param figs_tmb: Graph object dictionary of global preview
-        """
-        # Each ALL pattern-matching ID, is an array
-        changed_id = self.get_last_changed_id()
-        # print(changed_id)
-        if ID_GRA in changed_id:  # RelayoutData changed, graph has pattern matched ID
-            idx_changed = self.ui.get_pattern_match_index(changed_id)
-            idx_idx_changed = self._get_fig_index_by_index(idx_changed)
-            if layouts_fig is not None and self.ui.KEY_X_S in layouts_fig[idx_idx_changed]:
-                self.curr_disp_rng[0] = self.ui.get_x_display_range((figs_gra[idx_idx_changed])['layout'])
-                strt, end = self.curr_disp_rng[0]
-                sample_factor = self.curr_plot.get_sample_factor(strt, end)
-                x_vals = self.curr_plot.get_x_vals(strt, end, sample_factor)
-                args = [(figs_gra, idx_idx, idx_lead, strt, end, sample_factor)
-                        for idx_idx, idx_lead in enumerate(self.idxs_fig)]
-                # Multi-threading for mainly IO
-                with concurrent.futures.ThreadPoolExecutor(max_workers=self.MAX_NUM_LD) as executor:
-                    executor.map(lambda p: self._set_y_vals(*p), args)
-
-                x_layout_range = self.ui.get_x_layout_range(layouts_fig[idx_idx_changed])
-                for idx_idx in range(len(self.idxs_fig)):  # Lines up with number of figures plotted
-                    # Short execution time, no need to multi-process
-                    figs_gra[idx_idx][D][0]['x'] = x_vals
-                    figs_gra[idx_idx]['layout']['xaxis']['range'] = x_layout_range
-        # elif ID_TMB in changed_id:  # Changes in thumbnail figure have to be range change
-        #     x, y = self.get_lead_xy_vals(id_d_fig[I], self.ui.get_x_display_range(fig_tmb['layout']))
-        #     fig_gra[D][0]['x'] = x
-        #     fig_gra[D][0]['y'] = y
-        #     fig_gra['layout']['xaxis']['range'] = fig_tmb['layout']['xaxis']['range']
-        elif ID_BTN_FIXY in changed_id:
-            figs_gra['layout']['yaxis']['fixedrange'] = ns_clicks % 2 == 1
-        return figs_gra, figs_tmb
+    # def update_figures(self, layouts_fig, layouts_tmb, ns_clicks, figs_gra, figs_tmb):
+    #     """ Update plot in a single call to avoid unnecessary updates, at a point in time, only 1 property change
+    #
+    #     :param layouts_fig: RelayoutData of actual plot
+    #     :param layouts_tmb: RelayoutData of global preview
+    #     :param ns_clicks: Number of clicks for the Fix Yaxis button
+    #     :param figs_gra: Graph object dictionary of actual plot
+    #     :param figs_tmb: Graph object dictionary of global preview
+    #     """
+    #     # Each ALL pattern-matching ID, is an array
+    #     changed_id = self.get_last_changed_id()
+    #     # print(changed_id)
+    #     if ID_GRA in changed_id:  # RelayoutData changed, graph has pattern matched ID
+    #         idx_changed = self.ui.get_pattern_match_index(changed_id)
+    #         idx_idx_changed = self._get_fig_index_by_index(idx_changed)
+    #         if layouts_fig is not None and self.ui.KEY_X_S in layouts_fig[idx_idx_changed]:
+    #             self.curr_disp_rng[0] = self.ui.get_x_display_range((figs_gra[idx_idx_changed])['layout'])
+    #             strt, end = self.curr_disp_rng[0]
+    #             sample_factor = self.curr_plot.get_sample_factor(strt, end)
+    #             x_vals = self.curr_plot.get_x_vals(strt, end, sample_factor)
+    #             args = [(figs_gra, idx_idx, idx_lead, strt, end, sample_factor)
+    #                     for idx_idx, idx_lead in enumerate(self.idxs_lead)]
+    #             # Multi-threading for mainly IO
+    #             with concurrent.futures.ThreadPoolExecutor(max_workers=self.MAX_NUM_LD) as executor:
+    #                 executor.map(lambda p: self._set_y_vals(*p), args)
+    #
+    #             x_layout_range = self.ui.get_x_layout_range(layouts_fig[idx_idx_changed])
+    #             for idx_idx in range(len(self.idxs_lead)):  # Lines up with number of figures plotted
+    #                 # Short execution time, no need to multi-process
+    #                 figs_gra[idx_idx][D][0]['x'] = x_vals
+    #                 figs_gra[idx_idx]['layout']['xaxis']['range'] = x_layout_range
+    #                 # assert(figs_gra[idx_idx][D][0]['x'].shape[0] == figs_gra[idx_idx][D][0]['y'].shape[0])
+    #     # elif ID_TMB in changed_id:  # Changes in thumbnail figure have to be range change
+    #     #     x, y = self.get_lead_xy_vals(id_d_fig[I], self.ui.get_x_display_range(fig_tmb['layout']))
+    #     #     fig_gra[D][0]['x'] = x
+    #     #     fig_gra[D][0]['y'] = y
+    #     #     fig_gra['layout']['xaxis']['range'] = fig_tmb['layout']['xaxis']['range']
+    #     # elif ID_BTN_FIXY in changed_id:
+    #     #     figs_gra['layout']['yaxis']['fixedrange'] = ns_clicks % 2 == 1
+    #     return figs_gra, figs_tmb
 
     def _set_y_vals(self, figs_gra, idx_idx, idx_lead, strt, end, sample_factor):
         y_vals = self.curr_plot.get_y_vals(idx_lead, strt, end, sample_factor)

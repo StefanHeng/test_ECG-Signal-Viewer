@@ -35,7 +35,7 @@ id_panel_options = 'panel_options'
 class_switch_pair = 'switch_pair'
 
 ecg_app = EcgApp(__name__)
-ecg_app.update_template_dropdown_and_add_options(DATA_PATH.joinpath(record_nm))
+ecg_app.update_template_dropdown_add_options_lead_layout_figures(DATA_PATH.joinpath(record_nm))
 idx_lead = 3
 fig = ecg_app.get_lead_fig(idx_lead)
 

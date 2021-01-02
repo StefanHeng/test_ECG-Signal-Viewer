@@ -9,8 +9,12 @@ import dash_html_components as html
 import dash_core_components as dcc
 import dash_bootstrap_components as dbc
 
+from data_link import *
+from dev_helper import *
 from ecg_record import EcgRecord
-from ecg_app import *
+from ecg_plot import EcgPlot
+from ecg_ui import EcgUi
+from ecg_app import EcgApp
 
 # from memory_profiler import profile
 
@@ -83,13 +87,12 @@ if __name__ == "__main__":
     #                     'range': ['1970-01-01', '1970-01-01 03:51:03.907']}, 'type': 'date',
     #     'range': ['1970-01-01 01:58:24.8202', '1970-01-01 02:43:04.2536'], 'autorange': False}}
 
-    # d = [24386254, 27727814]
-    d = [24633501, 27727814]
-    s = 6876
-    rec = EcgRecord.example()
-    print((d[1] - d[0]) / s)
-    a = rec.get_samples(3, d[0], d[1], s)
-    print(a, a.shape)
+    # d = [24633501, 27727814]
+    # s = 6876
+    # rec = EcgRecord.example()
+    # print((d[1] - d[0]) / s)
+    # a = rec.get_samples(3, d[0], d[1], s)
+    # print(a, a.shape)
 
     # print(dbc.themes.LUX)
 
@@ -101,3 +104,8 @@ if __name__ == "__main__":
     # print(pd.Timestamp('1970-01-01'))
     # print(str(pd.Timestamp('1970-01-01')))
 
+    app = EcgApp.example()
+    app.curr_rec = EcgRecord(DATA_PATH.joinpath(record_nm))
+    app.curr_plot = EcgPlot(app.curr_rec, app)  # A `plot` serves a record
+    fig = app.curr_plot.get_thumb_fig_skeleton([6, 5, 3, 16, 35])
+    fig.show()

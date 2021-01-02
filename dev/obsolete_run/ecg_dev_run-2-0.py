@@ -53,7 +53,7 @@ def main():
 
         html.Div(className=CNM_MNBD, children=[
             html.Div(id=ID_DIV_PLTS, children=[
-                ecg_app.get_fig_layout(idx) for idx in ecg_app.idxs_fig
+                ecg_app.get_fig_layout(idx) for idx in ecg_app.idxs_lead
             ])
         ])
     ])

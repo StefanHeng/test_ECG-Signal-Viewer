@@ -19,7 +19,7 @@ class EcgPlot:
     # Ad-hoc values for now, in the future should be calculated from device info
     # Default starting point, in the future should be retrieved from user
     _DISPLAY_WIDTH = 30  # in rem, display_width * display_scale_t gets the number of points to render
-    _DISPLAY_SCALE_T = 20  # #continuous time stamps to display in 1rem
+    _DISPLAY_SCALE_T = 10  # #continuous time stamps to display in 1rem
     _DISPLAY_SCALE_ECG = 20  # magnitude of ecg in a 1rem
     SP_RT_READABLE = 125  # Sufficient frequency (Hz) for human differentiable graphing
 
@@ -45,15 +45,12 @@ class EcgPlot:
         .. seealso:: `ecg_record.get_samples`
         """
         # Always take data as samples instead of entire channel, sample at at least increments of min_sample_step
-        sample_factor = max(self._get_sample_factor(strt, end), self.min_sample_step)
+        sample_factor = self.get_sample_factor(strt, end)
         ecg_vals = self.rec.get_samples(idx_lead, strt, end, sample_factor)
         # Take the size of array,
         # for integer division almost never perfectly match the size returned by advanced slicing
         sample_counts = np.linspace(strt, end, num=ecg_vals.shape[0])
         return self.to_time_axis(sample_counts), ecg_vals
-
-    def get_sample_factor(self, strt, end):
-        return max(self._get_sample_factor(strt, end), self.min_sample_step)
 
     @staticmethod
     def _count_indexing_num(strt, end, step):
@@ -93,6 +90,7 @@ class EcgPlot:
                 marker=dict(
                     color=self.COLOR_PLOT,
                     size=1),
+                width=0.5
             )],
             layout=dict(
                 plot_bgcolor=self.DEFAULT_BG,
@@ -101,11 +99,79 @@ class EcgPlot:
                 hoverdistance=0,
                 # hoverinfo=None,
                 xaxis=xaxis_config,
+                line={"width": 0.5},  # TODO: set width
                 # yaxis=yaxis_config
             )
         )
 
-    def get_thumb_fig(self, idx_lead):
+    class Thumbnail:
+        """ Encapsulates the plotly figure dummy used for global thumbnail preview
+
+        Plot across the entire duration, with all channels selected
+        """
+        def __init__(self, record, parent):
+            self.rec = record
+            self.parn = parent
+            self.strt = 0  # Stays unchanged, given a record
+            self.end = self.rec.num_sample_count()
+            self.sample_factor = self.parn.get_sample_factor(self.strt, self.end)
+            self.x_vals = self.parn.get_x_vals(self.strt, self.end, self.sample_factor)
+            self.fig = self._get_thumb_fig_skeleton()
+            self.idxs_lead = []
+
+        def _get_thumb_fig_skeleton(self):
+            fig = go.Figure()
+            fig.update_layout(
+                margin=dict(l=0, r=0, t=0, b=0),
+                xaxis=dict(
+                    rangeslider=dict(
+                        visible=True,
+                        bgcolor=self.parn.DEFAULT_BG,
+                        thickness=0.4  # Height of RangeSlider/thumbnail
+                        # autorange=True,
+                    )
+                )
+            )
+            # Note: This `range` is different than the range argument in Figure creation, which crops off data
+            fig['layout']['xaxis']['range'] = [
+                self.rec.sample_count_to_time_str(self.parn.DISP_RNG_INIT[0][0]),
+                self.rec.sample_count_to_time_str(self.parn.DISP_RNG_INIT[0][1])
+            ]
+            # fig['layout']['line']['width'] = 0.5
+            return fig
+
+        @staticmethod
+        def _get_yaxis_code(i):
+            return f'y{i}' if i > 0 else 'y'
+
+        def thumb_fig_add_trace(self, idxs_lead_add, override=False):
+            if override:
+                self.fig['data'] = []
+            offset = len(self.idxs_lead)  # Append to axis based on existing number of leads plotted
+            for idx_idx, idx_lead in enumerate(idxs_lead_add):
+                y_vals = self.parn.get_y_vals(idx_lead, self.strt, self.end, self.sample_factor)
+                rang = self.parn.parn.ui.get_ignore_noise_range(y_vals)
+                self.fig.add_trace(go.Scatter(
+                    x=self.x_vals,
+                    y=self.parn.parn.ui.strip_noise(y_vals, rang[0], rang[1]),
+                    yaxis=self._get_yaxis_code(idx_idx + offset)
+                ))
+            self.fig.update_traces(
+                line=dict(width=0.5)
+            )
+
+            self.fig['layout']['xaxis']['range'] = \
+                self.parn.display_range_to_layout_range(self.parn.parn.curr_disp_rng[0])
+            return self.fig
+
+    def display_range_to_layout_range(self, rang):
+        strt, end = rang
+        return [
+            self.rec.sample_count_to_time_str(strt),
+            self.rec.sample_count_to_time_str(end)
+        ]
+
+    def get_thumb_fig__(self, idx_lead):
         time_vals, ecg_vals = self.get_xy_vals(idx_lead, 0, self.rec.num_sample_count())
         rang = self.parn.ui.get_ignore_noise_range(ecg_vals)
         ecg_vals = self.parn.ui.strip_noise(ecg_vals, rang[0], rang[1])
@@ -142,6 +208,9 @@ class EcgPlot:
             sample_counts = (sample_counts * self.FAC_TO_US).astype(np.int64)
         # Converted to time in microseconds as integer, drastically raises efficiency while maintaining precision
         return pd.to_datetime(pd.Series(sample_counts), unit='us')
+
+    def get_sample_factor(self, strt, end):
+        return max(self._get_sample_factor(strt, end), self.min_sample_step)
 
     def _get_sample_factor(self, strt, end):
         # If showing too a small range, sample_factor which is incremental steps should be at least 1
