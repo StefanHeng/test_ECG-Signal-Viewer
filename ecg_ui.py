@@ -40,8 +40,15 @@ class EcgUi:
             self.parn.curr_rec.time_str_to_sample_count(x_range[1])
         ]
 
+    def get_y_display_range(self, layout_fig):
+        return [
+            layout_fig[self.KEY_Y_S],
+            layout_fig[self.KEY_Y_E]
+        ]
+
     def get_x_layout_range(self, layout_fig):
         """
+        .. note:: Clipped
         .. note:: In human-readable time stamp
         """
         # Clip start time from below to 0, end time from above to maximum sample count
@@ -70,11 +77,8 @@ class EcgUi:
         for i in range(self.NUM_SAMPLES):
             samples.append(int(random() * (n+1)))  # Uniform distribution, with slight inaccuracy
         samples.sort()  # Small array size makes sorting efficient
-        # print(f'samples is {samples}')
-        # idx_med = self.NUM_SAMPLES // 2
-        # med = samples[idx_med]
         half_range = max(samples[self.PERCENT_NUM-1], samples[-self.PERCENT_NUM])  # For symmetry
-        half_range *= 20  # By nature of ECG waveform signals
+        half_range *= 40  # By nature of ECG waveform signals
         return -half_range, half_range
 
     @staticmethod
@@ -82,4 +86,14 @@ class EcgUi:
         """ Per pattern-matching index construction by Dash """
         # e.g. 1 in `{"index":1,"type":"graph"}.relayoutData`
         return int(re.match("^{\"index\":([0-9]+)", str_id).group(1))
+
+    @staticmethod
+    def get_id(str_id):
+        """ Get the dash element id, out of `id.property` format """
+        # For checking id equality is more efficient compared to checking substring
+        if str_id[0] == '{':  # Pattern-match ID
+            return re.match("^{\"index\":[0-9]+,\"type\":\"(.*)\"}[.](.*)$", str_id).group(1)
+        else:
+            return re.match("^(.*)[.](.*)$", str_id).group(1)
+
 

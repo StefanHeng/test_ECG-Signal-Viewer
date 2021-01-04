@@ -5,7 +5,7 @@ import pandas as pd
 
 from bisect import bisect_left, bisect_right
 
-from memory_profiler import profile
+# from memory_profiler import profile
 
 from data_link import *
 from dev_helper import record_nm

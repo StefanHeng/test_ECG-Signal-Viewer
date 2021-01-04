@@ -44,14 +44,12 @@
 /*}*/
 
 .div_lead-name {
-    width: 4em;
-
-    margin-top: 0.25em;
+    width: 5em;
     /*border-right: var(--border);*/
 }
 
 .lead-name {
-    margin: 0;
+    margin: 0.25em;
 }
 
 .div_graph-thumbnail {

@@ -81,7 +81,9 @@ class EcgPlot:
             # linecolor=self.SECONDARY_2  # Axis color
             # range=self.rec.get_range()
         )
-        # yaxis_config = deepcopy(xaxis_config)
+        yaxis_config = dict(
+            range=self.parn.ui.get_ignore_noise_range(ecg_vals)
+        )
         return dict(
             data=[dict(
                 x=time_vals,
@@ -94,11 +96,12 @@ class EcgPlot:
             layout=dict(
                 plot_bgcolor='transparent',
                 dragmode='pan',
-                margin=dict(l=45, r=30, t=0, b=17),  # Less than default margin, effectively cropping out whitespace
+                font=dict(size=10),
+                margin=dict(l=45, r=30, t=0, b=15),  # Less than default margin, effectively cropping out whitespace
                 hoverdistance=0,
-                # hoverinfo=None,
+                hoverinfo=None,
                 xaxis=xaxis_config,
-                # yaxis=yaxis_config
+                yaxis=yaxis_config
             )
         )
 
@@ -114,10 +117,10 @@ class EcgPlot:
             self.end = self.rec.num_sample_count()
             self.sample_factor = self.parn.get_sample_factor(self.strt, self.end)
             self.x_vals = self.parn.get_x_vals(self.strt, self.end, self.sample_factor)
-            self.fig = self._get_thumb_fig_skeleton()
+            self.fig = self._get_fig_skeleton()
             self.idxs_lead = []
 
-        def _get_thumb_fig_skeleton(self):
+        def _get_fig_skeleton(self):
             fig = go.Figure()
             fig.update_layout(
                 margin=dict(l=0, r=0, t=0, b=0),
@@ -142,7 +145,7 @@ class EcgPlot:
         def _get_yaxis_code(i):
             return f'y{i}' if i > 0 else 'y'
 
-        def thumb_fig_add_trace(self, idxs_lead_add, override=False):
+        def add_trace(self, idxs_lead_add, override=False):
             if override:
                 self.fig['data'] = []
             offset = len(self.idxs_lead)  # Append to axis based on existing number of leads plotted
@@ -168,33 +171,6 @@ class EcgPlot:
             self.rec.sample_count_to_time_str(strt),
             self.rec.sample_count_to_time_str(end)
         ]
-
-    def get_thumb_fig__(self, idx_lead):
-        time_vals, ecg_vals = self.get_xy_vals(idx_lead, 0, self.rec.num_sample_count())
-        rang = self.parn.ui.get_ignore_noise_range(ecg_vals)
-        ecg_vals = self.parn.ui.strip_noise(ecg_vals, rang[0], rang[1])
-        xaxis_config = dict(
-            rangeslider=dict(
-                visible=True,
-                bgcolor=self.DEFAULT_BG,
-                # bordercolor='black',
-                thickness=1
-            )
-        )
-        fig = go.Figure(
-            data=[dict(x=time_vals, y=ecg_vals)],
-            layout=dict(
-                margin=dict(l=40, r=30, t=0, b=200),  # Hence same width and relative placement as the actual figure
-                xaxis=xaxis_config,
-            )
-        )
-        # Note: This `range` is different than the range argument in Figure creation, which crops off data
-        fig['layout']['xaxis']['range'] = [
-            self.rec.sample_count_to_time_str(self.DISP_RNG_INIT[0][0]),
-            self.rec.sample_count_to_time_str(self.DISP_RNG_INIT[0][1])
-        ]
-        fig['layout']['yaxis']['range'] = rang
-        return fig
 
     def to_time_axis(self, sample_counts):
         """
