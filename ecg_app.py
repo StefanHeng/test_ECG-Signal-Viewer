@@ -231,7 +231,6 @@ class EcgApp:
                 dbc.ModalBody(id=ID_MDBD_ADD, children=[
                     # dbc.RadioItems(id=ID_RDO_LD_ADD, className=CNM_BTS_LST,
                     #                labelClassName=CNM_BTS_LST_ITM, inputClassName=CNM_RDO_ITM_IPT)
-
                     dbc.ListGroup(id=ID_GRP_LD_ADD)
                 ])
             ])
@@ -407,7 +406,7 @@ class EcgApp:
                 self.fig_tmb = EcgPlot.Thumbnail(self.curr_rec, self.curr_plot)
                 fig_tmb = self.fig_tmb.fig
                 # Must generate selections now, for users could not select a template, and customize lead by single add
-                # Cannot separate into a new function, cos need to make sure a curr_rec is set
+                # Cannot separate into a new function, cos need to make sure a curr_rec is set first
                 items_lead_add = [
                     dbc.ListGroupItem(id=m_id(ID_ITM_LD_ADD, idx), action=True, n_clicks=0, children=f'{idx + 1}: {nm}')
                     for idx, nm in enumerate(self.curr_rec.lead_nms)
@@ -430,6 +429,7 @@ class EcgApp:
                     dbc.ListGroupItem(id=m_id(ID_ITM_LD_ADD, idx), action=True, n_clicks=0, children=f'{idx + 1}: {nm}')
                     for idx, nm in enumerate(self.curr_rec.lead_nms)
                 ]
+                disables_lead_add = [False for i in disables_lead_add]
                 # figs_gra = []  # For same reason below, the remove button case
                 # Basically removes all trace without adding
                 fig_tmb = self.fig_tmb.add_trace([], override=True)
@@ -456,7 +456,6 @@ class EcgApp:
             if 'xaxis' in fig_tmb['layout']:
                 self.curr_disp_rng[0] = self.ui.get_x_display_range(fig_tmb['layout'])
                 self._update_lead_figures(figs_gra, fig_tmb['layout']['xaxis']['range'])
-                # self.preview_timer.start()  # Basically postpone thumbnail update call to reduce frequency
         # elif ID_BTN_FIXY == changed_id:
         #     figs_gra['layout']['yaxis']['fixedrange'] = ns_clicks % 2 == 1
         elif ID_BTN_LD_RMV == changed_id:
@@ -466,10 +465,7 @@ class EcgApp:
             del plots[idx_idx_changed]
             disables_lead_add[idx_changed] = False
             # Surprisingly when I have the line below, Dash gives weird exception, instead of not having this line
-            # del figs_gra[idx_idx_changed]
-            # print(f'removed lead {idx_changed}, and sizes of plots: {len(plots)} and size of figs: {len(figs_gra)}')
-        # print(f'In callback with changed id {changed_id_property}, and sizes of plots: {len(plots)} and size of figs: {len(figs_gra)}')
-        # print(f'update triggered with property {changed_id_property}')
+            # del figs_gra[idx_idx_changed]'
         return plots, items_lead_add, disables_lead_add, figs_gra, fig_tmb
 
     def _update_lead_figures(self, figs_gra, x_layout_range):
@@ -492,13 +488,8 @@ class EcgApp:
         figs_gra[idx_idx][D][0]['y'] = y_vals
         figs_gra[idx_idx]['layout']['yaxis']['range'] = self.ui.get_ignore_noise_range(y_vals)
 
-    def toggle_modal(self, n_clicks_add, n_clicks_close, is_open):
-        # if self.ui.get_id(self.get_last_changed_id_property()) == ID_ITM_LD_ADD:
-        #     for nc in ns_clicks_add:
-        #         if nc != 0:
-        #             return not is_open
-        #     return is_open  # On initial items creation, don't change
-        # else:
+    @staticmethod
+    def toggle_modal(n_clicks_add, n_clicks_close, is_open):
         return not is_open
 
     def _get_fig_index_by_index(self, index):

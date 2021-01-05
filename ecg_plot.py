@@ -121,15 +121,16 @@ class EcgPlot:
             self.idxs_lead = []
 
         def _get_fig_skeleton(self):
-            fig = go.Figure()
-            fig.update_layout(
-                margin=dict(l=0, r=0, t=0, b=0),
-                xaxis=dict(
-                    rangeslider=dict(
-                        visible=True,
-                        bgcolor=self.parn.DEFAULT_BG,
-                        thickness=0.4  # Height of RangeSlider/thumbnail
-                        # autorange=True,
+            fig = dict(
+                data=[],
+                layout=dict(
+                    margin=dict(l=0, r=0, t=0, b=0),
+                    xaxis=dict(
+                        rangeslider=dict(
+                            visible=True,
+                            bgcolor=self.parn.DEFAULT_BG,
+                            thickness=0.4,  # Height of RangeSlider/thumbnail
+                        )
                     )
                 )
             )
@@ -138,7 +139,6 @@ class EcgPlot:
                 self.rec.sample_count_to_time_str(self.parn.DISP_RNG_INIT[0][0]),
                 self.rec.sample_count_to_time_str(self.parn.DISP_RNG_INIT[0][1])
             ]
-            # fig['layout']['line']['width'] = 0.5
             return fig
 
         @staticmethod
@@ -147,22 +147,33 @@ class EcgPlot:
 
         def add_trace(self, idxs_lead_add, override=False):
             if override:
+                for trace in self.fig['data']:
+                    trace['visible'] = False
                 self.fig['data'] = []
+                # self.fig = self._get_fig_skeleton()
+                self.idxs_lead = []
             offset = len(self.idxs_lead)  # Append to axis based on existing number of leads plotted
             for idx_idx, idx_lead in enumerate(idxs_lead_add):
                 y_vals = self.parn.get_y_vals(idx_lead, self.strt, self.end, self.sample_factor)
                 rang = self.parn.parn.ui.get_ignore_noise_range(y_vals)
-                self.fig.add_trace(go.Scatter(
+                # self.fig.add_trace(go.Scatter(
+                #     x=self.x_vals,
+                #     y=self.parn.parn.ui.strip_noise(y_vals, rang[0], rang[1]),
+                #     yaxis=self._get_yaxis_code(idx_idx + offset)
+                # ))
+                self.fig['data'].append(dict(
                     x=self.x_vals,
                     y=self.parn.parn.ui.strip_noise(y_vals, rang[0], rang[1]),
-                    yaxis=self._get_yaxis_code(idx_idx + offset)
+                    yaxis=self._get_yaxis_code(idx_idx + offset),
+                    line=dict(width=0.5),
+                    # visible=False
                 ))
-            self.fig.update_traces(
-                line=dict(width=0.5)
-            )
+            self.idxs_lead += idxs_lead_add
 
             self.fig['layout']['xaxis']['range'] = \
                 self.parn.display_range_to_layout_range(self.parn.parn.curr_disp_rng[0])
+            # l = len(self.fig['data'])
+            # print(f'number of trace is {l} and offset is {offset}')
             return self.fig
 
     def display_range_to_layout_range(self, rang):

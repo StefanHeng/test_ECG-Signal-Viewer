@@ -67,7 +67,7 @@
     height: 18em;
     /* Hack: Carefully crafted values so that the plot that made global range possible disappears */
     margin-top: -11em;
-    margin-left: -2.75em;
+    margin-left: -0.5em;
     margin-right: -8.5em;
     /*border: 1px green solid;*/
 }
