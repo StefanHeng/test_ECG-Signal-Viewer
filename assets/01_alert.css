@@ -1,0 +1,10 @@
+#alert_max-lead-error {
+    position: absolute;
+    top: 0.5em;
+    left: 20%;
+    right: 20%;
+    z-index: 10000;
+
+    margin: auto;
+    border-radius: 0.5em;
+}

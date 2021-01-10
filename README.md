@@ -11,7 +11,7 @@ Files at root prefixed with `ecg_` are for release.
 Files of the form `ecg_dev_run-(.*).py` are time sensitive, iterative scripts for Dash web app integration. 
 Only the most recent versions are meaningful and relevant.
 See [Google Drive](https://drive.google.com/drive/u/0/folders/1LoDe0fVXWghLS3dO6EcsUCoV639Plo7I) `~/Dev Progress` folder 
-for a more detailed development record.  
+for a more detailed development record and demo. 
  
 `dev` folder contains unit tests at various scale on language and python package functionality. 
  

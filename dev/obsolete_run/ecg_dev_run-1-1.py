@@ -47,7 +47,7 @@ CNM_DIV_FIG = 'div_figure'
 CNM_BTN = 'btn'
 
 ecg_app = EcgApp(__name__)
-ecg_app.update_template_dropdown_add_options_lead_layout_figures(DATA_PATH.joinpath(record_nm))
+ecg_app.update_lead_options_disable_layout_figures(DATA_PATH.joinpath(record_nm))
 
 app = dash.Dash(
     __name__,
