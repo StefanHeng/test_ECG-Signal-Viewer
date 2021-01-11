@@ -1,10 +1,12 @@
 import numpy as np
 import pandas as pd
 
-import plotly.graph_objs as go
+# import plotly.graph_objs as go
+
+import concurrent.futures
 
 from math import floor
-from copy import deepcopy
+# from copy import deepcopy
 
 
 class EcgPlot:
@@ -113,16 +115,25 @@ class EcgPlot:
         def __init__(self, record, parent):
             self.rec = record
             self.parn = parent
+            self.num_leads = len(self.rec.lead_nms)
+
             self.strt = 0  # Stays unchanged, given a record
             self.end = self.rec.num_sample_count()
             self.sample_factor = self.parn.get_sample_factor(self.strt, self.end)
+
             self.x_vals = self.parn.get_x_vals(self.strt, self.end, self.sample_factor)
             self.fig = self._get_fig_skeleton()
             self.idxs_lead = []
+            # Has the corresponding y_vals been computed before
+            self.been_computed = [False for i in range(self.num_leads)]
+            self.lst_y_vals = [[] for i in range(self.num_leads)]
 
         def _get_fig_skeleton(self):
             fig = dict(
-                data=[],
+                data=[dict(
+                    yaxis=self._get_yaxis_code(idx),
+                    line=dict(width=0.5),
+                ) for idx in range(self.num_leads)],  # Each lead has its designated slot by index
                 layout=dict(
                     margin=dict(l=0, r=0, t=0, b=0),
                     xaxis=dict(
@@ -145,36 +156,55 @@ class EcgPlot:
         def _get_yaxis_code(i):
             return f'y{i}' if i > 0 else 'y'
 
+        def _get_y_vals(self, idx_lead):
+            return self.parn.get_y_vals(idx_lead, self.strt, self.end, self.sample_factor)
+
         def add_trace(self, idxs_lead_add, override=False):
+            """
+            ..note:: Modifies argument list passed in
+            """
             if override:
-                for trace in self.fig['data']:
-                    trace['visible'] = False
-                self.fig['data'] = []
-                # self.fig = self._get_fig_skeleton()
+                for idx in self.idxs_lead:
+                    if idx not in idxs_lead_add:
+                        self.remove_trace(idx)
                 self.idxs_lead = []
-            offset = len(self.idxs_lead)  # Append to axis based on existing number of leads plotted
-            for idx_idx, idx_lead in enumerate(idxs_lead_add):
-                y_vals = self.parn.get_y_vals(idx_lead, self.strt, self.end, self.sample_factor)
+
+            idx = 0
+            while idx < len(idxs_lead_add):
+                idx_lead = idxs_lead_add[idx]
+                if self.been_computed[idx_lead]:
+                    del idxs_lead_add[idx]
+                    if idx_lead not in self.idxs_lead:
+                        self.fig['data'][idx_lead]['x'] = self.x_vals
+                        self.fig['data'][idx_lead]['y'] = self.lst_y_vals[idx_lead]
+                        self.idxs_lead.append(idx_lead)
+                else:
+                    idx += 1
+            # Only compute lead channels not computed before
+            with concurrent.futures.ThreadPoolExecutor(max_workers=self.parn.parn.MAX_NUM_LD) as executor:
+                res_y_vals = executor.map(self._get_y_vals, idxs_lead_add)
+                res_y_vals = list(res_y_vals)
+            # By construction, must be mutually exclusive with `idxs_lead` if override is False
+            for idx, idx_lead in enumerate(idxs_lead_add):
+                self.idxs_lead.append(idx_lead)
+                y_vals = res_y_vals[idx]
                 rang = self.parn.parn.ui.get_ignore_noise_range(y_vals)
-                # self.fig.add_trace(go.Scatter(
-                #     x=self.x_vals,
-                #     y=self.parn.parn.ui.strip_noise(y_vals, rang[0], rang[1]),
-                #     yaxis=self._get_yaxis_code(idx_idx + offset)
-                # ))
-                self.fig['data'].append(dict(
-                    x=self.x_vals,
-                    y=self.parn.parn.ui.strip_noise(y_vals, rang[0], rang[1]),
-                    yaxis=self._get_yaxis_code(idx_idx + offset),
-                    line=dict(width=0.5),
-                    # visible=False
-                ))
-            self.idxs_lead += idxs_lead_add
+                y_vals = self.parn.parn.ui.strip_noise(y_vals, rang[0], rang[1])
+                self.fig['data'][idx_lead]['x'] = self.x_vals
+                self.fig['data'][idx_lead]['y'] = self.lst_y_vals[idx_lead] = y_vals
+                self.been_computed[idx_lead] = True
 
             self.fig['layout']['xaxis']['range'] = \
                 self.parn.display_range_to_layout_range(self.parn.parn.curr_disp_rng[0])
-            # l = len(self.fig['data'])
-            # print(f'number of trace is {l} and offset is {offset}')
             return self.fig
+
+        def remove_trace(self, idx):
+            """
+            :param idx: Index of the lead indices in `idxs_lead`
+            """
+            # Hack, removing the element from traces list doesn't hide trace on the RangeSlider
+            self.fig['data'][idx]['x'] = []
+            self.fig['data'][idx]['y'] = []
 
     def display_range_to_layout_range(self, rang):
         strt, end = rang
@@ -200,3 +230,4 @@ class EcgPlot:
     def _get_sample_factor(self, strt, end):
         # If showing too a small range, sample_factor which is incremental steps should be at least 1
         return max((end - strt + 1) // (self._DISPLAY_WIDTH * self._DISPLAY_SCALE_T), 1)
+

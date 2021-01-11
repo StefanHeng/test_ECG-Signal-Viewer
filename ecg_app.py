@@ -6,8 +6,8 @@ from dash.dependencies import Input, Output, State, MATCH, ALL
 
 import plotly.graph_objs as go
 
+from copy import deepcopy
 import concurrent.futures
-import time
 # import logging
 
 # logging.basicConfig(level=logging.DEBUG)
@@ -24,10 +24,10 @@ FA_CSS_LNK = 'https://use.fontawesome.com/releases/v5.8.1/css/all.css'
 CNM_HD = 'header'
 CNM_HDTT = 'header_title'
 TXT_HD = 'Ecg Viz'  # Text shown in header
-ID_FD_TMB = 'fade_graph-thumbnail'
+# ID_FD_TMB = 'fade_graph-thumbnail'
 ID_FD_MN = 'fade_body-main'
 CNM_MNBD = 'body_main'
-ID_STOR_IDXS_LD = 'store_idxs_lead'
+# ID_STOR_IDXS_LD = 'store_idxs_lead'
 
 ID_BBX_DIV_OPN = 'div_options-bound-box'
 ID_DIV_OPN = 'div_options'
@@ -38,7 +38,7 @@ ID_IC_OPN = 'ic_options'
 ID_DPD_RECR = 'record-dropdown'
 ID_DPD_LD_TEMPL = 'lead-template-dropdown'
 ID_STOR_REC = 'store_record-change'
-ID_STOR_TPL = 'store_template-change'
+# ID_STOR_TPL = 'store_template-change'
 
 ID_DIV_PLTS = 'div_plots'
 CNM_DIV_LD = 'div_lead'
@@ -50,31 +50,31 @@ CNM_TMB = 'channel-graph-thumbnail'
 CNM_GRA = 'channel-graph'
 ID_TMB = 'figure-thumbnail'
 ID_GRA = 'graph'
-ID_STOR_D_RNG = 'store_display_range'  # Contains dictionary of each display range
-ID_INTVL = 'interval'
+# ID_STOR_D_RNG = 'store_display_range'  # Contains dictionary of each display range
+# ID_INTVL = 'interval'
 ID_BTN_LD_RMV = 'btn_lead-remove'
 CNM_IC_RMV = 'fas fa-minus'
 
-ID_DIV_ADD = 'div_add'
+# ID_DIV_ADD = 'div_add'
 ID_BTN_ADD = 'btn_add'
 ID_IC_ADD = 'ic_add'
 CNM_IC_ADD = 'fas fa-plus'
 
 ID_MD_ADD = 'modal_add'
 ID_MDHD_ADD = 'modal-header_add'
-CNM_MDTT = 'modal_title'
+# CNM_MDTT = 'modal_title'
 CNM_ADD_LD = 'title_add-lead'
 TXT_ADD_LD = 'Add a lead/channel: '
 ID_BTN_MD_CLS = 'btn_modal-close'
 CNM_IC_MD_CLS = 'fas fa-times'
 ID_MDBD_ADD = 'modal-body_add'
-ID_DIV_MD_ADD = 'div_modal-add'
+# ID_DIV_MD_ADD = 'div_modal-add'
 
-CNM_BTS_LST = 'list-group'  # For Bootstrap CSS
-CNM_BTS_LST_ITM = 'list-group-item list-group-item-action'
-ID_STOR_IDX_ADD = 'store_lead-idx-add'  # Current index of lead to add to layout
-ID_RDO_LD_ADD = 'radio-group_lead-add'
-CNM_RDO_ITM_IPT = 'input_null'
+# CNM_BTS_LST = 'list-group'  # For Bootstrap CSS
+# CNM_BTS_LST_ITM = 'list-group-item list-group-item-action'
+# ID_STOR_IDX_ADD = 'store_lead-idx-add'  # Current index of lead to add to layout
+# ID_RDO_LD_ADD = 'radio-group_lead-add'
+# CNM_RDO_ITM_IPT = 'input_null'
 ID_GRP_LD_ADD = 'list-group_lead-add'
 ID_ITM_LD_ADD = 'list-item_lead-add'
 
@@ -106,7 +106,7 @@ ID_BTN_FIXY = 'btn_fix_yaxis'
 ID_IC_FIXY = 'ic_fix_yaxis'
 CNM_IC_LK = 'fas fa-lock'  # Font Awesome
 CNM_IC_LKO = 'fas fa-lock-open'
-ID_STOR_IS_FIXY = 'id_is_yaxis_fixed'
+# ID_STOR_IS_FIXY = 'id_is_yaxis_fixed'
 
 # Syntactic sugar
 T = 'type'  # For Dash pattern matching callbacks
@@ -204,7 +204,7 @@ class EcgApp:
                     ),
                     dcc.Dropdown(
                         id=ID_DPD_LD_TEMPL, className=CNM_MY_DPD, disabled=True,
-                        placeholder='Select lead/channel template',
+                        placeholder='Select lead channel template',
                         options=[
                             {L: f'{dev(DEV_TML_S)}', V: DEV_TML_S},
                             {L: f'{dev(DEV_TML_RG)}', V: DEV_TML_RG},
@@ -233,9 +233,8 @@ class EcgApp:
             dcc.Store(id=ID_STOR_RMV),
 
             dbc.Alert(
-                # id=ID_ALT_MAX_LD, is_open=True, fade=True, duration=100000, dismissable=True, color='danger',
                 id=ID_ALT_MAX_LD, is_open=False, fade=True, duration=4000, dismissable=True, color='danger',
-                children=f'Error: Maximum of {self.MAX_NUM_LD} leads supported for display',
+                children=f'Error: Maximum of {self.MAX_NUM_LD} lead channels supported for display',
             ),
             dbc.Modal(id=ID_MD_ADD, centered=True, is_open=False, scrollable=True, children=[
                 dbc.ModalHeader(id=ID_MDHD_ADD, children=[
@@ -411,8 +410,6 @@ class EcgApp:
         return (False, False) if rec_nm is not None else (True, True)
 
     def toggle_fade(self, template, data_add, data_rmv):
-        # print(f'in toggle fade with changed {self.get_last_changed_id_property()} where template is {template} and data_add is {data_add}')
-        # print(f'and lead indices are {self.idxs_lead}')
         if self.ui.get_id(self.get_last_changed_id_property()) == ID_DPD_LD_TEMPL:
             return template is not None
         else:  # Due to lead add or remove
@@ -432,30 +429,25 @@ class EcgApp:
     def update_lead_indices_add(self, ns_clicks_add):
         # Magnitude of n_clicks doesn't really matter, just care about which index clicked
         # The same applies to the remove call back below
-
-        # In case of first call when record is set which creates add button children, then n_clicks is actually 0
         idx = self.ui.get_pattern_match_index(self.get_last_changed_id_property())
+        # In case of first call when record is set which creates add button children, then n_clicks is actually 0
         if len(self.idxs_lead) >= self.MAX_NUM_LD or ns_clicks_add[idx] == 0:  # Due to element creation
             return False, -1  # Bool for if appending took place
         else:
             self.idxs_lead.append(idx)
-            # print(f'in add button with changed {self.get_last_changed_id_property()} and clicks are {ns_clicks_add}')
-            # print(f'added index {idx} and lead indices are {self.idxs_lead}')
             return True, idx
 
     def update_lead_indices_remove(self, ns_clicks_rmv):
-        # print(f'in remove button with changed {self.get_last_changed_id_property()} and clicks are {ns_clicks_rmv}')
         changed_id_property = self.get_last_changed_id_property()
         if changed_id_property == '.':  # When button elements are removed from web layout
             return False, None, None
         idx = self.ui.get_pattern_match_index(changed_id_property)
         idx_idx = self._get_fig_index_by_index(idx)
-        if ns_clicks_rmv[idx_idx] == 0: # In case selecting template creates new remove buttons
+        if ns_clicks_rmv[idx_idx] == 0:  # In case selecting template creates new remove buttons
             return False, None, None
         else:
             # Except from the reason same as add callback above,
             # a lead is always removed cos otherwise there's no div to trigger the button callback
-            # print(f'lead indices are {self.idxs_lead}, and will remove the index {idx} at {idx_idx} position')
             del self.idxs_lead[idx_idx]
             # Original index in layout, subsequent callback below will remove div from HTML plots
             return True, idx_idx, idx
@@ -493,7 +485,6 @@ class EcgApp:
         # => Forced to update in a single function call
         changed_id_property = self.get_last_changed_id_property()
         changed_id = self.ui.get_id(changed_id_property)
-        # print(changed_id, changed_id_property)
         if ID_STOR_REC == changed_id:
             if record_name is not None:
                 fig_tmb = self.fig_tmb.fig
@@ -506,7 +497,7 @@ class EcgApp:
                 disables_lead_add = [False for i in disables_lead_add]
                 for idx in self.idxs_lead:
                     disables_lead_add[idx] = True
-                fig_tmb = self.fig_tmb.add_trace(self.idxs_lead, override=True)
+                fig_tmb = self.fig_tmb.add_trace(deepcopy(self.idxs_lead), override=True)
             else:  # Reset layout
                 self.idxs_lead = []
                 plots = []

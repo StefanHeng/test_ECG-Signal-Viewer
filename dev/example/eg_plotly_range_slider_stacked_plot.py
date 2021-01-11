@@ -53,7 +53,7 @@ fig.add_trace(go.Scatter(
     text=["6.9", "7.5", "7.3", "7.3", "6.9", "7.1", "8", "7.8", "7.4", "7.9", "7.9",
           "7.6",
           "7.2", "7.2", "8.0"],
-    yaxis="y4",
+    yaxis="y14",
 ))
 
 fig.add_trace(go.Scatter(
@@ -63,7 +63,7 @@ fig.add_trace(go.Scatter(
     y=["290", "1078", "263", "407", "660", "740", "33", "374", "95", "734", "3000"],
     name="var4",
     text=["290", "1078", "263", "407", "660", "740", "33", "374", "95", "734", "3000"],
-    yaxis="y5",
+    yaxis="y15",
 ))
 
 # style all the traces
@@ -193,7 +193,7 @@ fig.update_layout(
         type="linear",
         zeroline=False
     ),
-    yaxis4=dict(
+    yaxis14=dict(
         anchor="x",
         autorange=True,
         domain=[0.6, 0.8],
@@ -210,7 +210,7 @@ fig.update_layout(
         type="linear",
         zeroline=False
     ),
-    yaxis5=dict(
+    yaxis15=dict(
         anchor="x",
         autorange=True,
         domain=[0.8, 1],
@@ -243,4 +243,9 @@ fig.update_layout(
 )
 
 if __name__ == '__main__':
+    print(len(fig['data']))
+    print(fig['data'][-1])
+    fig['data'][-1]['x'] = []
+    fig['data'][-1]['y'] = []
+
     fig.show()
