@@ -13,7 +13,7 @@ def main():
     ecg_app = EcgApp(__name__)
     ecg_app.app.title = "Dev test run"
 
-    ecg_app.run(True)
+    ecg_app.run(debug=True)
 
 
 if __name__ == "__main__":

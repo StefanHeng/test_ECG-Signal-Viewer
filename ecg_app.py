@@ -6,6 +6,8 @@ from dash.dependencies import Input, Output, State, MATCH, ALL
 
 import plotly.graph_objs as go
 
+import time
+from datetime import datetime, timedelta
 from copy import deepcopy
 import concurrent.futures
 # import logging
@@ -188,7 +190,7 @@ class EcgApp:
 
                 html.H1(TXT_HD, className=CNM_HDTT),
 
-                html.Button(id=ID_BTN_ADD, className=CNM_BTN, n_clicks=0, children=[
+                html.Button(id=ID_BTN_ADD, className=CNM_BTN, disabled=True, n_clicks=0, children=[
                     html.I(id=ID_IC_ADD, className=CNM_IC_ADD)
                 ]),
             ]),
@@ -215,7 +217,7 @@ class EcgApp:
                 ]),
             ]),
 
-            dbc.Fade(id=ID_FD_MN, is_in=True, children=[
+            dbc.Fade(id=ID_FD_MN, is_in=False, children=[
                 html.Div(className=CNM_MNBD, children=[
                     html.Div(className=CNM_DIV_TMB, children=[
                         dcc.Graph(  # Dummy figure, change its range just to change how the RangeSlider looks
@@ -304,26 +306,30 @@ class EcgApp:
 
         self.app.callback(
             Output(ID_STOR_REC, D),
-            Input(ID_DPD_RECR, V)
+            Input(ID_DPD_RECR, V),
+            prevent_initial_call=True
         )(self.set_record_init)
 
         self.app.callback(
             [Output(ID_DPD_LD_TEMPL, 'disabled'),
              Output(ID_BTN_ADD, 'disabled')],
-            Input(ID_STOR_REC, D)
+            Input(ID_STOR_REC, D),
+            prevent_initial_call=True
         )(self.toggle_disable)
 
         self.app.callback(
             Output(ID_FD_MN, 'is_in'),
             [Input(ID_DPD_LD_TEMPL, V),
              Input(ID_STOR_ADD, D),
-             Input(ID_STOR_RMV, D)]
-        )(self.toggle_fade)
+             Input(ID_STOR_RMV, D)],
+            prevent_initial_call=True
+        )(self.toggle_layout_fade)
 
         self.app.callback(
             Output(ID_GRP_LD_ADD, C),
             Input(ID_STOR_REC, D),
-            State(ID_GRP_LD_ADD, C)
+            State(ID_GRP_LD_ADD, C),
+            prevent_initial_call=True
         )(self.set_add_lead_options)
 
         # Make sure index is updated first before other callbacks update based on `idxs_lead`
@@ -369,7 +375,7 @@ class EcgApp:
 
         self.app.callback(
             Output(ID_ALT_MAX_LD, 'is_open'),
-            [Input(all_(ID_ITM_LD_ADD), NC),
+            [Input(ID_STOR_ADD, D),
              Input(ID_DPD_LD_TEMPL, V)],
             State(ID_ALT_MAX_LD, 'is_open'),
             prevent_initial_call=True
@@ -397,6 +403,7 @@ class EcgApp:
             return join(CNM_IC_BR, ANM_BTN_OPN_ROTS), join(ANM_DIV_OPN_CLPW, ANM_OPQN)
 
     def set_record_init(self, record_name):
+        # EcgApp.__print_changed_property('init record')
         if record_name is not None:
             # Makes sure the following attributes are set first before needed
             self.curr_rec = EcgRecord(DATA_PATH.joinpath(record_name))
@@ -407,15 +414,18 @@ class EcgApp:
 
     @staticmethod
     def toggle_disable(rec_nm):
+        # EcgApp.__print_changed_property('toggle btn&tpl disable')
         return (False, False) if rec_nm is not None else (True, True)
 
-    def toggle_fade(self, template, data_add, data_rmv):
+    def toggle_layout_fade(self, template, data_add, data_rmv):
+        # EcgApp.__print_changed_property('toggle layout fade')
         if self.ui.get_id(self.get_last_changed_id_property()) == ID_DPD_LD_TEMPL:
             return template is not None
         else:  # Due to lead add or remove
             return len(self.idxs_lead) > 0
 
     def set_add_lead_options(self, record_name, items_lead_add):
+        # EcgApp.__print_changed_property('update add lead options')
         changed_id_property = self.get_last_changed_id_property()
         changed_id = self.ui.get_id(changed_id_property)
         if changed_id == ID_STOR_REC and record_name is not None:  # Initialize
@@ -427,17 +437,19 @@ class EcgApp:
         return items_lead_add
 
     def update_lead_indices_add(self, ns_clicks_add):
+        # EcgApp.__print_changed_property('clicked on add button')
         # Magnitude of n_clicks doesn't really matter, just care about which index clicked
         # The same applies to the remove call back below
         idx = self.ui.get_pattern_match_index(self.get_last_changed_id_property())
         # In case of first call when record is set which creates add button children, then n_clicks is actually 0
         if len(self.idxs_lead) >= self.MAX_NUM_LD or ns_clicks_add[idx] == 0:  # Due to element creation
-            return False, -1  # Bool for if appending took place
+            return False, None  # Bool for if appending took place
         else:
             self.idxs_lead.append(idx)
             return True, idx
 
     def update_lead_indices_remove(self, ns_clicks_rmv):
+        # EcgApp.__print_changed_property('clicked on remove button')
         changed_id_property = self.get_last_changed_id_property()
         if changed_id_property == '.':  # When button elements are removed from web layout
             return False, None, None
@@ -483,14 +495,19 @@ class EcgApp:
         """
         # Shared output must be in a single function call per Dash callback
         # => Forced to update in a single function call
+        # EcgApp.__print_changed_property('update figures')
+        start = time.time()
         changed_id_property = self.get_last_changed_id_property()
         changed_id = self.ui.get_id(changed_id_property)
-        if ID_STOR_REC == changed_id:
+        if ID_STOR_REC == changed_id:  # Reset layout
+            self.idxs_lead = []
+            plots = []
+            disables_lead_add = [False for i in disables_lead_add]  # All options are not disabled
             if record_name is not None:
-                fig_tmb = self.fig_tmb.fig
+                fig_tmb = self.fig_tmb.add_trace([], override=True)  # Basically removes all trace without adding
         elif ID_DPD_LD_TEMPL == changed_id:
             if template is not None:
-                self.idxs_lead = self.LD_TEMPL[template]
+                self.idxs_lead = deepcopy(self.LD_TEMPL[template])  # Deepcopy cos idx_lead may mutate
                 # Override for any template change could happen before
                 plots = [self.get_fig_layout(idx) for idx in self.idxs_lead]
                 # Linear, more efficient than checking index in `self.idxs_lead`
@@ -536,11 +553,15 @@ class EcgApp:
         elif ID_STOR_RMV == changed_id:
             removed, idx_idx_rmv, idx_rmv = data_rmv
             if removed:
+                # print(f'in remove button, called to remove thumbnail index {idx_rmv}')
+                self.fig_tmb.remove_trace(idx_idx_rmv, idx_rmv)
                 del plots[idx_idx_rmv]
                 disables_lead_add[idx_rmv] = False
                 # Surprisingly when I have the line below, Dash gives weird exception, instead of not having this line
                 # del figs_gra[idx_idx_changed]'
         # print(f'update triggered with {changed_id_property} and size is {len(self.idxs_lead)}')
+        # print(f'and [update figures] took time: [{timedelta(seconds=time.time() - start)}]')
+        # print(f'idx_lead has length: {len(self.idxs_lead)} and there are {len(plots)} plots')
         return plots, disables_lead_add, figs_gra, fig_tmb
 
     def _update_lead_figures(self, figs_gra, x_layout_range):
@@ -565,14 +586,17 @@ class EcgApp:
 
     @staticmethod
     def toggle_modal(n_clicks_add_btn, n_clicks_close_btn, is_open):
+        # EcgApp.__print_changed_property('toggle show modal')
         return not is_open
 
-    def toggle_max_lead_error(self, ns_clicks_add, template, is_open):
+    def toggle_max_lead_error(self, data_add, template, is_open):
+        # EcgApp.__print_changed_property('toggle show max lead error')
         if self.ui.get_id(self.get_last_changed_id_property()) == ID_DPD_LD_TEMPL:
             # Make sure no change happens when a template is selected
             return False
         else:
-            if len(self.idxs_lead) >= self.MAX_NUM_LD:
+            added, idx_add = data_add
+            if not added and len(self.idxs_lead) >= self.MAX_NUM_LD:
                 return not is_open
             else:
                 return is_open
@@ -595,6 +619,15 @@ class EcgApp:
             return CNM_IC_LKO
         else:
             return CNM_IC_LK
+
+    @staticmethod
+    def __print_changed_property(func_nm):
+        # Debugging only
+        print(f'in [{func_nm:<25}] with changed property: [{EcgApp.get_last_changed_id_property():<25}] at time [{EcgApp.__get_curr_time():15}]')
+
+    @staticmethod
+    def __get_curr_time():
+        return datetime.now().strftime('%H:%M:%S.%f')
 
     @staticmethod
     def example():

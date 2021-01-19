@@ -166,7 +166,7 @@ class EcgPlot:
             if override:
                 for idx in self.idxs_lead:
                     if idx not in idxs_lead_add:
-                        self.remove_trace(idx)
+                        self._remove_trace(idx)
                 self.idxs_lead = []
 
             idx = 0
@@ -198,13 +198,36 @@ class EcgPlot:
                 self.parn.display_range_to_layout_range(self.parn.parn.curr_disp_rng[0])
             return self.fig
 
-        def remove_trace(self, idx):
-            """
-            :param idx: Index of the lead indices in `idxs_lead`
-            """
-            # Hack, removing the element from traces list doesn't hide trace on the RangeSlider
+        def _remove_trace(self, idx):
+            # print(f'originally y_vals are', self.fig['data'][idx]['y'])
             self.fig['data'][idx]['x'] = []
             self.fig['data'][idx]['y'] = []
+            # self.fig['data'][idx] = dict(
+            #         yaxis=self._get_yaxis_code(idx),
+            #         line=dict(width=0.5),
+            #         visible=False
+            #     )
+            # print('supposedly removed a trace', self.fig['data'])
+            # print(f'now y_vals are', self.fig['data'][idx]['y'], f'and there should be {self.__count_num_trace()} traces shown')
+
+        def remove_trace(self, idx_idx, idx_lead):
+            # TODO: Doesn't work on a single lead channel removal
+            """
+            :param idx_idx: Index of the lead indices in `idxs_lead`
+            :param idx_lead: The lead index
+            """
+            # Hack, since intuitively removing the element from traces list
+            # doesn't actually hide trace on the RangeSlider
+            # print(f'in remove_trace called on index {idx_idx} with lead index {idx_lead}')
+            del self.idxs_lead[idx_idx]
+            self._remove_trace(idx_lead)
+            # for idx in self.idxs_lead:
+            #     self._remove_trace(idx)
+            # self.idxs_lead = []
+
+        def __count_num_trace(self):
+            # For debugging only
+            return sum(('y' in d and d['y'] != []) for d in self.fig['data'])
 
     def display_range_to_layout_range(self, rang):
         strt, end = rang
