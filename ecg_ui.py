@@ -16,8 +16,11 @@ class EcgUi:
     NUM_SAMPLES = 29  # Number of samples to take for randomization
     PERCENT_NUM = 5  # Number for a rough percentile sample count, based on NUM_SAMPLES
 
-    def __init__(self, parent):  # Linked record automatically updates by parent
-        self.parn = parent
+    def __init__(self, record):  # Linked record automatically updates by parent
+        self.rec = record
+
+    def set_record(self, record):
+        self.rec = record
 
     def get_display_range(self, layout_fig):
         """
@@ -28,16 +31,16 @@ class EcgUi:
         """
         x_range = layout_fig['xaxis']['range']
         return [[
-            self.parn.curr_rec.time_str_to_sample_count(x_range[0]),
-            self.parn.curr_rec.time_str_to_sample_count(x_range[1])],
+            self.rec.time_str_to_sample_count(x_range[0]),
+            self.rec.time_str_to_sample_count(x_range[1])],
             layout_fig['yaxis']['range']
         ]
 
     def get_x_display_range(self, layout_fig):
         x_range = layout_fig['xaxis']['range']
         return [
-            self.parn.curr_rec.time_str_to_sample_count(x_range[0]),
-            self.parn.curr_rec.time_str_to_sample_count(x_range[1])
+            self.rec.time_str_to_sample_count(x_range[0]),
+            self.rec.time_str_to_sample_count(x_range[1])
         ]
 
     def get_y_display_range(self, layout_fig):
@@ -53,8 +56,8 @@ class EcgUi:
         """
         # Clip start time from below to 0, end time from above to maximum sample count
         # str comparison suffices
-        strt = max(layout_fig[self.KEY_X_S], self.parn.curr_rec.TIME_STRT)
-        end = min(layout_fig[self.KEY_X_E], self.parn.curr_rec.TIME_END)
+        strt = max(layout_fig[self.KEY_X_S], self.rec.TIME_STRT)
+        end = min(layout_fig[self.KEY_X_E], self.rec.TIME_END)
         return [strt, end]
 
     @staticmethod

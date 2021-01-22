@@ -30,7 +30,7 @@ class EcgRecord:
     def __init__(self, path):
         self.record = h5py.File(path, 'r')
         self._seg_keys = list(self.record.keys())  # keys to each segment compiled in the .h5 file
-        self.annotatns = list(self.record.attrs)
+        self.annotatns = json.loads(self.record.attrs['annotations'])
 
         # Following properties are the same across different segments, as far as EcgApp is concerned.
         metadata = self._get_seg(self._seg_keys[0]).get_metadata()
