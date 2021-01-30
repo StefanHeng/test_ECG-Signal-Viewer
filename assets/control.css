@@ -89,3 +89,10 @@
     transition: var(--ease-all);
 }
 
+
+#div_plot-controls {
+    display: flex;
+    flex-direction: row;
+    margin: 0 auto 0.25em;
+    /*border: 1px solid red;*/
+}

@@ -7,6 +7,8 @@ from dash.exceptions import PreventUpdate
 
 import plotly.graph_objs as go
 
+import pandas as pd
+
 import time
 from datetime import datetime, timedelta
 from copy import deepcopy
@@ -59,7 +61,9 @@ ID_BTN_LD_RMV = 'btn_lead-remove'
 CNM_IC_RMV = 'fas fa-minus'
 ID_BTN_LD_RMV_WP = 'btn-wrapper_lead-remove'
 TTP_PLCM = 'right'  # ToolTip placement
+TTP_PLCM_PLT_CTRL = 'bottom'
 TTP_OFST = 0
+TTP_DL = 200  # ToolTIp delay
 
 # ID_DIV_ADD = 'div_add'
 ID_BTN_ADD = 'btn_add'
@@ -88,6 +92,16 @@ ID_ALT_MAX_LD = 'alert_max-lead-error'
 
 ID_STOR_ADD = 'store_lead-add-change'
 ID_STOR_RMV = 'store_lead-rmv-change'
+
+ID_DIV_PLT_CTRL = 'div_plot-controls'
+ID_BTN_ADV_BK = 'btn_advance-back'
+ID_BTN_MV_BK = 'btn_move-back'  # Smaller in magnitude
+ID_BTN_ADV_FW = 'btn_advance-forward'
+ID_BTN_MV_FW = 'btn_move-forward'  # Smaller in magnitude
+CNM_ADV_BK = 'fas fa-angle-double-left'
+CNM_MV_BK = 'fas fa-angle-left'
+CNM_ADV_FW = 'fas fa-angle-double-right'
+CNM_MV_FW = 'fas fa-angle-right'
 
 ANM_OPQY = 'opaque_1'  # Transition achieved by changing class
 ANM_OPQN = 'opaque_0'
@@ -147,6 +161,10 @@ def join(*class_nms):  # For Dash className
     return ' '.join(class_nms)
 
 
+def lst_to_tuple(lst):
+    return *lst,
+
+
 DEV_TML_S = 'single -> 1: I'
 DEV_TML_RG = 'range(8) -> [1, 8]'
 DEV_TML_RD = 'rand -> [7, 6, 4, 17, 36]'
@@ -167,6 +185,13 @@ class EcgApp:
 
     MAX_NUM_LD = 8
 
+    MV_OFST_TIMES = {  # On how much time does advance and nudge operations move
+        ID_BTN_ADV_BK: pd.Timedelta(-2, unit='m'),
+        ID_BTN_MV_BK: pd.Timedelta(-10, unit='s'),
+        ID_BTN_MV_FW: pd.Timedelta(10, unit='s'),
+        ID_BTN_ADV_FW: pd.Timedelta(2, unit='m')
+    }
+
     def __init__(self, app_name):
         self.curr_rec = None  # Current record
         self.curr_plot = None
@@ -174,6 +199,9 @@ class EcgApp:
         self.idxs_lead = []
         self.curr_disp_rng = EcgPlot.DISP_RNG_INIT
         self.fig_tmb = None
+
+        self.move_offset_counts = None  # Runtime optimization, semi-constants dependent to record
+        self.no_update_add_opns = None
 
         self.app_name = app_name  # No human-readable meaning, name passed into Dash object
         self.app = dash.Dash(self.app_name, external_stylesheets=[
@@ -197,8 +225,38 @@ class EcgApp:
                 html.Button(id=ID_BTN_ADD, className=CNM_BTN, disabled=True, n_clicks=0, children=[
                     html.I(id=ID_IC_ADD, className=CNM_IC_ADD)
                 ]),
+                # When target is disabled, ToolTip won't show
                 dbc.Tooltip(target=ID_BTN_ADD, hide_arrow=False, placement=TTP_PLCM, offset=TTP_OFST,
                             children='Add a lead channel'),
+
+                html.Div(id=ID_DIV_PLT_CTRL, children=[
+                    html.Button(id=ID_BTN_ADV_BK, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=True, children=[
+                        html.I(className=CNM_ADV_BK)
+                    ]),
+                    html.Button(id=ID_BTN_MV_BK, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=True, children=[
+                        html.I(className=CNM_MV_BK)
+                    ]),
+                    html.Button(id=ID_BTN_FIXY, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=True, n_clicks=0,
+                                children=[
+                        html.I(id=ID_IC_FIXY, className=CNM_IC_LKO)
+                    ]),
+                    html.Button(id=ID_BTN_MV_FW, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=True, children=[
+                        html.I(className=CNM_MV_FW)
+                    ]),
+                    html.Button(id=ID_BTN_ADV_FW, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=True, children=[
+                        html.I(className=CNM_ADV_FW)
+                    ])
+                ]),
+                dbc.Tooltip(target=ID_BTN_ADV_BK, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
+                            delay=TTP_DL, children='Advance backward'),
+                dbc.Tooltip(target=ID_BTN_MV_BK, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
+                            delay=TTP_DL, children='Nudge backward'),
+                dbc.Tooltip(target=ID_BTN_FIXY, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
+                            delay=TTP_DL, children='Fix y-axis'),
+                dbc.Tooltip(target=ID_BTN_MV_FW, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
+                            delay=TTP_DL, children='Nudge forward'),
+                dbc.Tooltip(target=ID_BTN_ADV_FW, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
+                            delay=TTP_DL, children='Advance forward'),
             ]),
 
             html.Div(id=ID_BBX_DIV_OPN, children=[
@@ -325,7 +383,12 @@ class EcgApp:
 
         self.app.callback(
             [Output(ID_DPD_LD_TEMPL, 'disabled'),
-             Output(ID_BTN_ADD, 'disabled')],
+             Output(ID_BTN_ADD, 'disabled'),
+             Output(ID_BTN_ADV_BK, 'disabled'),
+             Output(ID_BTN_MV_BK, 'disabled'),
+             Output(ID_BTN_FIXY, 'disabled'),
+             Output(ID_BTN_MV_FW, 'disabled'),
+             Output(ID_BTN_ADV_FW, 'disabled')],
             Input(ID_STOR_REC, D),
             prevent_initial_call=True
         )(self.toggle_disable)
@@ -368,7 +431,11 @@ class EcgApp:
              Input(ID_DPD_LD_TEMPL, V),
              Input(all_(ID_GRA), 'relayoutData'),
              Input(ID_TMB, 'relayoutData'),
-             Input(all_(ID_BTN_FIXY), NC),
+             Input(ID_BTN_ADV_BK, 'n_clicks'),
+             Input(ID_BTN_MV_BK, 'n_clicks'),
+             Input(ID_BTN_FIXY, 'n_clicks'),
+             Input(ID_BTN_MV_FW, 'n_clicks'),
+             Input(ID_BTN_ADV_FW, 'n_clicks'),
              Input(ID_STOR_ADD, D),
              Input(ID_STOR_RMV, D)],
             [State(ID_DIV_PLTS, C),
@@ -395,19 +462,19 @@ class EcgApp:
         )(self.toggle_max_lead_error)
 
         self.app.callback(
-            Output(mch(ID_IC_FIXY), CNM),
-            Input(mch(ID_BTN_FIXY), NC)
+            Output(ID_IC_FIXY, CNM),
+            Input(ID_BTN_FIXY, NC)
         )(self.update_fix_yaxis_icon)
 
-        self.app.callback(
-            Output('time', D),  # Dummy, to record time
-            Input(all_(ID_GRA), 'relayoutData')
-        )(self.__time_ui)
+        # self.app.callback(
+        #     Output('time', D),  # Dummy, to record time
+        #     Input(all_(ID_GRA), 'relayoutData')
+        # )(self.__time_ui)
 
-    @staticmethod
-    def __time_ui(change):
-        EcgApp.__print_changed_property('time ui')
-        return datetime.now()
+    # @staticmethod
+    # def __time_ui(change):
+    #     EcgApp.__print_changed_property('time ui')
+    #     return datetime.now()
 
     @staticmethod
     def get_last_changed_id_property():
@@ -426,7 +493,7 @@ class EcgApp:
             return join(CNM_IC_BR, ANM_BTN_OPN_ROTS), join(ANM_DIV_OPN_CLPW, ANM_OPQN)
 
     def set_record_init(self, record_name):
-        EcgApp.__print_changed_property('init record')
+        # EcgApp.__print_changed_property('init record')
         if record_name is not None:
             # Makes sure the following attributes are set first before needed
             self.curr_rec = EcgRecord(DATA_PATH.joinpath(record_name))
@@ -434,22 +501,29 @@ class EcgApp:
             self.ui = EcgUi(self.curr_rec)
             # An empty preview and hidden, see `EcgPlot.Thumbnail`
             self.fig_tmb = EcgPlot.Thumbnail(self.curr_rec, self.curr_plot)
+
+            self.move_offset_counts = {k: self.curr_rec.time_to_count(EcgApp.MV_OFST_TIMES[k])
+                                       for k in EcgApp.MV_OFST_TIMES}
+            self.no_update_add_opns = [dash.no_update for i in range(len(self.curr_rec.lead_nms))]
         return record_name
 
     @staticmethod
     def toggle_disable(rec_nm):
-        EcgApp.__print_changed_property('toggle btn&tpl disable')
-        return (False, False) if rec_nm is not None else (True, True)
+        # EcgApp.__print_changed_property('toggle btn&tpl disable')
+        if rec_nm is not None:
+            return lst_to_tuple([False for i in range(7)])
+        else:
+            return lst_to_tuple([True for i in range(7)])  # For 7 output properties
 
     def toggle_layout_fade(self, template, data_add, data_rmv):
-        EcgApp.__print_changed_property('toggle layout fade')
+        # EcgApp.__print_changed_property('toggle layout fade')
         if self.ui.get_id(self.get_last_changed_id_property()) == ID_DPD_LD_TEMPL:
             return template is not None
         else:  # Due to lead add or remove
             return len(self.idxs_lead) > 0
 
     def set_add_lead_options(self, record_name, items_lead_add):
-        EcgApp.__print_changed_property('update add lead options')
+        # EcgApp.__print_changed_property('update add lead options')
         changed_id_property = self.get_last_changed_id_property()
         changed_id = self.ui.get_id(changed_id_property)
         if changed_id == ID_STOR_REC and record_name is not None:  # Initialize
@@ -461,7 +535,7 @@ class EcgApp:
         return items_lead_add
 
     def update_lead_indices_add(self, ns_clicks_add):
-        EcgApp.__print_changed_property('clicked on add button')
+        # EcgApp.__print_changed_property('clicked on add button')
         # Magnitude of n_clicks doesn't really matter, just care about which index clicked
         # The same applies to the remove call back below
         idx = self.ui.get_pattern_match_index(self.get_last_changed_id_property())
@@ -475,10 +549,11 @@ class EcgApp:
 
     def update_lead_indices_remove(self, ns_clicks_rmv):
         start = time.time()
-        EcgApp.__print_changed_property('clicked on remove button')
+        # EcgApp.__print_changed_property('clicked on remove button')
         changed_id_property = self.get_last_changed_id_property()
         if changed_id_property == '.':  # When button elements are removed from web layout
-            return False, None, None
+            # return False, None, None
+            raise PreventUpdate
         idx = self.ui.get_pattern_match_index(changed_id_property)
         idx_idx = self._get_fig_index_by_index(idx)
         if ns_clicks_rmv[idx_idx] == 0:  # In case selecting template creates new remove buttons
@@ -495,7 +570,9 @@ class EcgApp:
             return idx_idx, idx
 
     def update_lead_options_disable_layout_figures(
-            self, record_name, template, layouts_fig, layout_tmb, ns_clicks, data_add, data_rmv,
+            self, record_name, template, layouts_fig, layout_tmb,
+            n_clicks_adv_bk, n_clicks_mv_bk, n_clicks_fixy, n_clicks_mv_fw, n_clicks_adv_fw,
+            data_add, data_rmv,
             plots, disables_lead_add, figs_gra, fig_tmb):
         """Display lead figures based on current record and template selected, and based on lead selection in modal
 
@@ -508,7 +585,11 @@ class EcgApp:
 
         :param layouts_fig: RelayoutData of actual plot
         :param layout_tmb: RelayoutData of global preview
-        :param ns_clicks: Number of clicks for fix-yaxis button
+        :param n_clicks_adv_bk: Number of clicks for advance back button
+        :param n_clicks_mv_bk: Number of clicks for nudge back button
+        :param n_clicks_fixy: Number of clicks for fix-yaxis button
+        :param n_clicks_mv_fw: Number of clicks for nudge forward button
+        :param n_clicks_adv_fw: Number of clicks for advance forward button
         :param data_add: Tuple info on if adding took place and if so the lead index added
         :param data_rmv: Tuple info on the original index of removed lead index, and the lead index removed
 
@@ -555,16 +636,7 @@ class EcgApp:
                 # figs_gra = []  # For same reason below, the remove button case
                 fig_tmb = self.fig_tmb.add_trace([], override=True)  # Basically removes all trace without adding
             figs_gra = [dash.no_update for i in figs_gra]
-        elif ID_STOR_ADD == changed_id:  # A new lead layout should be appended, due to click in modal
-            added, idx_add = data_add
-            # Need to check if clicking actually added a lead
-            if added:  # Else error alert will raise
-                plots.append(self.get_fig_layout(idx_add))
-                disables_lead_add[idx_add] = True
-                fig_tmb = self.fig_tmb.add_trace([idx_add], override=False)
-                figs_gra = [dash.no_update for i in figs_gra]
-            else:
-                raise PreventUpdate
+
         elif ID_GRA == changed_id and self.idxs_lead:  # != []; RelayoutData changed, graph has pattern matched ID
             # When a record is selected, ID_GRA is in changed_id for unknown reason
             idx_changed = self.ui.get_pattern_match_index(changed_id_property)
@@ -579,7 +651,7 @@ class EcgApp:
                 self._update_lead_figures(figs_gra, x_layout_range)
                 figs_gra[idx_idx_changed]['layout']['yaxis']['range'] = yaxis_rng_ori
                 plots = dash.no_update
-                disables_lead_add = [dash.no_update for i in disables_lead_add]
+                disables_lead_add = self.no_update_add_opns
             else:
                 raise PreventUpdate
         elif ID_TMB == changed_id:  # Changes in thumbnail figure have to be range change
@@ -589,11 +661,43 @@ class EcgApp:
                 self._update_lead_figures(figs_gra, fig_tmb['layout']['xaxis']['range'])
                 fig_tmb = dash.no_update
                 plots = dash.no_update
-                disables_lead_add = [dash.no_update for i in disables_lead_add]
+                disables_lead_add = self.no_update_add_opns
             else:
                 raise PreventUpdate
-        # elif ID_BTN_FIXY == changed_id:
-        #     figs_gra['layout']['yaxis']['fixedrange'] = ns_clicks % 2 == 1
+
+        elif ID_BTN_FIXY == changed_id:
+            for f in figs_gra:
+                f['layout']['yaxis']['fixedrange'] = n_clicks_fixy % 2 == 1
+                fig_tmb = dash.no_update
+                plots = dash.no_update
+                disables_lead_add = self.no_update_add_opns
+        elif changed_id in self.move_offset_counts:
+            # The keys: [ID_BTN_ADV_BK, ID_BTN_MV_BK, ID_BTN_MV_FW, ID_BTN_ADV_FW] by construction
+            offset_count = self.move_offset_counts[changed_id]
+            strt, end = self.curr_disp_rng[0]
+            strt += offset_count
+            end += offset_count
+            strt, end = self.curr_rec.keep_range(strt), self.curr_rec.keep_range(end)
+            self.curr_disp_rng[0] = strt, end
+            x_layout_range = [
+                self.curr_rec.sample_count_to_time_str(strt),
+                self.curr_rec.sample_count_to_time_str(end)
+            ]
+            self._update_lead_figures(figs_gra, x_layout_range)
+            fig_tmb['layout']['xaxis']['range'] = x_layout_range
+            plots = dash.no_update
+            disables_lead_add = self.no_update_add_opns
+
+        elif ID_STOR_ADD == changed_id:  # A new lead layout should be appended, due to click in modal
+            added, idx_add = data_add
+            # Need to check if clicking actually added a lead
+            if added:  # Else error alert will raise
+                plots.append(self.get_fig_layout(idx_add))
+                disables_lead_add[idx_add] = True
+                fig_tmb = self.fig_tmb.add_trace([idx_add], override=False)
+                figs_gra = [dash.no_update for i in figs_gra]
+            else:
+                raise PreventUpdate
         elif ID_STOR_RMV == changed_id:
             idx_idx_rmv, idx_rmv = data_rmv
             # if removed:
@@ -606,7 +710,7 @@ class EcgApp:
             # del figs_gra[idx_idx_changed]'
         # print(f'update triggered with {changed_id_property} and size is {len(self.idxs_lead)}')
         t = time.time()
-        print(f'and [update figures] took time: [{timedelta(seconds=t - start)}] and now is [{datetime.now()}]')
+        # print(f'and [update figures] took time: [{timedelta(seconds=t - start)}] and now is [{EcgApp.__get_curr_time()}]')
         # print(f'idx_lead has length: {len(self.idxs_lead)} and there are {len(plots)} plots')
         return plots, disables_lead_add, figs_gra, fig_tmb
 
@@ -626,6 +730,7 @@ class EcgApp:
         for idx_idx in range(len(self.idxs_lead)):  # Lines up with number of figures plotted
             # Short execution time, no need to multi-process
             figs_gra[idx_idx][D][0]['x'] = x_vals
+            # Without this line, the range displayed can be valid
             figs_gra[idx_idx]['layout']['xaxis']['range'] = x_layout_range
         # print(f'update fn took time: [{timedelta(seconds=time.time() - start_fn)}]')
 
@@ -636,11 +741,11 @@ class EcgApp:
 
     @staticmethod
     def toggle_modal(n_clicks_add_btn, n_clicks_close_btn, is_open):
-        EcgApp.__print_changed_property('toggle show modal')
+        # EcgApp.__print_changed_property('toggle show modal')
         return not is_open
 
     def toggle_max_lead_error(self, data_add, template, is_open):
-        EcgApp.__print_changed_property('toggle show max lead error')
+        # EcgApp.__print_changed_property('toggle show max lead error')
         if self.ui.get_id(self.get_last_changed_id_property()) == ID_DPD_LD_TEMPL:
             # Make sure no change happens when a template is selected
             return False

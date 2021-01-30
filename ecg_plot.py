@@ -21,7 +21,7 @@ class EcgPlot:
     # Ad-hoc values for now, in the future should be calculated from device info
     # Default starting point, in the future should be retrieved from user
     _DISPLAY_WIDTH = 30  # in rem, display_width * display_scale_t gets the number of points to render
-    _DISPLAY_SCALE_T = 10  # #continuous time stamps to display in 1rem
+    _DISPLAY_SCALE_T = 20  # #continuous time stamps to display in 1rem
     _DISPLAY_SCALE_ECG = 20  # magnitude of ecg in a 1rem
     SP_RT_READABLE = 125  # Sufficient frequency (Hz) for human differentiable graphing
 

@@ -24,7 +24,7 @@ class EcgRecord:
 
     EPOCH_START = pd.Timestamp('1970-01-01')
     TIME_STRT = str(EPOCH_START)
-    UNIT_1US = pd.Timedelta('1us')
+    UNIT_1US = pd.Timedelta(1, unit='us')
 
     # @profile
     def __init__(self, path):
@@ -146,11 +146,25 @@ class EcgRecord:
         Within range [0, maximum sample count)
         """
         timestamp = pd.Timestamp(time)
-        delt_us = (timestamp - self.EPOCH_START) // self.UNIT_1US
+        # delt_us = (timestamp - self.EPOCH_START) // self.UNIT_1US
+        # count = delt_us * self.spl_rate // (10 ** 6)
+        count = self.time_to_count(timestamp - self.EPOCH_START)
+        # count = min(max(0, count), self._sample_counts_acc[-1] - 1)
+        return self.keep_range(count)
+        # return self.time_to_count(pd.Timestamp(time) - self.EPOCH_START)
+
+    def time_to_count(self, t):
+        """
+        :param t: pandas time object
+        .. note:: Doesn't check valid record indexing
+        """
         # Optimization: integer instead of float arithmetic while preserving accuracy
-        count = delt_us * self.spl_rate // (10 ** 6)
-        count = min(max(0, count), self._sample_counts_acc[-1] - 1)  # reduce to valid array index
-        return count
+        t_us = t // self.UNIT_1US
+        return t_us * self.spl_rate // (10 ** 6)
+
+    def keep_range(self, count):
+        """ Make sure the index into record stays within bounds """
+        return min(max(0, count), self._sample_counts_acc[-1] - 1)
 
     def sample_count_to_time_str(self, count):
         time_us = count * (10 ** 6) // self.spl_rate
