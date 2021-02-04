@@ -45,6 +45,7 @@
 
 .div_lead-name {
     width: 5em;
+    color: var(--dark-tint);
     /*border-right: var(--border);*/
 }
 

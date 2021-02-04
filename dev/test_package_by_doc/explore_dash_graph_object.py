@@ -20,7 +20,7 @@ import ecg_record
 def get_ecg_plot(segment, lead):
     return go.Figure(
         data=go.Scatter(
-            x=segment.to_time_axis(),
+            x=segment.counts_to_time_values(),
             y=lead.get_ecg_values()
         )
     )

@@ -31,16 +31,16 @@ class EcgUi:
         """
         x_range = layout_fig['xaxis']['range']
         return [[
-            self.rec.time_str_to_sample_count(x_range[0]),
-            self.rec.time_str_to_sample_count(x_range[1])],
+            self.rec.time_str_to_count(x_range[0]),
+            self.rec.time_str_to_count(x_range[1])],
             layout_fig['yaxis']['range']
         ]
 
     def get_x_display_range(self, layout_fig):
         x_range = layout_fig['xaxis']['range']
         return [
-            self.rec.time_str_to_sample_count(x_range[0]),
-            self.rec.time_str_to_sample_count(x_range[1])
+            self.rec.time_str_to_count(x_range[0]),
+            self.rec.time_str_to_count(x_range[1])
         ]
 
     def get_y_display_range(self, layout_fig):

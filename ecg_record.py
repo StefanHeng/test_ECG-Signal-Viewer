@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from bisect import bisect_left, bisect_right
+from math import floor
 
 # from memory_profiler import profile
 
@@ -25,6 +26,7 @@ class EcgRecord:
     EPOCH_START = pd.Timestamp('1970-01-01')
     TIME_STRT = str(EPOCH_START)
     UNIT_1US = pd.Timedelta(1, unit='us')
+    FMT_TMLB = '%H:%M:%S.%f'
 
     # @profile
     def __init__(self, path):
@@ -35,11 +37,14 @@ class EcgRecord:
         # Following properties are the same across different segments, as far as EcgApp is concerned.
         metadata = self._get_seg(self._seg_keys[0]).get_metadata()
         self.spl_rate = metadata['sample_rate']
+        # Multiplying factor for converting to time in microseconds
+        self.FAC_TO_US = 10 ** 6 / self.spl_rate
         self.lead_nms = [lead['name'] for lead in metadata['sigheader']]
 
         self._sample_counts = self._get_sample_counts()
         self._sample_counts_acc = self._get_sample_counts_acc()  # Accumulated
-        self.TIME_END = str(self.sample_count_to_time_str(self._sample_counts_acc[-1]))
+        self.COUNT_END = self._sample_counts_acc[-1] - 1
+        self.TIME_END = str(self.count_to_pd_time(self.COUNT_END))
 
     def _get_sample_counts(self):
         """ Helps to check which segment(s) is a time range located in """
@@ -55,8 +60,8 @@ class EcgRecord:
             lst.append(val)
         return lst
 
-    def num_sample_count(self):
-        return self._sample_counts_acc[-1] - 1
+    # def num_sample_count(self):
+    #     return self._sample_counts_acc[-1] - 1
 
     def _get_seg(self, key):
         """
@@ -108,7 +113,7 @@ class EcgRecord:
         return bisect_left(self._sample_counts_acc, strt), bisect_right(self._sample_counts_acc, end)
 
     # @profile
-    def get_samples(self, idx_lead, strt, end, step):
+    def get_ecg_samples(self, idx_lead, strt, end, step):
         """ Continuous samples of ecg magnitudes, specified by counted range
 
         :param idx_lead: index of the lead
@@ -120,7 +125,10 @@ class EcgRecord:
         .. note:: optimized for large sample_range
         .. seealso:: `EcgApp._Plot.get_fig()`
         """
+        # print(self._sample_counts_acc)
+        # print(f'samples called with {strt}, {end}, {step}')
         idx_strt, idx_end = self._locate_seg_idx(strt, end)
+        # print(idx_strt, idx_end)
         if idx_strt != 0:
             strt = strt - self._sample_counts_acc[idx_strt-1]
         if idx_end != 0:
@@ -128,11 +136,40 @@ class EcgRecord:
         if idx_strt == idx_end:
             return self._get_dset_by_idx(idx_strt)[idx_lead, strt:end:step]
         else:
-            parts = [self._get_dset_by_idx(idx_strt)[idx_lead, strt::step]]
-            for i in range(idx_strt+1, idx_end + 1):  # for range()'s exclusive end
-                parts.append(self._get_dset_by_idx(i)[idx_lead, ::step])
-            parts.append(self._get_dset_by_idx(idx_end)[idx_lead, :end:step])
+            dset = self._get_dset_by_idx(idx_strt)
+            parts = [dset[idx_lead, strt::step]]
+            # e.g. Shape is 20 so indices [0, 19], strt is 2 and step is 7
+            # => returns values at indices 2, 9, 16 with 3 elements remaining
+            offset_prev = self._get_prev_remaining_offset(dset.shape[1], strt, step)
+            # sz = (dset.shape[1]-1 - strt) // step
+            # print(f'end is {dset.shape[1]} and size is {sz}')
+            # print(sum([len(p) for p in parts]))
+            for i in range(idx_strt+1, idx_end):  # for range()'s exclusive end
+                dset = self._get_dset_by_idx(i)
+                # The new start index relative to this segment, note 0-indexing
+                strt = step-1 - offset_prev  # Sanity check: the new `strt` is in the range [0, step)
+                parts.append(dset[idx_lead, strt::step])
+                offset_prev = self._get_prev_remaining_offset(dset.shape[1], strt, step)
+                # print(sum([len(p) for p in parts]))
+
+                # sz += (dset.shape[1] - strt) // step
+                # print(f'size is {(dset.shape[1]-1 - strt) // step}')
+            strt = step-1 - offset_prev
+            parts.append(self._get_dset_by_idx(idx_end)[idx_lead, strt:end:step])
+            # sz += (end - strt) // step
+            # print(f'size is {(end - strt) // step} and sum is {sz}')
             return np.concatenate(parts)
+
+    @staticmethod
+    def _get_prev_remaining_offset(sz_arr, strt, step):
+        """
+        So that stepping across multiple array segments behaves as if a single array
+
+        Achieved by carrying over `step` offsets
+
+        :return: Integer in range [0, step)
+        """
+        return (sz_arr-1 - strt) % step
 
     def get_global_samples(self, idx_lead, step):
         """ For plot global thumbnail, data taken at large samples """
@@ -141,17 +178,38 @@ class EcgRecord:
             parts.append(self.record[k][idx_lead, ::step])
         return np.concatenate(parts)
 
-    def time_str_to_sample_count(self, time):
+    def get_time_values(self, strt, end, step):
+        """
+        :return: Evenly spaced array of incremental time stamps, created in microseconds
+        """
+        counts = np.linspace(strt, end, num=self._count_indexing_num(strt, end, step))
+        return pd.to_datetime(pd.Series(self._counts_to_us(counts)), unit='us')
+
+    @staticmethod
+    def _count_indexing_num(strt, end, step):
+        """Counts the number of elements as result of numpy array indexing """
+        num = (end - strt) // step
+        # if (end - strt) % step != 0:
+        #     num += 1
+        return num + 1
+
+    def _counts_to_us(self, counts):
+        # Converted to time in microseconds as integer, drastically raises efficiency while maintaining precision
+        if floor(self.FAC_TO_US) == self.FAC_TO_US:  # Is an int
+            return counts * int(self.FAC_TO_US)
+        else:
+            return (counts * self.FAC_TO_US).astype(np.int64)
+
+    def get_time_values_delta(self, strt, end, step):
+        """ For external export """
+        counts = np.linspace(strt, end, num=self._count_indexing_num(strt, end, step))
+        return pd.to_timedelta(pd.Series(self._counts_to_us(counts)), unit='us')
+
+    def time_str_to_count(self, time):
         """
         Within range [0, maximum sample count)
         """
-        timestamp = pd.Timestamp(time)
-        # delt_us = (timestamp - self.EPOCH_START) // self.UNIT_1US
-        # count = delt_us * self.spl_rate // (10 ** 6)
-        count = self.time_to_count(timestamp - self.EPOCH_START)
-        # count = min(max(0, count), self._sample_counts_acc[-1] - 1)
-        return self.keep_range(count)
-        # return self.time_to_count(pd.Timestamp(time) - self.EPOCH_START)
+        return self.keep_range(self.time_to_count(pd.Timestamp(time) - self.EPOCH_START))
 
     def time_to_count(self, t):
         """
@@ -166,15 +224,23 @@ class EcgRecord:
         """ Make sure the index into record stays within bounds """
         return min(max(0, count), self._sample_counts_acc[-1] - 1)
 
-    def sample_count_to_time_str(self, count):
+    def count_to_pd_time(self, count):
         time_us = count * (10 ** 6) // self.spl_rate
         return pd.to_datetime(time_us, unit='us')
+
+    def count_to_str(self, count):
+        """
+        :return: Human-readable time string, specialized to typical ecg range """
+        return self.count_to_pd_time(count).strftime(self.FMT_TMLB)[1:-5]
+
+    def pd_time_to_str(self, t):
+        return t.strftime(self.FMT_TMLB)[1:-5]
 
     def get_range(self):
         """ Human-readable, inclusive start and exclusive end time of current record """
         return [
-            self.sample_count_to_time_str(0),
-            self.sample_count_to_time_str(self._sample_counts_acc[-1])
+            self.count_to_pd_time(0),
+            self.count_to_pd_time(self._sample_counts_acc[-1])
         ]
 
     @staticmethod

@@ -34,7 +34,9 @@
     display: flex;
     z-index: 10;
     border-radius: var(--round-corner);
-}
+    /*-webkit-backdrop-filter: blur(15px);*/
+}  /* Doesn't make sense, it is only keeping the 2 layers, both having backdrop-filter that makes it work */
+/* And sometimes it doesn't work, don't know why, leave as it is */
 
 #div_options {
     max-width: 30em;
@@ -44,8 +46,9 @@
     font-size: 0.75em;
     transition: var(--ease-all);
     border-radius: 0.35em;
-    background: rgba(var(--light_primary), 0.9);
     -webkit-backdrop-filter: blur(15px);
+    /*background: rgba(255, 255, 255, 0.2);*/
+    background: rgba(var(--light_primary), 0.9);
     /*border: 1px green solid;*/
 }
 
@@ -94,5 +97,6 @@
     display: flex;
     flex-direction: row;
     margin: 0 auto 0.25em;
+
     /*border: 1px solid red;*/
 }

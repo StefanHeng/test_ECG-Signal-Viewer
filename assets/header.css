@@ -11,12 +11,10 @@
     flex-direction: row;
     align-items: center;
 
+    backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     background: rgba(var(--light_primary), 0.9);
     box-shadow: var(--drop-shadow_s);
-}
-
-.header .header_title {
 }
 
 .header > * {
@@ -28,4 +26,28 @@
     color: var(--primary_-4);
     font-size: 1.5em;
     line-height: 2em;
+}
+
+#div_time-label {
+    width: 20em;
+    margin: 0;
+    float: right;
+    position: relative;
+
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    font-family: monospace, monospace;
+    /*border: 1px solid red;*/
+}
+
+#time-label {
+    position: absolute;
+    right: 0;
+    margin: 0;
+
+    color: var(--gray_a9);
+    /*float: right;*/
+    /*border: 1px solid green;*/
 }

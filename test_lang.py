@@ -104,8 +104,10 @@ if __name__ == "__main__":
     # print(pd.Timestamp('1970-01-01'))
     # print(str(pd.Timestamp('1970-01-01')))
 
-    app = EcgApp.example()
-    app.curr_rec = EcgRecord(DATA_PATH.joinpath(record_nm))
-    app.curr_plot = EcgPlot(app.curr_rec, app)  # A `plot` serves a record
-    fig = app.curr_plot.get_thumb_fig_skeleton([6, 5, 3, 16, 35])
-    fig.show()
+    # app = EcgApp.example()
+    # app.curr_rec = EcgRecord(DATA_PATH.joinpath(record_nm))
+    # app.curr_plot = EcgPlot(app.curr_rec, app)  # A `plot` serves a record
+    # fig = app.curr_plot.get_thumb_fig_skeleton([6, 5, 3, 16, 35])
+    # fig.show()
+
+    rec = EcgRecord.example()
