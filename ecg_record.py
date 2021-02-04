@@ -125,10 +125,7 @@ class EcgRecord:
         .. note:: optimized for large sample_range
         .. seealso:: `EcgApp._Plot.get_fig()`
         """
-        # print(self._sample_counts_acc)
-        # print(f'samples called with {strt}, {end}, {step}')
         idx_strt, idx_end = self._locate_seg_idx(strt, end)
-        # print(idx_strt, idx_end)
         if idx_strt != 0:
             strt = strt - self._sample_counts_acc[idx_strt-1]
         if idx_end != 0:
@@ -141,23 +138,14 @@ class EcgRecord:
             # e.g. Shape is 20 so indices [0, 19], strt is 2 and step is 7
             # => returns values at indices 2, 9, 16 with 3 elements remaining
             offset_prev = self._get_prev_remaining_offset(dset.shape[1], strt, step)
-            # sz = (dset.shape[1]-1 - strt) // step
-            # print(f'end is {dset.shape[1]} and size is {sz}')
-            # print(sum([len(p) for p in parts]))
             for i in range(idx_strt+1, idx_end):  # for range()'s exclusive end
                 dset = self._get_dset_by_idx(i)
                 # The new start index relative to this segment, note 0-indexing
                 strt = step-1 - offset_prev  # Sanity check: the new `strt` is in the range [0, step)
                 parts.append(dset[idx_lead, strt::step])
                 offset_prev = self._get_prev_remaining_offset(dset.shape[1], strt, step)
-                # print(sum([len(p) for p in parts]))
-
-                # sz += (dset.shape[1] - strt) // step
-                # print(f'size is {(dset.shape[1]-1 - strt) // step}')
             strt = step-1 - offset_prev
             parts.append(self._get_dset_by_idx(idx_end)[idx_lead, strt:end:step])
-            # sz += (end - strt) // step
-            # print(f'size is {(end - strt) // step} and sum is {sz}')
             return np.concatenate(parts)
 
     @staticmethod

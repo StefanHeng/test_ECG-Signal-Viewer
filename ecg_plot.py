@@ -26,7 +26,8 @@ class EcgPlot:
     SP_RT_READABLE = 125  # Sufficient frequency (Hz) for human differentiable graphing
 
     PRESERVE_UI_STATE = True  # Arbitrarily picked value
-    COLOR_PLOT = '#6AA2F9'  # Default blue by plotly
+    CLR_PLT_DF = '#6AA2F9'  # Default blue by plotly
+    CLR_PLT = '#2C2925'
     PRIMARY = '#FCA912'
     SECONDARY = '#2C8595'
     SECONDARY_2 = '#80B6BF'
@@ -47,25 +48,13 @@ class EcgPlot:
         """
         # Always take data as samples instead of entire channel, sample at at least increments of min_sample_step
         sample_factor = self.get_sample_factor(strt, end)
-        # ecg_vals = self.rec.get_ecg_samples(idx_lead, strt, end, sample_factor)
-        # sample_counts = np.linspace(strt, end, num=ecg_vals.shape[0])
-        # return self.to_time_axis(sample_counts), ecg_vals
         return self.rec.get_time_values(strt, end, sample_factor), \
             self.rec.get_ecg_samples(idx_lead, strt, end, sample_factor)
-
-    # def get_x_vals(self, strt, end, sample_factor):
-    #     # sample_counts = np.linspace(strt, end, num=self._count_indexing_num(strt, end, sample_factor))
-    #     # return self.to_time_axis(sample_counts)
-    #     return self.rec.get_time_values(strt, end, sample_factor)
-    #
-    # def get_y_vals(self, idx_lead, strt, end, sample_factor):
-    #     return self.rec.get_ecg_samples(idx_lead, strt, end, sample_factor)
 
     def get_fig(self, idx_lead, strt, end):
         # logger.info(f'sample_counts of size {sample_counts.shape[0]} -> {sample_counts}')
         # logger.info(f'ecg_vals of size {ecg_vals.shape[0]} -> {ecg_vals}')
         time_vals, ecg_vals = self.get_xy_vals(idx_lead, strt, end)
-        # print('in get fig', len(time_vals), len(ecg_vals))
         xaxis_config = dict(
             # showspikes=True,
             # spikemode='toaxis',
@@ -85,7 +74,7 @@ class EcgPlot:
                 y=ecg_vals,
                 mode='lines',
                 line=dict(
-                    color=self.SECONDARY,
+                    color=self.CLR_PLT,
                     width=0.5),
             )],
             layout=dict(
@@ -187,14 +176,12 @@ class EcgPlot:
                 self.fig['data'][idx_lead]['x'] = self.x_vals
                 self.fig['data'][idx_lead]['y'] = self.lst_y_vals[idx_lead] = y_vals
                 self.been_computed[idx_lead] = True
-                # print('in thumbnail', len(self.x_vals), len(self.lst_y_vals[idx_lead]))
 
             self.fig['layout']['xaxis']['range'] = \
                 self.parn.display_range_to_layout_range(self.parn.parn.curr_disp_rng[0])
             return self.fig
 
         def _remove_trace(self, idx):
-            # print(f'originally y_vals are', self.fig['data'][idx]['y'])
             self.fig['data'][idx]['x'] = []
             self.fig['data'][idx]['y'] = []
             # self.fig['data'][idx] = dict(
@@ -202,8 +189,6 @@ class EcgPlot:
             #         line=dict(width=0.5),
             #         visible=False
             #     )
-            # print('supposedly removed a trace', self.fig['data'])
-            # print(f'now y_vals are', self.fig['data'][idx]['y'], f'and there should be {self.__count_num_trace()} traces shown')
 
         def remove_trace(self, idx_idx, idx_lead):
             # TODO: Doesn't work on a single lead channel removal
@@ -213,7 +198,6 @@ class EcgPlot:
             """
             # Hack, since intuitively removing the element from traces list
             # doesn't actually hide trace on the RangeSlider
-            # print(f'in remove_trace called on index {idx_idx} with lead index {idx_lead}')
             del self.idxs_lead[idx_idx]
             self._remove_trace(idx_lead)
             # for idx in self.idxs_lead:

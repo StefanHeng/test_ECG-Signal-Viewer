@@ -405,18 +405,18 @@ class EcgApp:
 
         self.app.callback(
             [Output(ID_DPD_LD_TEMPL, DS),
-             Output(ID_BTN_ADD, DS),
-             Output(ID_BTN_ADV_BK, DS),
-             Output(ID_BTN_MV_BK, DS),
-             Output(ID_BTN_FIXY, DS),
-             Output(ID_BTN_MV_FW, DS),
-             Output(ID_BTN_ADV_FW, DS)],
+             Output(ID_BTN_ADD, DS)],
             Input(ID_STOR_REC, D),
             prevent_initial_call=True
         )(self.toggle_disable)
 
         self.app.callback(
-            Output(ID_FD_MN, 'is_in'),
+            [Output(ID_FD_MN, 'is_in'),
+             Output(ID_BTN_ADV_BK, DS),
+             Output(ID_BTN_MV_BK, DS),
+             Output(ID_BTN_FIXY, DS),
+             Output(ID_BTN_MV_FW, DS),
+             Output(ID_BTN_ADV_FW, DS)],
             [Input(ID_DPD_LD_TEMPL, V),
              Input(ID_STOR_ADD, D),
              Input(ID_STOR_RMV, D)],
@@ -542,16 +542,17 @@ class EcgApp:
     def toggle_disable(rec_nm):
         # EcgApp.__print_changed_property('toggle btn&tpl disable')
         if rec_nm is not None:
-            return lst_to_tuple([False for i in range(7)])  # For 7 output properties
+            return lst_to_tuple([False for i in range(2)])  # For 2 output properties
         else:
-            return lst_to_tuple([True for i in range(7)])
+            return lst_to_tuple([True for i in range(2)])
 
     def toggle_layout_fade(self, template, data_add, data_rmv):
         # EcgApp.__print_changed_property('toggle layout fade')
         if self.ui.get_id(self.get_last_changed_id_property()) == ID_DPD_LD_TEMPL:
-            return template is not None
+            b = template is not None
         else:  # Due to lead add or remove
-            return len(self.idxs_lead) > 0
+            b = len(self.idxs_lead) > 0
+        return lst_to_tuple([b] + [not b for i in range(5)])
 
     def set_add_lead_options(self, record_name, items_lead_add):
         # EcgApp.__print_changed_property('update add lead options')
@@ -812,7 +813,7 @@ class EcgApp:
             figs_gra[idx_idx]['layout']['xaxis']['range'] = x_layout_range
 
     def _set_y_vals(self, figs_gra, idx_idx, idx_lead, strt, end, sample_factor):
-        y_vals = self.curr_plot.get_y_vals(idx_lead, strt, end, sample_factor)
+        y_vals = self.curr_rec.get_ecg_samples(idx_lead, strt, end, sample_factor)
         figs_gra[idx_idx][D][0]['y'] = y_vals
         figs_gra[idx_idx]['layout']['yaxis']['range'] = self.ui.get_ignore_noise_range(y_vals)
 
