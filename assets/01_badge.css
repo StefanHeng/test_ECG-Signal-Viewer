@@ -1,0 +1,19 @@
+.bdg {
+    margin-right: 0.5em;
+
+    color: var(--black_a6);
+    background-color: var(--gray_a1);
+}
+
+.time-label {
+    color: var(--black_a5);
+}
+
+.time-label:hover {
+    background-color: var(--primary_a3);
+}
+
+.time-label:active {
+    background-color: var(--primary_a5);
+}
+

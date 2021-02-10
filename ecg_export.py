@@ -2,6 +2,8 @@ import pandas as pd
 
 from dash_extensions.snippets import send_data_frame
 
+# from icecream import ic
+
 
 class EcgExport:
     """ Handles export current lead channel and range of data on display to CSV """
@@ -42,4 +44,3 @@ class EcgExport:
         title = f'ECG export, idxs {idxs_lead}, [{self.rec.count_to_str(strt)}-{self.rec.count_to_str(end)}]'
         df.style.set_caption(title)
         return send_data_frame(df.to_csv, filename=f'{title}.csv')
-

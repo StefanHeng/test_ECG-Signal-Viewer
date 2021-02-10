@@ -1,8 +1,3 @@
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
-from dash.dependencies import Input, Output, State, MATCH
-
 # from memory_profiler import profile
 
 from ecg_app import *
@@ -18,4 +13,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -29,7 +29,7 @@ def main():
     ecg_app.app.title = "Dev test run"
     ecg_app.app.layout = html.Div([
         html.Div(className=CNM_HD, children=[
-            html.Div(TXT_HD, className=CNM_HDTT)
+            html.Div(TXT_HD, className=ID_HDTT)
         ]),
 
         html.Div(id=ID_BBX_DIV_OPN, children=[

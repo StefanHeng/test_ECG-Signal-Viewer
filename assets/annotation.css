@@ -1,0 +1,70 @@
+#div_annotations {
+    max-width: 20em;
+    height: 80vh;  /* Same as the button */
+    overflow-y: auto;
+    z-index: 100;
+    /*box-shadow: var(--drop-shadow_sc);*/
+
+    border-top: var(--border);
+    border-right: none;
+    border-bottom: var(--border);
+}
+
+.div_annotations_expand-width {
+    width: 30vw;
+    border-left: var(--border);
+    box-shadow: var(--drop-shadow_s);
+}
+
+.div_annotations_collapse-width {
+    width: 0;
+    border-left: none;
+    box-shadow: none;
+}
+
+#list-group_annotations {
+}
+
+
+#btn_annotation {
+    /*position: fixed;*/
+    width: 1.5em;
+    height: 80vh;
+    font-size: 0.75em;
+    border-radius: 0;
+
+    border-top: var(--border);
+    border-right: var(--border);
+    border-bottom: var(--border);
+    /*border-right: 0.3em solid var(--gray_a4);*/
+
+    /*box-shadow: var(--drop-shadow_sc);*/
+}
+
+.btn_annotation_show-left-border {
+    border-left: var(--border);
+    /*box-shadow: none;*/
+}
+
+.btn_annotation_hide-left-border {
+    border-left: none;
+    /*box-shadow: var(--drop-shadow_s);*/
+}
+
+.annotation-block {
+    padding: 0.25em 0.5em;
+    margin: 0.125em;
+}
+
+.annotation-block:active {
+    background-color: #f7f7f9;
+    border-color: transparent;
+}
+
+.text_annotation {
+    display: inline-block;
+    margin: 0;
+
+    font-size: 0.75em;
+    color: var(--black_a6);
+}

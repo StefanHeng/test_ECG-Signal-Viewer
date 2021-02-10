@@ -7,6 +7,7 @@ from bisect import bisect_left, bisect_right
 from math import floor
 
 # from memory_profiler import profile
+from icecream import ic
 
 from data_link import *
 from dev_helper import record_nm
@@ -32,7 +33,7 @@ class EcgRecord:
     def __init__(self, path):
         self.record = h5py.File(path, 'r')
         self._seg_keys = list(self.record.keys())  # keys to each segment compiled in the .h5 file
-        self.annotatns = json.loads(self.record.attrs['annotations'])
+        self.annotatns = self._get_annotations()
 
         # Following properties are the same across different segments, as far as EcgApp is concerned.
         metadata = self._get_seg(self._seg_keys[0]).get_metadata()
@@ -45,6 +46,16 @@ class EcgRecord:
         self._sample_counts_acc = self._get_sample_counts_acc()  # Accumulated
         self.COUNT_END = self._sample_counts_acc[-1] - 1
         self.TIME_END = str(self.count_to_pd_time(self.COUNT_END))
+
+    def _get_annotations(self):
+        annotations = json.loads(self.record.attrs['annotations'])
+        anns = []
+        strt_ms = annotations[0]['time_ms']
+        for ann in annotations[2:]:  # Skip the first 2 rows
+            text = ann['data']['text'] if 'text' in ann['data'] else ''
+            # A List which is compatible to JavaScript clientside function
+            anns.append([ann['type'], ann['time_ms'] - strt_ms, text])
+        return anns
 
     def _get_sample_counts(self):
         """ Helps to check which segment(s) is a time range located in """
@@ -129,7 +140,10 @@ class EcgRecord:
         if idx_strt != 0:
             strt = strt - self._sample_counts_acc[idx_strt-1]
         if idx_end != 0:
-            end = end - self._sample_counts_acc[idx_end-1] + 1  # for inclusive end
+            end = end - self._sample_counts_acc[idx_end-1]
+        if end < self.COUNT_END:
+            end += 1  # for inclusive end
+
         if idx_strt == idx_end:
             return self._get_dset_by_idx(idx_strt)[idx_lead, strt:end:step]
         else:
@@ -210,7 +224,20 @@ class EcgRecord:
 
     def keep_range(self, count):
         """ Make sure the index into record stays within bounds """
-        return min(max(0, count), self._sample_counts_acc[-1] - 1)
+        return min(max(0, count), self.COUNT_END)
+
+    def _in_range(self, count):
+        return 0 <= count < self.COUNT_END
+
+    def get_shifted_range(self, mid, mid_range):
+        strt_in_range = self._in_range(mid - mid_range)
+        end_in_range = self._in_range(mid + mid_range)
+        if strt_in_range and end_in_range:
+            return mid - mid_range, mid + mid_range
+        elif strt_in_range:  # End is too large
+            return self.COUNT_END - 2*mid_range, self.COUNT_END
+        else:  # Must've been start < 0:
+            return 0, 2*mid_range
 
     def count_to_pd_time(self, count):
         time_us = count * (10 ** 6) // self.spl_rate
@@ -220,6 +247,10 @@ class EcgRecord:
         """
         :return: Human-readable time string, specialized to typical ecg range """
         return self.count_to_pd_time(count).strftime(self.FMT_TMLB)[1:-5]
+
+    def time_ms_to_count(self, t_ms):
+        # ic(t_ms, t_ms * self.spl_rate // 1000)
+        return t_ms * self.spl_rate // 1000  # Supposedly the value should be whole integer
 
     def pd_time_to_str(self, t):
         return t.strftime(self.FMT_TMLB)[1:-5]
