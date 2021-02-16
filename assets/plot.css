@@ -1,12 +1,24 @@
 #div_plots {
     height: 80vh;
-    padding: 0 3em;
+    padding: 0 2em;
     overflow-y: auto;
+    overflow-x: auto;
 
     flex-grow: 100;
     display: flex;
     flex-direction: column;
     align-items: center;
+    transition: var(--ease-all);
+
+    /*border: 1px solid red;*/
+}
+
+.div_plots_expand-width {  /* Partitions the width, with annotation panel and button */
+    width: 98vw;
+}
+
+.div_plots_collapse-width {
+    width: 68vw;
 }
 
 .div_lead {
@@ -38,13 +50,9 @@
     /*border: 1px solid red;*/
 }
 
-/*.div_lead > :first-child {*/
-/*    margin: 0.25em 1em 0.25em;*/
-/*}*/
-
-/*.div_lead > :last-child {*/
-/*    !*margin: 0 1em 0;*!*/
-/*}*/
+.div_lead-fade {
+    width: 100%;
+}
 
 .div_lead-name {
     width: 5em;

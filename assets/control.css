@@ -6,16 +6,18 @@
     opacity: 0;
 }
 
-.btn_options_rotate_start {
-    transform: rotate(0deg);
-    color: var(--gray_a8);
+#ic_options {
     transition: var(--ease-all);
 }
 
-.btn_options_rotate_end {
+.ic_options_rotate_start {
+    transform: rotate(0deg);
+    color: var(--gray_a8);
+}
+
+.ic_options_rotate_end {
     transform: rotate(90deg);
     color: var(--btn_dark);
-    transition: var(--ease-all);
 }
 
 .div_options_expand-width {

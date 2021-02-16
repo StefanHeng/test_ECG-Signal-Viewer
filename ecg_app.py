@@ -10,14 +10,11 @@ import plotly.graph_objs as go
 
 import pandas as pd
 
-import time
+# import time
 from datetime import datetime  # , timedelta
 from copy import deepcopy
 import concurrent.futures
 
-# import logging
-# logging.basicConfig(level=logging.DEBUG)
-# logger = logging.getLogger('dev')
 from icecream import ic
 
 from data_link import *
@@ -164,7 +161,8 @@ class EcgApp:
                 ]),
             ]),
 
-            dcc.Store(id='time'),  # Debugging only, takes UI interaction epoch time and update finish time
+            # dcc.Store(id='time'),  # Debugging only, takes UI interaction epoch time and update finish time
+            dcc.Store(id=ID_STOR_N_LD),
             dbc.Fade(id=ID_FD_MN, is_in=False, children=[
                 html.Div(className=CNM_MNBD, children=[
                     html.Div(className=CNM_DIV_TMB, children=[
@@ -181,8 +179,6 @@ class EcgApp:
                         dcc.Store(id=ID_STOR_ANTN_IDX),  # Write to layout, triggered by clientside callback
                         # Keep track of number of clicks on annotation items, essential for clientside callback
                         dcc.Store(id=ID_STOR_ANTN_NCS),
-                        # dcc.Store(id=ID_STOR_REC_ANTNS),
-                        # dcc.Store(id='sink'),
                         html.Div(id=ID_DIV_ANTN, className=ANM_DIV_ANTN_CLPW, children=[
                             dbc.ListGroup(id=ID_GRP_ANTN)
                         ]),
@@ -215,8 +211,8 @@ class EcgApp:
         ])
 
     def get_fig_layout(self, idx):
-        return html.Div(
-            className=CNM_DIV_LD, children=[
+        return dbc.Fade(className=CNM_DIV_FD, is_in=True, children=[
+            html.Div(id=m_id(ID_DIV_LD, idx), className=CNM_DIV_LD, children=[
                 html.Div(className=CNM_DIV_LDNM, children=[
                     html.P(self.curr_rec.lead_nms[idx], className=CNM_LD),
                     # Workaround wrapper for Tooltip doesn't support pattern-matched id
@@ -238,6 +234,7 @@ class EcgApp:
                     )
                 ])
             ])
+        ])
 
     def get_lead_fig(self, idx_lead, display_range):
         """
@@ -296,20 +293,6 @@ class EcgApp:
             prevent_initial_call=True
         )(self.set_add_lead_options)
 
-        self.app.callback(
-        # self.app.clientside_callback(
-        #     ClientsideFunction(  # clientside callback for efficiency
-        #         namespace='clientside',
-        #         function_name='load_annotations'
-        #     ),
-        #     Output('sink', D),  # The return value doesn't matter, just to invoke function call
-            Output(ID_GRP_ANTN, C),  # Test the layout
-            Input(ID_STOR_REC, D),
-            # State(ID_STOR_REC_ANTNS, D),
-            prevent_initial_call=True
-        # )
-        )(self.load_annotations)
-
         # Make sure index is updated first before other callbacks update based on `idxs_lead`
         self.app.callback(
             Output(ID_STOR_ADD, D),
@@ -323,19 +306,24 @@ class EcgApp:
             prevent_initial_call=True
         )(self.update_lead_indices_remove)
 
-        self.app.clientside_callback(
-            ClientsideFunction(  # clientside callback for efficiency
-                namespace='clientside',
-                function_name='update_annotation_clicked'
-            ),
         # self.app.callback(
-            Output(ID_STOR_ANTN_IDX, D),  # It's actually a div
-            Input(all_(ID_ITM_ANTN), NC),
-            State(ID_STOR_ANTN_NCS, D),
-            # Input('sink', D),
-            prevent_initial_call=True
-        )
-        # )(self.update_annotation_clicked)
+        #     Output(ID_STOR_N_LD, D),
+        #     [Input(ID_DPD_LD_TEMPL, V),
+        #      Input(ID_STOR_ADD, D),
+        #      Input(ID_STOR_RMV, D)]
+        # )(self.update_num_lead)
+        #
+        # self.app.callback(
+        #     Output(all_(ID_DIV_LD), 'style'),
+        #     Input(ID_STOR_N_LD, D),
+        #     prevent_initial_call=True
+        # )(self.get_lead_height_styles)
+
+        self.app.callback(
+            Output(all_(ID_DIV_LD), 'style'),
+            Input(ID_DIV_PLTS, C),
+            # prevent_initial_call=True
+        )(self.update_lead_height_styles)
 
         self.app.callback(
             # To invoke changes in global preview add trace below, without having to join all 3 functions into 1
@@ -397,20 +385,28 @@ class EcgApp:
         self.app.callback(
             [Output(ID_DIV_ANTN, CNM),
              Output(ID_BTN_ANTN, CNM),
-             Output(ID_IC_ANTN, CNM)],
+             Output(ID_IC_ANTN, CNM),
+             Output(ID_DIV_PLTS, CNM)],
             Input(ID_BTN_ANTN, NC),
             prevent_initial_call=True
         )(self.toggle_annotation_panel)
 
-        # self.app.callback(
-        #     Output('time', D),  # Dummy, to record time
-        #     Input(all_(ID_GRA), 'relayoutData')
-        # )(self.__time_ui)
+        self.app.callback(
+            Output(ID_GRP_ANTN, C),
+            Input(ID_STOR_REC, D),
+            prevent_initial_call=True
+        )(self.load_annotations)
 
-    # @staticmethod
-    # def __time_ui(change):
-    #     EcgApp.__print_changed_property('time ui')
-    #     return datetime.now()
+        self.app.clientside_callback(
+            ClientsideFunction(  # clientside callback for efficiency
+                namespace='clientside',
+                function_name='update_annotation_clicked'
+            ),
+            Output(ID_STOR_ANTN_IDX, D),
+            Input(all_(ID_ITM_ANTN), NC),
+            State(ID_STOR_ANTN_NCS, D),
+            prevent_initial_call=True
+        )
 
     @staticmethod
     def get_last_changed_id_property():
@@ -423,13 +419,12 @@ class EcgApp:
     def toggle_div_options(n_clicks):
         """ Animation on global options setting """
         if n_clicks % 2 == 0:
-            return join(CNM_IC_BR, ANM_BTN_OPN_ROTE), join(ANM_DIV_OPN_EXPW, ANM_OPQY)
+            return join(CNM_IC_BR, ANM_IC_OPN_ROTE), join(ANM_DIV_OPN_EXPW, ANM_OPQY)
         else:
-            return join(CNM_IC_BR, ANM_BTN_OPN_ROTS), join(ANM_DIV_OPN_CLPW, ANM_OPQN)
+            return join(CNM_IC_BR, ANM_IC_OPN_ROTS), join(ANM_DIV_OPN_CLPW, ANM_OPQN)
 
     def set_record_init(self, record_name):
         # EcgApp.__print_changed_property('init record')
-        annotations = None
         if record_name is not None:
             # Makes sure the following attributes are set first before needed
             self.curr_rec = EcgRecord(DATA_PATH.joinpath(record_name))
@@ -442,11 +437,6 @@ class EcgApp:
             self.move_offset_counts = {k: self.curr_rec.time_to_count(EcgApp.MV_OFST_TIMES[k])
                                        for k in EcgApp.MV_OFST_TIMES}
             self.no_update_add_opns = [dash.no_update for i in self.curr_rec.lead_nms]
-
-            # annotations = self.curr_rec.annotatns
-            # for row in annotations:
-            #     # Preprocess for JavaScript clientside function
-            #     row[1] = self.curr_rec.count_to_str(self.curr_rec.time_ms_to_count(row[1]))
         return record_name
 
     @staticmethod
@@ -524,9 +514,16 @@ class EcgApp:
             # Original index in layout, subsequent callback below will remove div from HTML plots
             return idx_idx, idx
 
-    def update_annotation_clicked(self, ns_clicks):
-        print(ns_clicks)
-        pass
+    def update_num_lead(self, template, data_add, data_rmv):
+        return len(self.idxs_lead)
+
+    def update_lead_height_styles(self, plots):
+        num_lead = len(self.idxs_lead)
+        if num_lead == 0:  # The layout is hidden anyway
+            return [dash.no_update for i in range(num_lead)]
+        else:
+            h = f'{int(80 / max(num_lead, 3))}vh'  # So that maximal height is 1/3 of the div
+            return [dict(height=h) for i in range(num_lead)]
 
     def count_to_time_label(self, rng):
         """
@@ -610,6 +607,7 @@ class EcgApp:
             else:
                 fig_tmb = dash.no_update
                 ns_clicks_ann = []
+            # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
             time_label = None
             disabled_export_btn = True
             figs_gra = [dash.no_update for i in figs_gra]
@@ -618,6 +616,7 @@ class EcgApp:
                 self.idxs_lead = deepcopy(self.LD_TEMPL[template])  # Deepcopy cos idx_lead may mutate
                 # Override for any template change could happen before
                 plots = [self.get_fig_layout(idx) for idx in self.idxs_lead]
+                # lead_styles = self.get_lead_height_styles()
                 # Linear, more efficient than checking index in `self.idxs_lead`
                 disables_lead_add = [False for i in disables_lead_add]
                 for idx in self.idxs_lead:
@@ -628,6 +627,7 @@ class EcgApp:
             else:  # Reset layout
                 self.idxs_lead = []
                 plots = []
+                # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
                 disables_lead_add = [False for i in disables_lead_add]  # All options are not disabled
                 # figs_gra = []  # For same reason below, the remove button case
                 fig_tmb = self.fig_tmb.add_trace([], override=True)  # Basically removes all trace without adding
@@ -649,6 +649,7 @@ class EcgApp:
                 self._update_lead_figures(figs_gra, x_layout_range)
                 figs_gra[idx_idx_changed]['layout']['yaxis']['range'] = yaxis_rng_ori
                 plots = dash.no_update
+                # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
                 disables_lead_add = self.no_update_add_opns
                 time_label = self.time_range_to_time_label(x_layout_range)
                 # export button must've been on already
@@ -663,6 +664,7 @@ class EcgApp:
                 self._update_lead_figures(figs_gra, x_layout_range)
                 fig_tmb = dash.no_update
                 plots = dash.no_update
+                # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
                 disables_lead_add = self.no_update_add_opns
                 time_label = self.time_range_to_time_label(x_layout_range)
                 ns_clicks_ann = dash.no_update
@@ -676,6 +678,7 @@ class EcgApp:
                 f['layout']['yaxis']['fixedrange'] = n_clicks_fixy % 2 == 1
                 fig_tmb = dash.no_update
                 plots = dash.no_update
+                # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
                 disables_lead_add = self.no_update_add_opns
             ns_clicks_ann = dash.no_update
         elif self.move_offset_counts is not None and changed_id in self.move_offset_counts:
@@ -694,6 +697,7 @@ class EcgApp:
                 self._update_lead_figures(figs_gra, x_layout_range)
                 fig_tmb['layout']['xaxis']['range'] = x_layout_range
                 plots = dash.no_update
+                # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
                 disables_lead_add = self.no_update_add_opns
                 time_label = self.time_range_to_time_label(x_layout_range)
                 ns_clicks_ann = dash.no_update
@@ -712,6 +716,7 @@ class EcgApp:
                     time_label = self.disp_rng_to_time_label()
                     disabled_export_btn = False
                 ns_clicks_ann = dash.no_update
+                # lead_styles = self.get_lead_height_styles()
             else:
                 raise PreventUpdate
         elif ID_STOR_RMV == changed_id:
@@ -725,6 +730,9 @@ class EcgApp:
             if len(self.idxs_lead) == 0:  # from 1 to 0 lead
                 time_label = None
                 disabled_export_btn = True
+                # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
+            # else:
+                # lead_styles = self.get_lead_height_styles()
             ns_clicks_ann = dash.no_update
         elif ID_STOR_ANTN_IDX == changed_id and idx_ann_clicked != -1:
             ns_clicks_ann[idx_ann_clicked] += 1
@@ -745,11 +753,10 @@ class EcgApp:
                 figs_gra = [dash.no_update for i in figs_gra]
                 fig_tmb = dash.no_update
             plots = dash.no_update
+            # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
             disables_lead_add = self.no_update_add_opns
         else:
-            # ic('prevent update')
             raise PreventUpdate
-        # ic()
         return plots, disables_lead_add, figs_gra, fig_tmb, time_label, disabled_export_btn, ns_clicks_ann
 
     def _update_lead_figures(self, figs_gra, x_layout_range):
@@ -820,9 +827,9 @@ class EcgApp:
     @staticmethod
     def toggle_annotation_panel(n_clicks):
         if n_clicks % 2 == 0:
-            return ANM_DIV_ANTN_CLPW, join(CNM_BTN, ANM_BTN_ANTN_BDR_SH), CNM_ANTN_CLPS
+            return ANM_DIV_ANTN_CLPW, join(CNM_BTN, ANM_BTN_ANTN_BDR_SH), CNM_ANTN_EXPD, ANM_DIV_PLT_EXPW
         else:
-            return ANM_DIV_ANTN_EXPW, join(CNM_BTN, ANM_BTN_ANTN_BDR_HD), CNM_ANTN_EXPD
+            return ANM_DIV_ANTN_EXPW, join(CNM_BTN, ANM_BTN_ANTN_BDR_HD), CNM_ANTN_EXPD, ANM_DIV_PLT_CLPW
 
     @staticmethod
     def __print_changed_property(func_nm):

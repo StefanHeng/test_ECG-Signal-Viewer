@@ -64,9 +64,9 @@ def main():
         Input(ID_BTN_OPN, 'n_clicks'))
     def update_div_options(n_clicks):
         if n_clicks % 2 == 0:
-            return join(CNM_IC_BR, ANM_BTN_OPN_ROTE), join(ANM_DIV_OPN_EXPW, ANM_OPQY)
+            return join(CNM_IC_BR, ANM_IC_OPN_ROTE), join(ANM_DIV_OPN_EXPW, ANM_OPQY)
         else:
-            return join(CNM_IC_BR, ANM_BTN_OPN_ROTS), join(ANM_DIV_OPN_CLPW, ANM_OPQN)
+            return join(CNM_IC_BR, ANM_IC_OPN_ROTS), join(ANM_DIV_OPN_CLPW, ANM_OPQN)
 
     ecg_app.run(True)
 

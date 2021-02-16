@@ -8,6 +8,7 @@
     border-top: var(--border);
     border-right: none;
     border-bottom: var(--border);
+    transition: var(--ease-all);
 }
 
 .div_annotations_expand-width {
@@ -34,21 +35,22 @@
     border-radius: 0;
 
     border-top: var(--border);
-    border-right: var(--border);
+    /*border-right: var(--border);*/
+    border-left: var(--border);
     border-bottom: var(--border);
-    /*border-right: 0.3em solid var(--gray_a4);*/
 
     /*box-shadow: var(--drop-shadow_sc);*/
+    transition: var(--ease-all);
 }
 
 .btn_annotation_show-left-border {
-    border-left: var(--border);
-    /*box-shadow: none;*/
+    border-right: var(--border);
+    transform: scaleX(1);
 }
 
 .btn_annotation_hide-left-border {
-    border-left: none;
-    /*box-shadow: var(--drop-shadow_s);*/
+    border-right: none;
+    transform: scaleX(-1);
 }
 
 .annotation-block {

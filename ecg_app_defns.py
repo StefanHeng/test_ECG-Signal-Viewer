@@ -23,7 +23,10 @@ ID_STOR_REC = 'store_record-change'
 
 ID_DIV_TABS = 'div_tabs'  # Parent of lead channel plots and the annotation panel
 ID_DIV_PLTS = 'div_plots'
+ID_DIV_LD = 'div_lead'
 CNM_DIV_LD = 'div_lead'
+CNM_DIV_FD = 'div_lead-fade'  # For the fade animation
+
 CNM_DIV_LDNM = 'div_lead-name'
 CNM_LD = 'lead-name'
 CNM_DIV_TMB = 'div_graph-thumbnail'
@@ -73,6 +76,7 @@ ID_ALT_MAX_LD = 'alert_max-lead-error'
 
 ID_STOR_ADD = 'store_lead-add-change'
 ID_STOR_RMV = 'store_lead-rmv-change'
+ID_STOR_N_LD = 'store_num-lead'
 
 ID_DIV_PLT_CTRL = 'div_plot-controls'
 ID_BTN_ADV_BK = 'btn_advance-back'
@@ -108,8 +112,10 @@ ANM_OPQY = 'opaque_1'  # Transition achieved by changing class
 ANM_OPQN = 'opaque_0'
 ANM_DIV_OPN_EXPW = 'div_options_expand-width'
 ANM_DIV_OPN_CLPW = 'div_options_collapse-width'
-ANM_BTN_OPN_ROTS = 'btn_options_rotate_start'
-ANM_BTN_OPN_ROTE = 'btn_options_rotate_end'
+ANM_DIV_PLT_CLPW = 'div_plots_expand-width'
+ANM_DIV_PLT_EXPW = 'div_plots_collapse-width'
+ANM_IC_OPN_ROTS = 'ic_options_rotate_start'
+ANM_IC_OPN_ROTE = 'ic_options_rotate_end'
 ANM_DIV_ANTN_EXPW = 'div_annotations_expand-width'
 ANM_DIV_ANTN_CLPW = 'div_annotations_collapse-width'
 ANM_BTN_ANTN_BDR_SH = 'btn_annotation_show-left-border'
