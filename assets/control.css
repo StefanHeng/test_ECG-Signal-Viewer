@@ -102,3 +102,19 @@
 
     /*border: 1px solid red;*/
 }
+
+#div_plot-controls > :nth-child(5) {  /* Some gap, after all navigation based buttons */
+    margin-right: 2em;
+}
+
+#ic_annotation-toggle {
+    transition: all 100ms ease-in-out
+}
+
+.ic-btn-annotations-toggle_rotate-start {
+    transform: rotate(90deg);
+}
+
+.ic-btn-annotations-toggle_rotate-end {
+    transform: rotate(0deg);
+}

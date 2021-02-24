@@ -11,3 +11,6 @@ requests==2.25.1
 
 Flask==1.1.2
 icecream==2.1.0
+scipy==1.5.3
+matplotlib==3.3.2
+biosppy==0.6.1

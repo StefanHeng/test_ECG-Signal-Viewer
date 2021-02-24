@@ -13,6 +13,10 @@
     /*border: 1px solid red;*/
 }
 
+#div_plots.class>* {
+    transition: var(--ease-all);
+}
+
 .div_plots_expand-width {  /* Partitions the width, with annotation panel and button */
     width: 98vw;
 }
@@ -43,11 +47,16 @@
     border-bottom: none;
 }
 
+.dash-graph {
+    transition: var(--ease-all);
+}
+
 .div_lead > div {
     height: 100%;
     /*margin: 0 1em 0.25em;*/
 
     /*border: 1px solid red;*/
+    transition: var(--ease-all);
 }
 
 .div_lead-fade {

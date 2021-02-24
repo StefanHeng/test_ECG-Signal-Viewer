@@ -81,7 +81,7 @@ app.layout = html.Div([
             html.Div(className=CNM_DIV_LD, children=[
                 # All figure data maintained inside layout variable
                 dcc.Store(id=m_id(ID_STOR_D_RNG, idx), data=D_RNG_INIT),
-                html.P(ecg_app.curr_rec.lead_nms[idx], className=CNM_LD),
+                html.P(ecg_app.rec.lead_nms[idx], className=CNM_LD),
                 html.Div(className=CNM_DIV_FIG, children=[
                     html.Div(className=ID_DIV_OPN, children=[
                         html.Div(html.Button(id=m_id(ID_BTN_FIXY, idx), className=CNM_BTN, n_clicks=0, children=[

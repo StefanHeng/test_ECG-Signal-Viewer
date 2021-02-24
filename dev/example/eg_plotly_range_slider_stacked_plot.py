@@ -75,6 +75,30 @@ fig.update_traces(
     showlegend=False
 )
 
+
+def get_annotation(x, text, is_clicked=False):
+    return dict(
+        x=x,
+        y=0,  # Always at the x axis
+        # text=f'<b>{text}</b>',
+        text=text,
+        font=dict(
+            family='"Nunito Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol',
+            size=10.5,
+            color="#ffffff"
+        ),
+        align="center",
+        arrowsize=0.5,
+        ax=0,
+        ay=40,
+        yanchor='bottom',
+        xref="x",
+        yref='y',
+        borderpad=2,
+        bgcolor="#ff7f0e",
+        opacity=0.8
+    )
+
 # Add annotations
 fig.update_layout(
     annotations=[
@@ -101,7 +125,8 @@ fig.update_layout(
             xref="x",
             yanchor="bottom",
             yref="y"
-        )
+        ),
+        get_annotation('2013-06-02', 'STIM')
     ],
 )
 

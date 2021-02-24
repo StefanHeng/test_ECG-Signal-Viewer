@@ -3,6 +3,9 @@ import json
 import numpy as np
 import pandas as pd
 
+from scipy.signal import butter, lfilter
+from ecgdetectors import Detectors
+
 from bisect import bisect_left, bisect_right
 from math import floor
 
@@ -28,12 +31,14 @@ class EcgRecord:
     TIME_STRT = str(EPOCH_START)
     UNIT_1US = pd.Timedelta(1, unit='us')
     FMT_TMLB = '%H:%M:%S.%f'
+    SCH_WD_MS = 100  # Half of range to look for optimal R peak, in ms
 
     # @profile
     def __init__(self, path):
         self.record = h5py.File(path, 'r')
         self._seg_keys = list(self.record.keys())  # keys to each segment compiled in the .h5 file
-        self.annotatns = self._get_annotations()
+        self.annotatns, self._ann_tm = self._get_annotations()
+        self._num_ann = len(self._ann_tm)
 
         # Following properties are the same across different segments, as far as EcgApp is concerned.
         metadata = self._get_seg(self._seg_keys[0]).get_metadata()
@@ -41,21 +46,28 @@ class EcgRecord:
         # Multiplying factor for converting to time in microseconds
         self.FAC_TO_US = 10 ** 6 / self.spl_rate
         self.lead_nms = [lead['name'] for lead in metadata['sigheader']]
+        self.is_negative = [lead['isNegative'] for lead in metadata['sigheader']]
 
         self._sample_counts = self._get_sample_counts()
         self._sample_counts_acc = self._get_sample_counts_acc()  # Accumulated
         self.COUNT_END = self._sample_counts_acc[-1] - 1
         self.TIME_END = str(self.count_to_pd_time(self.COUNT_END))
 
+        self.dctr = Detectors(2000)
+        self.SCH_WD_CNT = int(self.SCH_WD_MS * self.spl_rate / 1000)
+
     def _get_annotations(self):
         annotations = json.loads(self.record.attrs['annotations'])
         anns = []
+        anns_tm = []  # Just the time, for finding annotations in time range
         strt_ms = annotations[0]['time_ms']
         for ann in annotations[2:]:  # Skip the first 2 rows
             text = ann['data']['text'] if 'text' in ann['data'] else ''
             # A List which is compatible to JavaScript clientside function
-            anns.append([ann['type'], ann['time_ms'] - strt_ms, text])
-        return anns
+            t = ann['time_ms'] - strt_ms
+            anns.append([ann['type'], t, text])
+            anns_tm.append(t)
+        return anns, anns_tm
 
     def _get_sample_counts(self):
         """ Helps to check which segment(s) is a time range located in """
@@ -70,9 +82,6 @@ class EcgRecord:
             val = v + lst[i]
             lst.append(val)
         return lst
-
-    # def num_sample_count(self):
-    #     return self._sample_counts_acc[-1] - 1
 
     def _get_seg(self, key):
         """
@@ -124,7 +133,7 @@ class EcgRecord:
         return bisect_left(self._sample_counts_acc, strt), bisect_right(self._sample_counts_acc, end)
 
     # @profile
-    def get_ecg_samples(self, idx_lead, strt, end, step):
+    def get_ecg_samples(self, idx_lead, strt, end, step=1):
         """ Continuous samples of ecg magnitudes, specified by counted range
 
         :param idx_lead: index of the lead
@@ -138,9 +147,9 @@ class EcgRecord:
         """
         idx_strt, idx_end = self._locate_seg_idx(strt, end)
         if idx_strt != 0:
-            strt = strt - self._sample_counts_acc[idx_strt-1]
+            strt = strt - self._sample_counts_acc[idx_strt - 1]
         if idx_end != 0:
-            end = end - self._sample_counts_acc[idx_end-1]
+            end = end - self._sample_counts_acc[idx_end - 1]
         if end < self.COUNT_END:
             end += 1  # for inclusive end
 
@@ -152,13 +161,13 @@ class EcgRecord:
             # e.g. Shape is 20 so indices [0, 19], strt is 2 and step is 7
             # => returns values at indices 2, 9, 16 with 3 elements remaining
             offset_prev = self._get_prev_remaining_offset(dset.shape[1], strt, step)
-            for i in range(idx_strt+1, idx_end):  # for range()'s exclusive end
+            for i in range(idx_strt + 1, idx_end):  # for range()'s exclusive end
                 dset = self._get_dset_by_idx(i)
                 # The new start index relative to this segment, note 0-indexing
-                strt = step-1 - offset_prev  # Sanity check: the new `strt` is in the range [0, step)
+                strt = step - 1 - offset_prev  # Sanity check: the new `strt` is in the range [0, step)
                 parts.append(dset[idx_lead, strt::step])
                 offset_prev = self._get_prev_remaining_offset(dset.shape[1], strt, step)
-            strt = step-1 - offset_prev
+            strt = step - 1 - offset_prev
             parts.append(self._get_dset_by_idx(idx_end)[idx_lead, strt:end:step])
             return np.concatenate(parts)
 
@@ -171,7 +180,7 @@ class EcgRecord:
 
         :return: Integer in range [0, step)
         """
-        return (sz_arr-1 - strt) % step
+        return (sz_arr - 1 - strt) % step
 
     def get_global_samples(self, idx_lead, step):
         """ For plot global thumbnail, data taken at large samples """
@@ -180,7 +189,7 @@ class EcgRecord:
             parts.append(self.record[k][idx_lead, ::step])
         return np.concatenate(parts)
 
-    def get_time_values(self, strt, end, step):
+    def get_time_values(self, strt, end, step=1):
         """
         :return: Evenly spaced array of incremental time stamps, created in microseconds
         """
@@ -211,9 +220,9 @@ class EcgRecord:
         """
         Within range [0, maximum sample count)
         """
-        return self.keep_range(self.time_to_count(pd.Timestamp(time) - self.EPOCH_START))
+        return self.keep_range(self.pd_time_to_count(pd.Timestamp(time) - self.EPOCH_START))
 
-    def time_to_count(self, t):
+    def pd_time_to_count(self, t):
         """
         :param t: pandas time object
         .. note:: Doesn't check valid record indexing
@@ -235,20 +244,23 @@ class EcgRecord:
         if strt_in_range and end_in_range:
             return mid - mid_range, mid + mid_range
         elif strt_in_range:  # End is too large
-            return self.COUNT_END - 2*mid_range, self.COUNT_END
+            return self.COUNT_END - 2 * mid_range, self.COUNT_END
         else:  # Must've been start < 0:
-            return 0, 2*mid_range
+            return 0, 2 * mid_range
+
+    def _count_to_us(self, count):
+        """ As an int """
+        return count * (10 ** 6) // self.spl_rate
 
     def count_to_pd_time(self, count):
-        time_us = count * (10 ** 6) // self.spl_rate
-        return pd.to_datetime(time_us, unit='us')
+        return pd.to_datetime(self._count_to_us(count), unit='us')
 
     def count_to_str(self, count):
         """
         :return: Human-readable time string, specialized to typical ecg range """
         return self.count_to_pd_time(count).strftime(self.FMT_TMLB)[1:-5]
 
-    def time_ms_to_count(self, t_ms):
+    def ms_to_count(self, t_ms):
         # ic(t_ms, t_ms * self.spl_rate // 1000)
         return t_ms * self.spl_rate // 1000  # Supposedly the value should be whole integer
 
@@ -261,6 +273,51 @@ class EcgRecord:
             self.count_to_pd_time(0),
             self.count_to_pd_time(self._sample_counts_acc[-1])
         ]
+
+    def get_annotation_indices(self, strt, end):
+        """ Find the inclusive start and exclusive end indices for annotations in the range of sample count
+
+        Returns -1, -1 if no annotations within range """
+        strt_ms = self._count_to_us(strt) // 1000
+        end_ms = self._count_to_us(end) // 1000
+        if end_ms < self._ann_tm[0] or strt_ms > self._ann_tm[-1]:
+            return -1, -1  # No indices in range
+        else:
+            idx_strt = bisect_left(self._ann_tm, strt_ms)
+            idx_end = bisect_left(self._ann_tm, end_ms)
+            # ic(strt_ms, end_ms, idx_strt, idx_end)
+            if idx_strt == self._num_ann:
+                idx_strt -= 1
+            if idx_end == self._num_ann:
+                idx_end -= 1
+            return idx_strt, idx_end
+
+    def bandpass_filter(self, ecg_vals, low=-1, high=-1, order=1, code='off'):
+        """ `code` takes `on` for QRS onset or `off` for QRS offset
+
+        If code specified, will take low and high pass frequency
+        """
+        if low == -1 and high == -1:  # Code specified
+            if code == 'on':
+                low, high = 0.5, 40
+            elif code == 'off':
+                low, high = 5, 30
+        nyq = 0.5 * self.spl_rate
+        low /= nyq
+        high /= nyq
+        r = butter(order, [low, high], btype='bandpass')
+        return lfilter(*r, ecg_vals)
+
+    def r_peak_indices(self, idx_lead, ecg_vals):
+        indices = np.array(self.dctr.two_average_detector(ecg_vals))
+        func = np.argmin if self.is_negative[idx_lead] else np.argmax
+        n = ecg_vals.shape[0]
+        indices_offset = np.vectorize(
+            lambda idx: func(ecg_vals[
+                             max(0, idx - self.SCH_WD_CNT):
+                             min(n, idx + self.SCH_WD_CNT)
+                             ]))(indices)
+        return indices + indices_offset - self.SCH_WD_CNT
 
     @staticmethod
     def example(path=DATA_PATH.joinpath(record_nm)):

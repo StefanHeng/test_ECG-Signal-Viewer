@@ -9,8 +9,8 @@ from ecg_app import *
 
 def main():
     ecg_app = EcgApp(__name__)
-    ecg_app.curr_rec = EcgRecord(DATA_PATH.joinpath(record_nm))
-    ecg_app.curr_plot = EcgPlot(ecg_app.curr_rec, ecg_app)  # A `plot` servers a record
+    ecg_app.rec = EcgRecord(DATA_PATH.joinpath(record_nm))
+    ecg_app.plt = EcgPlot(ecg_app.rec, ecg_app)  # A `plot` servers a record
     ecg_app.app.layout = html.Div(className=CNM_DIV_TMB, children=[
         dcc.Graph(
             id=ID_TMB, className=CNM_TMB,

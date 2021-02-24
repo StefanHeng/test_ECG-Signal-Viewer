@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import bisect
+from bisect import bisect_left, bisect_right
 from functools import reduce
 import re
 
@@ -16,6 +16,7 @@ from ecg_plot import EcgPlot
 from ecg_ui import EcgUi
 from ecg_app import EcgApp
 
+from icecream import ic
 # from memory_profiler import profile
 
 # def time_str_to_sample_count(time, sample_rate):
@@ -111,3 +112,10 @@ if __name__ == "__main__":
     # fig.show()
 
     rec = EcgRecord.example()
+    strt, end = 10867132, 13896086
+    ic(rec.COUNT_END)
+    ic(rec._ann_tm[-1])
+    # ic(strt, end, rec.get_annotation_indices(strt, end))
+    strt_ms, end_ms = 6496922, 6722482
+    ic(bisect_left(rec._ann_tm, strt_ms))
+

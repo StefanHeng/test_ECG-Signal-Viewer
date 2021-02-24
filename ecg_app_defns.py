@@ -87,6 +87,9 @@ CNM_ADV_BK = 'fas fa-angle-double-left'
 CNM_MV_BK = 'fas fa-angle-left'
 CNM_ADV_FW = 'fas fa-angle-double-right'
 CNM_MV_FW = 'fas fa-angle-right'
+ID_BTN_ANTN_TG = 'btn_annotation-toggle'
+ID_IC_ANTN_TG = 'ic_annotation-toggle'
+CNM_ANTN_TG = 'fas fa-marker'
 
 ID_DIV_TMLB = 'div_time-label'
 ID_TMLB = 'time-label'
@@ -120,6 +123,8 @@ ANM_DIV_ANTN_EXPW = 'div_annotations_expand-width'
 ANM_DIV_ANTN_CLPW = 'div_annotations_collapse-width'
 ANM_BTN_ANTN_BDR_SH = 'btn_annotation_show-left-border'
 ANM_BTN_ANTN_BDR_HD = 'btn_annotation_hide-left-border'
+ANM_BTN_ANTN_TG_ROTS = 'ic-btn-annotations-toggle_rotate-start'
+ANM_BTN_ANTN_TG_ROTE = 'ic-btn-annotations-toggle_rotate-end'
 
 CONF = dict(  # Configuration for figure
     responsive=True,
@@ -180,3 +185,22 @@ def lst_to_tuple(lst):
 DEV_TML_S = 'single -> 1: I'
 DEV_TML_RG = 'range(8) -> [1, 8]'
 DEV_TML_RD = 'rand -> [7, 6, 4, 17, 36]'
+
+
+# Styles
+ANTN_BG_CLR = 'rgba(192, 192, 192, 0.3)'
+ANTN_BG_CLR_CLK = 'rgba(252, 169, 18, 0.3)'  # primary a3
+ANTN_CLR = 'rgba(0, 0, 0, 0.6)'
+ANTN_ARW_CLR = 'rgba(0, 0, 0, 0.7)'
+LUX_FT_FML = '"Nunito Sans", ' \
+             '-apple-system, ' \
+             'BlinkMacSystemFont, ' \
+             '"Segoe UI", ' \
+             'Roboto, ' \
+             '"Helvetica Neue", ' \
+             'Arial, ' \
+             'sans-serif, ' \
+             '"Apple Color Emoji", ' \
+             '"Segoe UI Emoji", ' \
+             '"Segoe UI Symbol'
+
