@@ -48,8 +48,12 @@ if __name__ == "__main__":
     print(globalHeader)
     print()
     print('metadata for a few `sigheader`s: ')
-    for i in range(5):
-        print(header['sigheader'][i])
+    for i in range(42):
+        lead_spec = header['sigheader'][i]
+        # print(lead_spec)
+        print('Idx: {:>2} => [Name: {:<7}], [Type: {:>1}], [{:>3}]'.format(
+            i, lead_spec['name'], lead_spec['signal_type'], '-ve' if lead_spec['isNegative'] else '+ve')
+        )
     # print("Signal 0 has this data: " + str(header['sigheader'][0]))
     print()
 

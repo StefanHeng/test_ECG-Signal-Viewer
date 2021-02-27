@@ -110,12 +110,20 @@ if __name__ == "__main__":
     # app.curr_plot = EcgPlot(app.curr_rec, app)  # A `plot` serves a record
     # fig = app.curr_plot.get_thumb_fig_skeleton([6, 5, 3, 16, 35])
     # fig.show()
+    #
+    # rec = EcgRecord.example()
+    # # strt, end = 10867132, 13896086
+    # # ic(rec.COUNT_END)
+    # # ic(rec._ann_tm[-1])
+    # # # ic(strt, end, rec.get_annotation_indices(strt, end))
+    # # strt_ms, end_ms = 6496922, 6722482
+    # # ic(bisect_left(rec._ann_tm, strt_ms))
+    #
+    # idx = 8119934
+    # print(np.argmax(rec.get_ecg_samples(29, 0, rec.COUNT_END)))
 
-    rec = EcgRecord.example()
-    strt, end = 10867132, 13896086
-    ic(rec.COUNT_END)
-    ic(rec._ann_tm[-1])
-    # ic(strt, end, rec.get_annotation_indices(strt, end))
-    strt_ms, end_ms = 6496922, 6722482
-    ic(bisect_left(rec._ann_tm, strt_ms))
+    a = np.array([1 + 2j, 3 + 4j, 5 + 6j])
+    ic(np.abs(a))
+
+
 

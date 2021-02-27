@@ -3,11 +3,9 @@ import json
 import numpy as np
 import pandas as pd
 
-from scipy.signal import butter, lfilter
-from ecgdetectors import Detectors
-
 from bisect import bisect_left, bisect_right
 from math import floor
+from random import randint
 
 # from memory_profiler import profile
 from icecream import ic
@@ -31,7 +29,6 @@ class EcgRecord:
     TIME_STRT = str(EPOCH_START)
     UNIT_1US = pd.Timedelta(1, unit='us')
     FMT_TMLB = '%H:%M:%S.%f'
-    SCH_WD_MS = 100  # Half of range to look for optimal R peak, in ms
 
     # @profile
     def __init__(self, path):
@@ -50,11 +47,8 @@ class EcgRecord:
 
         self._sample_counts = self._get_sample_counts()
         self._sample_counts_acc = self._get_sample_counts_acc()  # Accumulated
-        self.COUNT_END = self._sample_counts_acc[-1] - 1
+        self.COUNT_END = self._sample_counts_acc[-1] - 1  # Inclusive
         self.TIME_END = str(self.count_to_pd_time(self.COUNT_END))
-
-        self.dctr = Detectors(2000)
-        self.SCH_WD_CNT = int(self.SCH_WD_MS * self.spl_rate / 1000)
 
     def _get_annotations(self):
         annotations = json.loads(self.record.attrs['annotations'])
@@ -292,32 +286,10 @@ class EcgRecord:
                 idx_end -= 1
             return idx_strt, idx_end
 
-    def bandpass_filter(self, ecg_vals, low=-1, high=-1, order=1, code='off'):
-        """ `code` takes `on` for QRS onset or `off` for QRS offset
-
-        If code specified, will take low and high pass frequency
-        """
-        if low == -1 and high == -1:  # Code specified
-            if code == 'on':
-                low, high = 0.5, 40
-            elif code == 'off':
-                low, high = 5, 30
-        nyq = 0.5 * self.spl_rate
-        low /= nyq
-        high /= nyq
-        r = butter(order, [low, high], btype='bandpass')
-        return lfilter(*r, ecg_vals)
-
-    def r_peak_indices(self, idx_lead, ecg_vals):
-        indices = np.array(self.dctr.two_average_detector(ecg_vals))
-        func = np.argmin if self.is_negative[idx_lead] else np.argmax
-        n = ecg_vals.shape[0]
-        indices_offset = np.vectorize(
-            lambda idx: func(ecg_vals[
-                             max(0, idx - self.SCH_WD_CNT):
-                             min(n, idx + self.SCH_WD_CNT)
-                             ]))(indices)
-        return indices + indices_offset - self.SCH_WD_CNT
+    def DEBUG_get_rand_range(self, N=10000):
+        """ Returns random range of length `N`, for debugging purposes only """
+        strt = randint(0, self.COUNT_END - N)
+        return strt, strt + N
 
     @staticmethod
     def example(path=DATA_PATH.joinpath(record_nm)):

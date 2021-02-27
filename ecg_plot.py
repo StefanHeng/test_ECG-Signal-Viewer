@@ -43,7 +43,7 @@ class EcgPlot:
         return self.rec.get_time_values(strt, end, sample_factor), \
             self.rec.get_ecg_samples(idx_lead, strt, end, sample_factor)
 
-    def get_fig(self, idx_lead, strt, end):
+    def get_fig(self, idx_lead, strt, end, annotations=None):
         # logger.info(f'sample_counts of size {sample_counts.shape[0]} -> {sample_counts}')
         # logger.info(f'ecg_vals of size {ecg_vals.shape[0]} -> {ecg_vals}')
         time_vals, ecg_vals = self.get_xy_vals(idx_lead, strt, end)
@@ -77,7 +77,8 @@ class EcgPlot:
                 hoverdistance=0,
                 hoverinfo=None,
                 xaxis=xaxis_config,
-                yaxis=yaxis_config
+                yaxis=yaxis_config,
+                annotations=annotations
             )
         )
 
@@ -170,7 +171,7 @@ class EcgPlot:
                 self.been_computed[idx_lead] = True
 
             self.fig['layout']['xaxis']['range'] = \
-                self.parn.display_range_to_layout_range(self.parn.parn.curr_disp_rng[0])
+                self.parn.display_range_to_layout_range(self.parn.parn.disp_rng[0])
             return self.fig
 
         def _remove_trace(self, idx):
