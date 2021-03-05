@@ -122,8 +122,10 @@ if __name__ == "__main__":
     # idx = 8119934
     # print(np.argmax(rec.get_ecg_samples(29, 0, rec.COUNT_END)))
 
-    a = np.array([1 + 2j, 3 + 4j, 5 + 6j])
-    ic(np.abs(a))
+    # a = np.array([1 + 2j, 3 + 4j, 5 + 6j])
+    # ic(np.abs(a))
+    a = np.arange(5)
+    ic(a[1:2])
 
 
 

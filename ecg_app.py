@@ -664,7 +664,8 @@ class EcgApp:
                 raise PreventUpdate
         elif ID_TMB == changed_id:  # Changes in thumbnail figure have to be range change
             # Workaround: At first app start, ID_TMB is in changed_id for unknown reason
-            if 'xaxis' in fig_tmb['layout']:
+            # ic(fig_tmb['layout'])
+            if self.rec is not None:
                 self.disp_rng[0] = self.ui.get_x_display_range(fig_tmb['layout'])
                 x_layout_range = fig_tmb['layout']['xaxis']['range']
                 self._update_lead_figures(figs_gra, x_layout_range, idx_ann_clicked)
