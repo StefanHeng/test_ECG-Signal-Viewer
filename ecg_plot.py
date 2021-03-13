@@ -43,7 +43,7 @@ class EcgPlot:
         return self.rec.get_time_values(strt, end, sample_factor), \
             self.rec.get_ecg_samples(idx_lead, strt, end, sample_factor)
 
-    def get_fig(self, idx_lead, strt, end, annotations=None):
+    def get_fig(self, idx_lead, strt, end, annotations=None, yaxis_fixed=False):
         # logger.info(f'sample_counts of size {sample_counts.shape[0]} -> {sample_counts}')
         # logger.info(f'ecg_vals of size {ecg_vals.shape[0]} -> {ecg_vals}')
         time_vals, ecg_vals = self.get_xy_vals(idx_lead, strt, end)
@@ -58,7 +58,8 @@ class EcgPlot:
             # range=self.rec.get_range()
         )
         yaxis_config = dict(
-            range=self.parn.ui.get_ignore_noise_range(ecg_vals)
+            range=self.parn.ui.get_ignore_noise_range(ecg_vals),
+            fixedrange=yaxis_fixed
         )
         return dict(
             data=[dict(

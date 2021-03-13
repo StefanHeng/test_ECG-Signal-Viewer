@@ -34,8 +34,8 @@ class EcgRecord:
     def __init__(self, path):
         self.record = h5py.File(path, 'r')
         self._seg_keys = list(self.record.keys())  # keys to each segment compiled in the .h5 file
-        self.annotatns, self._ann_tm = self._get_annotations()
-        self._num_ann = len(self._ann_tm)
+        self.tags, self.tags_tm = self._get_tags()  # `_ann_tm` to make bisect easy
+        self._N_TAG = len(self.tags_tm)
 
         # Following properties are the same across different segments, as far as EcgApp is concerned.
         metadata = self._get_seg(self._seg_keys[0]).get_metadata()
@@ -50,18 +50,18 @@ class EcgRecord:
         self.COUNT_END = self._sample_counts_acc[-1] - 1  # Inclusive
         self.TIME_END = str(self.count_to_pd_time(self.COUNT_END))
 
-    def _get_annotations(self):
+    def _get_tags(self):
         annotations = json.loads(self.record.attrs['annotations'])
-        anns = []
-        anns_tm = []  # Just the time, for finding annotations in time range
+        tags = []
+        tags_tm = []  # Just the time, for finding tags in time range
         strt_ms = annotations[0]['time_ms']
-        for ann in annotations[2:]:  # Skip the first 2 rows
+        for ann in annotations[2:]:  # Skip the first 2 rows, header and protocol respectively
             text = ann['data']['text'] if 'text' in ann['data'] else ''
             # A List which is compatible to JavaScript clientside function
             t = ann['time_ms'] - strt_ms
-            anns.append([ann['type'], t, text])
-            anns_tm.append(t)
-        return anns, anns_tm
+            tags.append([ann['type'], t, text])
+            tags_tm.append(t)
+        return tags, tags_tm
 
     def _get_sample_counts(self):
         """ Helps to check which segment(s) is a time range located in """
@@ -92,14 +92,11 @@ class EcgRecord:
         """
         return self.record[self._seg_keys[idx_seg]]
 
-    def get_annotation_header(self):
-        return self.annotatns[0]
-
-    def get_annotations(self):
+    def get_tag_header(self):
         """
-        :return: All annotations across all segments
+        :return: Information on all annotations
         """
-        return self.annotatns[2:]  # The first 2 elements are header and protocol respectively
+        return self.tags[0]
 
     class Segment:
         """
@@ -187,12 +184,15 @@ class EcgRecord:
         """
         :return: Evenly spaced array of incremental time stamps, created in microseconds
         """
-        counts = np.linspace(strt, end, num=self._count_indexing_num(strt, end, step))
+        counts = np.linspace(strt, end, num=self.count_n_sample(strt, end, step))
         return pd.to_datetime(pd.Series(self._counts_to_us(counts)), unit='us')
 
     @staticmethod
-    def _count_indexing_num(strt, end, step):
-        """Counts the number of elements as result of numpy array indexing """
+    def count_n_sample(strt, end, step):
+        """Counts the number of elements as result of numpy array indexing.
+
+        .. note:: Intended for the sampled data per `get_ecg_samples`
+         """
         num = (end - strt) // step
         # if (end - strt) % step != 0:
         #     num += 1
@@ -207,7 +207,7 @@ class EcgRecord:
 
     def get_time_values_delta(self, strt, end, step):
         """ For external export """
-        counts = np.linspace(strt, end, num=self._count_indexing_num(strt, end, step))
+        counts = np.linspace(strt, end, num=self.count_n_sample(strt, end, step))
         return pd.to_timedelta(pd.Series(self._counts_to_us(counts)), unit='us')
 
     def time_str_to_count(self, time):
@@ -268,21 +268,21 @@ class EcgRecord:
             self.count_to_pd_time(self._sample_counts_acc[-1])
         ]
 
-    def get_annotation_indices(self, strt, end):
-        """ Find the inclusive start and exclusive end indices for annotations in the range of sample count
+    def get_tag_indices(self, strt, end):
+        """ Find the inclusive start and exclusive end indices for tags in the range of sample count
 
-        Returns -1, -1 if no annotations within range """
+        Returns -1, -1 if no tags within range """
         strt_ms = self._count_to_us(strt) // 1000
         end_ms = self._count_to_us(end) // 1000
-        if end_ms < self._ann_tm[0] or strt_ms > self._ann_tm[-1]:
+        if end_ms < self.tags_tm[0] or strt_ms > self.tags_tm[-1]:
             return -1, -1  # No indices in range
         else:
-            idx_strt = bisect_left(self._ann_tm, strt_ms)
-            idx_end = bisect_left(self._ann_tm, end_ms)
+            idx_strt = bisect_left(self.tags_tm, strt_ms)
+            idx_end = bisect_left(self.tags_tm, end_ms)
             # ic(strt_ms, end_ms, idx_strt, idx_end)
-            if idx_strt == self._num_ann:
+            if idx_strt == self._N_TAG:
                 idx_strt -= 1
-            if idx_end == self._num_ann:
+            if idx_end == self._N_TAG:
                 idx_end -= 1
             return idx_strt, idx_end
 

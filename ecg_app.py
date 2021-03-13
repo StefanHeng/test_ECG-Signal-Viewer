@@ -69,7 +69,7 @@ class EcgApp:
         self.disp_rng = EcgPlot.DISP_RNG_INIT
         self.fig_tmb = None
         self._yaxis_fixed = False
-        self._annotation_on = False
+        self._marking_on = False
 
         self.move_offset_counts = None  # Runtime optimization, semi-constants dependent to record
         self.no_update_add_opns = None
@@ -140,7 +140,7 @@ class EcgApp:
                 dbc.Tooltip(target=ID_BTN_ADV_FW, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
                             delay=TTP_DL, children='Advance forward'),
                 dbc.Tooltip(target=ID_BTN_ANTN_TG, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
-                            delay=TTP_DL, children='Show/Hide annotations'),
+                            delay=TTP_DL, children='Show/Hide markings'),
 
                 html.Div(id=ID_DIV_TMLB, children=[
                     html.P(id=ID_TMLB)
@@ -185,7 +185,7 @@ class EcgApp:
                         ]),
 
                         dcc.Store(id=ID_STOR_ANTN_IDX),  # Write to layout, triggered by clientside callback
-                        # Keep track of number of clicks on annotation items, essential for clientside callback
+                        # Keep track of number of clicks on tag items, essential for clientside callback
                         dcc.Store(id=ID_STOR_ANTN_NCS),
                         html.Div(id=ID_DIV_ANTN, className=ANM_DIV_ANTN_CLPW, children=[
                             dbc.ListGroup(id=ID_GRP_ANTN)
@@ -218,7 +218,7 @@ class EcgApp:
             ]),
         ])
 
-    def get_fig_layout(self, idx, annotations=None):
+    def get_fig_layout(self, idx, tags=None):
         return dbc.Fade(className=CNM_DIV_FD, is_in=True, children=[
             html.Div(id=m_id(ID_DIV_LD, idx), className=CNM_DIV_LD, children=[
                 html.Div(className=CNM_DIV_LDNM, children=[
@@ -238,23 +238,23 @@ class EcgApp:
                 html.Div(className=CNM_DIV_FIG, children=[
                     dcc.Graph(
                         id=m_id(ID_GRA, idx), className=CNM_GRA, config=CONF,
-                        figure=self.get_lead_fig(idx, annotations)
+                        figure=self.get_lead_fig(idx, tags)
                     )
                 ])
             ])
         ])
 
-    def get_lead_fig(self, idx_lead, annotations=None):
+    def get_lead_fig(self, idx_lead, tags=None):
         """
         :param idx_lead: index of lead as stored in .h5 datasets
-        :param annotations: Annotation within display range as stored in `EcgRecord`
+        :param tags: Tags within display range as stored in `EcgRecord`
 
         .. note:: A valid range has values in [0, sum of all samples across the entire ecg_record),
         one-to-one correspondence with time by `sample_rate`
 
         :return: dictionary that represents a plotly graph
         """
-        return self.plt.get_fig(idx_lead, *self.disp_rng[0], annotations)
+        return self.plt.get_fig(idx_lead, *self.disp_rng[0], tags, self._yaxis_fixed)
 
     def get_lead_xy_vals(self, idx_lead, x_display_range):
         strt, end = x_display_range
@@ -337,7 +337,7 @@ class EcgApp:
              Input(ID_BTN_FIXY, NC),
              Input(ID_BTN_MV_FW, NC),
              Input(ID_BTN_ADV_FW, NC),
-             Input(ID_IC_ANTN_TG, CNM),  # Ensures _annotation_on is first toggled
+             Input(ID_IC_ANTN_TG, CNM),  # Ensures `_marking_on` is first toggled
              Input(ID_STOR_ADD, D),
              Input(ID_STOR_RMV, D),
              Input(ID_STOR_ANTN_IDX, D)],
@@ -384,24 +384,24 @@ class EcgApp:
              Output(ID_DIV_PLTS, CNM)],
             Input(ID_BTN_ANTN, NC),
             prevent_initial_call=True
-        )(self.toggle_annotation_panel)
+        )(self.toggle_tags_panel)
 
         self.app.callback(
             Output(ID_GRP_ANTN, C),
             Input(ID_STOR_REC, D),
             prevent_initial_call=True
-        )(self.load_annotations)
+        )(self.get_tags_layout)
 
         self.app.callback(
             Output(ID_IC_ANTN_TG, CNM),
             Input(ID_BTN_ANTN_TG, NC),
             prevent_initial_call=True
-        )(self.toggle_annotation_button)
+        )(self.toggle_show_markings)
 
         self.app.clientside_callback(
             ClientsideFunction(  # clientside callback for efficiency
                 namespace='clientside',
-                function_name='update_annotation_clicked'
+                function_name='update_tag_clicked'
             ),
             Output(ID_STOR_ANTN_IDX, D),
             Input(all_(ID_ITM_ANTN), NC),
@@ -470,14 +470,14 @@ class EcgApp:
             return None
         # return items_lead_add
 
-    def load_annotations(self, record_name):
+    def get_tags_layout(self, record_name):
         if record_name is not None:  # `curr_rec` already loaded
             layout = [dbc.ListGroupItem(className=CNM_ANTN_BLK, action=True, children=[
                 dbc.Badge(id=m_id(ID_ITM_ANTN, idx), className=join(CNM_BDG, CNM_BDG_LT, CMN_TMLB), n_clicks=0,
                           children=[self.rec.count_to_str(self.rec.ms_to_count(tm))]),
                 dbc.Badge(className=join(CNM_BDG, CNM_BDG_LT), children=[typ]),
                 html.P(className=CNM_ANTN_TXT, children=[txt])
-            ]) for idx, (typ, tm, txt) in enumerate(self.rec.annotatns)]
+            ]) for idx, (typ, tm, txt) in enumerate(self.rec.tags)]
             return layout
         else:
             return None
@@ -558,7 +558,7 @@ class EcgApp:
             n_clicks_adv_bk, n_clicks_mv_bk, n_clicks_fixy, n_clicks_mv_fw, n_clicks_adv_fw, n_clicks_antn_tg,
             data_add, data_rmv,
             idx_ann_clicked,
-            plots, disables_lead_add, figs_gra, fig_tmb, ns_clicks_ann):
+            plots, disables_lead_add, figs_gra, fig_tmb, ns_clicks_tag):
         """Display lead figures based on current record and template selected, and based on lead selection in modal
 
         Initializes lead selections
@@ -574,10 +574,10 @@ class EcgApp:
         :param n_clicks_fixy: Number of clicks for fix-yaxis button
         :param n_clicks_mv_fw: Number of clicks for nudge forward button
         :param n_clicks_adv_fw: Number of clicks for advance forward button
-        :param n_clicks_antn_tg: Number of clicks for toggle annotations button
+        :param n_clicks_antn_tg: Number of clicks for toggle markings button
         :param data_add: Tuple info on if adding took place and if so the lead index added
         :param data_rmv: Tuple info on the original index of removed lead index, and the lead index removed
-        :param idx_ann_clicked: Index of annotation clicked
+        :param idx_ann_clicked: Index of tag clicked
 
         # States
         :param plots: Div list of of lead currently on plot
@@ -585,7 +585,7 @@ class EcgApp:
 
         :param figs_gra: Graph object dictionary of actual plot
         :param fig_tmb: Graph object dictionary of global preview
-        :param ns_clicks_ann: List on number of clicks for each annotation
+        :param ns_clicks_tag: List on number of clicks for each tag
 
         .. note:: Previous record and figure overridden
         .. note:: Selections in modal are disabled if corresponding lead is shown
@@ -605,10 +605,10 @@ class EcgApp:
             disables_lead_add = [False for i in disables_lead_add]  # All options are not disabled
             if record_name is not None:
                 fig_tmb = self.fig_tmb.add_trace([], override=True)  # Basically removes all trace without adding
-                ns_clicks_ann = [0 for i in self.rec.annotatns]
+                ns_clicks_tag = [0 for i in self.rec.tags]
             else:
                 fig_tmb = dash.no_update
-                ns_clicks_ann = []
+                ns_clicks_tag = []
             # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
             time_label = None
             disabled_export_btn = True
@@ -617,8 +617,8 @@ class EcgApp:
             if template is not None:
                 self.idxs_lead = deepcopy(self.LD_TEMPL[template])  # Deepcopy cos idx_lead may mutate
                 # Override for any template change could happen before
-                if self._annotation_on:
-                    anns = self._get_annotations(idx_ann_clicked)
+                if self._marking_on:
+                    anns = self._get_tags(idx_ann_clicked)
                     plots = [self.get_fig_layout(idx, anns) for idx in self.idxs_lead]
                 else:
                     plots = [self.get_fig_layout(idx) for idx in self.idxs_lead]
@@ -640,7 +640,7 @@ class EcgApp:
                 time_label = None
                 disabled_export_btn = True
             figs_gra = [dash.no_update for i in figs_gra]
-            ns_clicks_ann = dash.no_update
+            ns_clicks_tag = dash.no_update
 
         elif ID_GRA == changed_id and self.idxs_lead:  # != []; RelayoutData changed, graph has pattern matched ID
             # When a record is selected, ID_GRA is in changed_id for unknown reason
@@ -659,7 +659,7 @@ class EcgApp:
                 disables_lead_add = self.no_update_add_opns
                 time_label = self.time_range_to_time_label(x_layout_range)
                 # export button must've been on already
-                ns_clicks_ann = dash.no_update
+                ns_clicks_tag = dash.no_update
             else:
                 raise PreventUpdate
         elif ID_TMB == changed_id:  # Changes in thumbnail figure have to be range change
@@ -674,7 +674,7 @@ class EcgApp:
                 # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
                 disables_lead_add = self.no_update_add_opns
                 time_label = self.time_range_to_time_label(x_layout_range)
-                ns_clicks_ann = dash.no_update
+                ns_clicks_tag = dash.no_update
             else:
                 raise PreventUpdate
 
@@ -685,10 +685,10 @@ class EcgApp:
                 fig_tmb = dash.no_update
                 plots = dash.no_update
                 disables_lead_add = self.no_update_add_opns
-            ns_clicks_ann = dash.no_update
+            ns_clicks_tag = dash.no_update
         elif ID_IC_ANTN_TG == changed_id:
-            if self._annotation_on:
-                anns = self._get_annotations(idx_ann_clicked)
+            if self._marking_on:
+                anns = self._get_tags(idx_ann_clicked)
                 for f in figs_gra:
                     f['layout']['annotations'] = anns
             else:
@@ -697,7 +697,7 @@ class EcgApp:
             fig_tmb = dash.no_update
             plots = dash.no_update
             disables_lead_add = self.no_update_add_opns
-            ns_clicks_ann = dash.no_update
+            ns_clicks_tag = dash.no_update
         elif self.move_offset_counts is not None and changed_id in self.move_offset_counts:
             # The keys: [ID_BTN_ADV_BK, ID_BTN_MV_BK, ID_BTN_MV_FW, ID_BTN_ADV_FW] by construction
             offset_count = self.move_offset_counts[changed_id]
@@ -717,7 +717,7 @@ class EcgApp:
                 # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
                 disables_lead_add = self.no_update_add_opns
                 time_label = self.time_range_to_time_label(x_layout_range)
-                ns_clicks_ann = dash.no_update
+                ns_clicks_tag = dash.no_update
             else:
                 raise PreventUpdate
 
@@ -725,8 +725,8 @@ class EcgApp:
             added, idx_add = data_add
             # Need to check if clicking actually added a lead
             if added:  # Else error alert will raise
-                if self._annotation_on:
-                    plots.append(self.get_fig_layout(idx_add, self._get_annotations(idx_ann_clicked)))
+                if self._marking_on:
+                    plots.append(self.get_fig_layout(idx_add, self._get_tags(idx_ann_clicked)))
                 else:
                     plots.append(self.get_fig_layout(idx_add))
                 disables_lead_add[idx_add] = True
@@ -735,7 +735,7 @@ class EcgApp:
                 if len(self.idxs_lead) == 1:  # from 0 to 1 lead
                     time_label = self.disp_rng_to_time_label()
                     disabled_export_btn = False
-                ns_clicks_ann = dash.no_update
+                ns_clicks_tag = dash.no_update
             else:
                 raise PreventUpdate
         elif ID_STOR_RMV == changed_id:
@@ -749,10 +749,10 @@ class EcgApp:
             if len(self.idxs_lead) == 0:  # from 1 to 0 lead
                 time_label = None
                 disabled_export_btn = True
-            ns_clicks_ann = dash.no_update
+            ns_clicks_tag = dash.no_update
         elif ID_STOR_ANTN_IDX == changed_id and idx_ann_clicked != -1:
-            ns_clicks_ann[idx_ann_clicked] += 1
-            count = self.rec.ms_to_count(self.rec.annotatns[idx_ann_clicked][1])
+            ns_clicks_tag[idx_ann_clicked] += 1
+            count = self.rec.ms_to_count(self.rec.tags[idx_ann_clicked][1])
 
             strt, end = self.disp_rng[0]
             if not (strt <= count <= end):  # Navigate to point of annotation
@@ -785,7 +785,7 @@ class EcgApp:
             disables_lead_add = self.no_update_add_opns
         else:
             raise PreventUpdate
-        return plots, disables_lead_add, figs_gra, fig_tmb, time_label, disabled_export_btn, ns_clicks_ann
+        return plots, disables_lead_add, figs_gra, fig_tmb, time_label, disabled_export_btn, ns_clicks_tag
 
     def _update_lead_figures(self, figs_gra, x_layout_range, idx_ann_clicked=-1):
         strt, end = self.disp_rng[0]
@@ -797,7 +797,7 @@ class EcgApp:
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.MAX_NUM_LD) as executor:
             executor.map(lambda p: self._set_y_vals(*p), args)
 
-        anns = self._get_annotations(idx_ann_clicked) if self._annotation_on else []
+        anns = self._get_tags(idx_ann_clicked) if self._marking_on else []
         for f in figs_gra:  # Lines up with number of figures plotted
             # Short execution time, no need to multi-process
             f[D][0]['x'] = x_vals
@@ -815,19 +815,19 @@ class EcgApp:
             figs_gra[idx_idx][D][0]['y'] = y_vals
             figs_gra[idx_idx]['layout']['yaxis']['range'] = self.ui.get_ignore_noise_range(y_vals)
 
-    def _get_annotations(self, idx_ann_clicked=-1):
-        idx_strt, idx_end = self.rec.get_annotation_indices(*(self.disp_rng[0]))
+    def _get_tags(self, idx_ann_clicked=-1):
+        idx_strt, idx_end = self.rec.get_tag_indices(*(self.disp_rng[0]))
         anns = []
         on_top = True
         for idx in range(idx_strt, idx_end):
-            typ, t_ms, _ = self.rec.annotatns[idx]
+            typ, t_ms, _ = self.rec.tags[idx]
             x = self.rec.count_to_pd_time(self.rec.ms_to_count(t_ms))
-            anns.append(self.get_annotation(idx, x, typ, on_top=on_top, is_clicked=idx_ann_clicked == idx))
+            anns.append(self.get_tags(idx, x, typ, on_top=on_top, is_clicked=idx_ann_clicked == idx))
             on_top = not on_top
         return anns
 
     @staticmethod
-    def get_annotation(idx, x, text, on_top=True, is_clicked=False):
+    def get_tags(idx, x, text, on_top=True, is_clicked=False):
         return dict(
             idx=idx,  # Not native to Plotly annotations
             x=x,
@@ -889,8 +889,8 @@ class EcgApp:
         else:
             return CNM_IC_LK
 
-    def toggle_annotation_button(self, n_clicks):
-        self._annotation_on = not self._annotation_on
+    def toggle_show_markings(self, n_clicks):
+        self._marking_on = not self._marking_on
         if n_clicks % 2 == 1:
             return join(CNM_ANTN_TG, ANM_BTN_ANTN_TG_ROTE)
         else:
@@ -901,7 +901,7 @@ class EcgApp:
         return self.exp.export(strt, end, self.idxs_lead)
 
     @staticmethod
-    def toggle_annotation_panel(n_clicks):
+    def toggle_tags_panel(n_clicks):
         if n_clicks % 2 == 0:
             return ANM_DIV_ANTN_CLPW, join(CNM_BTN, ANM_BTN_ANTN_BDR_SH), CNM_ANTN_EXPD, ANM_DIV_PLT_EXPW
         else:
@@ -909,7 +909,7 @@ class EcgApp:
 
     @staticmethod
     def __print_changed_property(func_nm):
-        # Debugging only\
+        # Debugging only
         print(f'in [{func_nm:<25}] with changed property: [{EcgApp.get_last_changed_id_property():<25}]')
 
     @staticmethod

@@ -4,7 +4,7 @@ from ecg_record import EcgRecord
 
 if __name__ == "__main__":
     rec = EcgRecord.example()
-    ann = rec.annotatns
+    ann = rec.tags
     # for i in range(2, len(ann)):
     #     print(ann[i])
     for a in ann:

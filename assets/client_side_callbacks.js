@@ -34,7 +34,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         //     return 'dummy';
         // },
 
-        update_annotation_clicked: function(ns_clicks, ns_clicks_prev) {
+        update_tag_clicked: function(ns_clicks, ns_clicks_prev) {
             for (let i = 0; i < ns_clicks.length; ++i) {
                 if (ns_clicks[i] !== ns_clicks_prev[i]) {  // Must've been greater than 1 by construction
                     return i;
