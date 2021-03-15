@@ -1,3 +1,6 @@
+import numpy as np
+import pandas as pd
+
 import concurrent.futures
 
 
@@ -44,19 +47,7 @@ class EcgPlot:
             self.rec.get_ecg_samples(idx_lead, strt, end, sample_factor)
 
     def get_fig(self, idx_lead, strt, end, annotations=None, yaxis_fixed=False):
-        # logger.info(f'sample_counts of size {sample_counts.shape[0]} -> {sample_counts}')
-        # logger.info(f'ecg_vals of size {ecg_vals.shape[0]} -> {ecg_vals}')
         time_vals, ecg_vals = self.get_xy_vals(idx_lead, strt, end)
-        xaxis_config = dict(
-            # showspikes=True,
-            # spikemode='toaxis',
-            # spikesnap='data',
-            # spikedash='dot',
-            # spikethickness=1,
-            # spikecolor=self.PRIMARY,
-            # linecolor=self.SECONDARY_2  # Axis color
-            # range=self.rec.get_range()
-        )
         yaxis_config = dict(
             range=self.parn.ui.get_ignore_noise_range(ecg_vals),
             fixedrange=yaxis_fixed
@@ -77,7 +68,6 @@ class EcgPlot:
                 margin=dict(l=45, r=30, t=0, b=15),  # Less than default margin, effectively cropping out whitespace
                 hoverdistance=0,
                 hoverinfo=None,
-                xaxis=xaxis_config,
                 yaxis=yaxis_config,
                 annotations=annotations
             )
@@ -88,6 +78,8 @@ class EcgPlot:
 
         Plot across the entire duration, with all channels selected
         """
+
+        Y_TAG = 6_000  # Vertical location of the static tags, since being 0 makes them hard to see
 
         def __init__(self, record, parent):
             self.rec = record
@@ -106,11 +98,24 @@ class EcgPlot:
             self.lst_y_vals = [[] for i in range(self.num_leads)]
 
         def _get_fig_skeleton(self):
+            tag_times = np.vectorize(lambda t: pd.to_datetime(t, unit='ms'))([0] + self.rec.tags_tm)
+            tag_y = np.full(tag_times.size, self.Y_TAG)
+            tag_y[0] = 0  # Prepended dummy variable that's needed to push up the tags
             fig = dict(
                 data=[dict(
                     yaxis=self._get_yaxis_code(idx),
                     line=dict(width=0.5),
-                ) for idx in range(self.num_leads)],  # Each lead has its designated slot by index
+                ) for idx in range(self.num_leads)] + [  # Each lead has its designated slot by index
+                    dict(
+                        x=tag_times,  # Static tags as dots
+                        y=tag_y,
+                        mode='markers',
+                        marker=dict(
+                            color=self.parn.PRIMARY,
+                            size=3
+                        )
+                    )
+                ],
                 layout=dict(
                     margin=dict(l=0, r=0, t=0, b=0),
                     xaxis=dict(

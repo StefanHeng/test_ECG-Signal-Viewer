@@ -33,6 +33,7 @@ class EcgRecord:
     # @profile
     def __init__(self, path):
         self.record = h5py.File(path, 'r')
+        self.nm = path.stem  # By pathlib Path, gets the file name without last extension
         self._seg_keys = list(self.record.keys())  # keys to each segment compiled in the .h5 file
         self.tags, self.tags_tm = self._get_tags()  # `_ann_tm` to make bisect easy
         self._N_TAG = len(self.tags_tm)

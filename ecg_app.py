@@ -592,10 +592,8 @@ class EcgApp:
         """
         # Shared output must be in a single function call per Dash callback
         # => Forced to update in a single function call
-        # EcgApp.__print_changed_property('update figures')
         changed_id_property = self.get_last_changed_id_property()
         changed_id = self.ui.get_id(changed_id_property)
-        # ic(changed_id_property)
 
         time_label = dash.no_update  # Both dependent on number of leads on plot == 0
         disabled_export_btn = dash.no_update
@@ -785,6 +783,7 @@ class EcgApp:
             disables_lead_add = self.no_update_add_opns
         else:
             raise PreventUpdate
+        # ic()
         return plots, disables_lead_add, figs_gra, fig_tmb, time_label, disabled_export_btn, ns_clicks_tag
 
     def _update_lead_figures(self, figs_gra, x_layout_range, idx_ann_clicked=-1):

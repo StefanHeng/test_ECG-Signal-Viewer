@@ -124,8 +124,13 @@ if __name__ == "__main__":
 
     # a = np.array([1 + 2j, 3 + 4j, 5 + 6j])
     # ic(np.abs(a))
-    a = np.arange(5)
-    ic(a[1:2])
+    # a = np.arange(5)
+    # ic(a[1:2])
+
+    p = DATA_PATH.joinpath(record_nm)
+    ic(p, str(p))
+    ic(p.stem)
+
 
 
 
