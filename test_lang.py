@@ -127,9 +127,69 @@ if __name__ == "__main__":
     # a = np.arange(5)
     # ic(a[1:2])
 
-    p = DATA_PATH.joinpath(record_nm)
-    ic(p, str(p))
-    ic(p.stem)
+    # p = DATA_PATH.joinpath(record_nm)
+    # ic(p, str(p))
+    # ic(p.stem)
+
+    # k = 'shapes[22].x0'
+    # n = 'sajd'
+    # m = re.match(r'^shapes\[([0-9]+)]\.(.){2}$', k)
+    # m2 = re.match(r'^shapes\[([0-9]+)]\.(.){2}$', n)
+    # ic(m, int(m.group(1)))
+    # ic(m2)
+
+    # t1 = '1970-01-01 00:00:36.481'
+    # t2 = '1970-01-01 00:00:41.3325'
+    # t_max = pd.to_timedelta(10, unit='s')
+    # t1_p = pd.to_datetime(t1)
+    # t2_p = pd.to_datetime(t2)
+    # d = (t2_p - t1_p) / 2
+    # ic(d, type(d.microseconds // 1000))
+    # ic(t1_p + d)
+    # ic(d < t_max)
+
+    l = [
+        [1, 2, 3],
+        [4, 5, 6]
+    ]
+    ic([i for s in l for i in s])
+    # ic(np.concatenate(l))
+
+    # d = {
+    #     1: 'a',
+    #     2: 'b'
+    # }
+    # v = d.values()
+    # ic(v, type(v), list(v))
+
+    # d = {'shapes': [{'editable': True,
+    #                                  'fillcolor': 'rgba(252, 169, 18, 0.1)',
+    #                                  'fillrule': 'evenodd',
+    #                                  'layer': 'above',
+    #                                  'line': {'color': 'rgba(252, 169, 18, 0.7)',
+    #                                           'dash': 'solid',
+    #                                           'width': 2},
+    #                                  'opacity': 1,
+    #                                  'type': 'rect',
+    #                                  'x0': '1970-01-01 00:00:30.6257',
+    #                                  'x1': '1970-01-01 00:00:37.9448',
+    #                                  'xref': 'x',
+    #                                  'y0': 11144.260662336996,
+    #                                  'y1': -13892.731818866012,
+    #                                  'yref': 'y'}]}
+    # ic('shapes' in d)
+
+    # lst = [1, 2, 3]
+    # for idx, i in enumerate(lst[::-1]):
+    #     ic(idx, i)
+
+    # a = 123_456_213_23
+    # ic("{:,}".format(a))
+    # ic(f'{a:,}')
+
+    rec = EcgRecord.example()
+    v = rec.get_time_values(0, 1000)
+    ic(v[0], v.iat[-1])
 
 
 

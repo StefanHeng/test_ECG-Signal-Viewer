@@ -3,6 +3,8 @@ import pandas as pd
 
 import concurrent.futures
 
+from ecg_app_defns import *
+
 
 class EcgPlot:
     """Handles plotting for a particular `record`, or surgery.
@@ -20,16 +22,6 @@ class EcgPlot:
     _DISPLAY_SCALE_ECG = 20  # magnitude of ecg in a 1rem
     SP_RT_READABLE = 125  # Sufficient frequency (Hz) for human differentiable graphing
 
-    PRESERVE_UI_STATE = True  # Arbitrarily picked value
-    CLR_PLT_DF = '#6AA2F9'  # Default blue by plotly
-    CLR_PLT = '#2C2925'
-    PRIMARY = '#FCA912'
-    SECONDARY = '#2C8595'
-    SECONDARY_2 = '#80B6BF'
-    GRAY_0 = '#808080'  # Gray
-    DEFAULT_BG = 'rgba(229, 236, 246, 0.8)'
-    CLR_FONT = 'rgb(102, 102, 102)'  # Color of font
-
     def __init__(self, record, parent):
         self.rec = record
         self.parn = parent
@@ -46,30 +38,39 @@ class EcgPlot:
         return self.rec.get_time_values(strt, end, sample_factor), \
             self.rec.get_ecg_samples(idx_lead, strt, end, sample_factor)
 
-    def get_fig(self, idx_lead, strt, end, annotations=None, yaxis_fixed=False):
+    def get_fig(self, idx_lead, strt, end, annotations=None, shapes=None, yaxis_fixed=False):
         time_vals, ecg_vals = self.get_xy_vals(idx_lead, strt, end)
-        yaxis_config = dict(
-            range=self.parn.ui.get_ignore_noise_range(ecg_vals),
-            fixedrange=yaxis_fixed
-        )
         return dict(
             data=[dict(
                 x=time_vals,
                 y=ecg_vals,
-                mode='lines',
+                mode='lines+markers',  # Markers needed to support box select
                 line=dict(
-                    color=self.CLR_PLT,
+                    color=CLR_PLT,
                     width=0.5),
+                marker=dict(
+                    color=TRANSP,
+                    size=0
+                )
             )],
             layout=dict(
+                template=TPL,
                 plot_bgcolor='transparent',
                 dragmode='pan',
-                font=dict(size=10, color=self.CLR_FONT),
+                font=dict(size=10, color=CLR_FONT),
                 margin=dict(l=45, r=30, t=0, b=15),  # Less than default margin, effectively cropping out whitespace
                 hoverdistance=0,
                 hoverinfo=None,
-                yaxis=yaxis_config,
-                annotations=annotations
+                xaxis=dict(
+                    range=[time_vals[0], time_vals.iat[-1]]
+                ),
+                yaxis=dict(
+                    range=self.parn.ui.get_ignore_noise_range(ecg_vals),
+                    fixedrange=yaxis_fixed
+                ),
+                annotations=annotations,
+                shapes=shapes,
+                newshape=TPL_SHAPE
             )
         )
 
@@ -111,7 +112,7 @@ class EcgPlot:
                         y=tag_y,
                         mode='markers',
                         marker=dict(
-                            color=self.parn.PRIMARY,
+                            color=[TRANSP] + [PRIMARY] * self.rec.N_TAG,
                             size=3
                         )
                     )
@@ -121,7 +122,7 @@ class EcgPlot:
                     xaxis=dict(
                         rangeslider=dict(
                             visible=True,
-                            bgcolor=self.parn.DEFAULT_BG,
+                            bgcolor=DEFAULT_BG,
                             thickness=0.4,  # Height of RangeSlider/thumbnail
                         )
                     )

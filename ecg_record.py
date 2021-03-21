@@ -36,7 +36,7 @@ class EcgRecord:
         self.nm = path.stem  # By pathlib Path, gets the file name without last extension
         self._seg_keys = list(self.record.keys())  # keys to each segment compiled in the .h5 file
         self.tags, self.tags_tm = self._get_tags()  # `_ann_tm` to make bisect easy
-        self._N_TAG = len(self.tags_tm)
+        self.N_TAG = len(self.tags_tm)
 
         # Following properties are the same across different segments, as far as EcgApp is concerned.
         metadata = self._get_seg(self._seg_keys[0]).get_metadata()
@@ -281,9 +281,9 @@ class EcgRecord:
             idx_strt = bisect_left(self.tags_tm, strt_ms)
             idx_end = bisect_left(self.tags_tm, end_ms)
             # ic(strt_ms, end_ms, idx_strt, idx_end)
-            if idx_strt == self._N_TAG:
+            if idx_strt == self.N_TAG:
                 idx_strt -= 1
-            if idx_end == self._N_TAG:
+            if idx_end == self.N_TAG:
                 idx_end -= 1
             return idx_strt, idx_end
 

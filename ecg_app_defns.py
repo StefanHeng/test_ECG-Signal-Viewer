@@ -1,5 +1,8 @@
 from dash.dependencies import MATCH, ALL
 
+import plotly.graph_objects as go
+
+
 FA_CSS_LNK = 'https://use.fontawesome.com/releases/v5.8.1/css/all.css'
 
 CNM_HD = 'header'
@@ -126,14 +129,6 @@ ANM_BTN_ANTN_BDR_HD = 'btn_annotation_hide-left-border'
 ANM_BTN_ANTN_TG_ROTS = 'ic-btn-annotations-toggle_rotate-start'
 ANM_BTN_ANTN_TG_ROTE = 'ic-btn-annotations-toggle_rotate-end'
 
-CONF = dict(  # Configuration for figure
-    responsive=True,
-    scrollZoom=True,
-    modeBarButtonsToRemove=['lasso2d', 'select2d', 'autoScale2d', 'toggleSpikelines',
-                            'hoverClosestCartesian', 'hoverCompareCartesian'],
-    displaylogo=False
-)
-
 CNM_BTN = 'btn'
 CNM_MY_DPD = 'my_dropdown'
 ID_DIV_FIG_OPN = 'div_fig-options'
@@ -189,6 +184,7 @@ DEV_TML_RD = 'rand -> [7, 6, 4, 17, 36]'
 
 # Styles
 ANTN_BG_CLR = 'rgba(192, 192, 192, 0.3)'
+ANTN_BG_CLR_A5 = 'rgba(192, 192, 192, 0.5)'
 ANTN_BG_CLR_CLK = 'rgba(252, 169, 18, 0.3)'  # primary a3
 ANTN_CLR = 'rgba(0, 0, 0, 0.6)'
 ANTN_ARW_CLR = 'rgba(0, 0, 0, 0.7)'
@@ -204,3 +200,41 @@ LUX_FT_FML = '"Nunito Sans", ' \
              '"Segoe UI Emoji", ' \
              '"Segoe UI Symbol'
 
+CLR_PLT_DF = '#6AA2F9'  # Default blue by plotly
+CLR_PLT = '#2C2925'
+PRIMARY = '#FCA912'
+SECONDARY = '#2C8595'
+SECONDARY_2 = '#80B6BF'
+GRAY_0 = '#808080'  # Gray
+DEFAULT_BG = 'rgba(229, 236, 246, 0.8)'
+CLR_FONT = 'rgb(102, 102, 102)'  # Color of font
+TRANSP = 'rgba(0, 0, 0, 0)'
+
+CLR_PRIM_A7 = 'rgba(252, 169, 18, 0.7)'
+CLR_PRIM_A5 = 'rgba(252, 169, 18, 0.51)'
+CLR_PRIM_A1 = 'rgba(252, 169, 18, 0.1)'
+
+TPL_SHAPE = dict(
+    editable=True,
+    fillcolor=CLR_PRIM_A5,
+    line=dict(
+        color=TRANSP,
+        width=2,
+    ),
+    xref='x',
+    yref='y'
+)
+
+TPL = go.layout.Template()
+TPL.layout.annotationdefaults = dict(
+    font=dict(
+        family=LUX_FT_FML,
+        size=10.5,
+        color=ANTN_CLR
+    ),
+    showarrow=False,
+    opacity=1,
+    align='center',
+    xref="x",
+    yref='y',
+)
