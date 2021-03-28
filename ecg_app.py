@@ -98,6 +98,7 @@ class EcgApp:
 
     def _set_layout(self):
         return html.Div([
+            # Header
             html.Div(className=CNM_HD, children=[
                 html.Button(id=ID_BTN_OPN, className=CNM_BTN, n_clicks=0, children=[
                     html.I(id=ID_IC_OPN, className=CNM_IC_BR)
@@ -135,10 +136,13 @@ class EcgApp:
                     html.Button(id=ID_BTN_ADV_FW, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=True, children=[
                         html.I(className=CNM_ADV_FW)
                     ]),
-                    html.Button(id=ID_BTN_ANTN_TG, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=False, n_clicks=0,
+                    html.Button(id=ID_BTN_TG_TG, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=False, n_clicks=0,
                                 children=[
-                                    html.I(id=ID_IC_ANTN_TG, className=join(CNM_ANTN_TG, ANM_BTN_ANTN_TG_ROTS))
-                                ])
+                                    html.I(id=ID_IC_TG_TG, className=join(CNM_TG_TG, ANM_BTN_TG_TG_ROTS))
+                                ]),
+                    html.Button(id=ID_BTN_CLP_CLR, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=True, children=[
+                        html.I(className=CNM_CLP_CLR)
+                    ]),
                 ]),
                 dbc.Tooltip(target=ID_BTN_ADV_BK, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
                             delay=TTP_DL, children='Advance backward'),
@@ -150,14 +154,17 @@ class EcgApp:
                             delay=TTP_DL, children='Nudge forward'),
                 dbc.Tooltip(target=ID_BTN_ADV_FW, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
                             delay=TTP_DL, children='Advance forward'),
-                dbc.Tooltip(target=ID_BTN_ANTN_TG, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
+                dbc.Tooltip(target=ID_BTN_TG_TG, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
                             delay=TTP_DL, children='Show/Hide markings'),
+                dbc.Tooltip(target=ID_BTN_CLP_CLR, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
+                            delay=TTP_DL, children='Clear caliper measurements'),
 
                 html.Div(id=ID_DIV_TMLB, children=[
                     html.P(id=ID_TMLB)
                 ])
             ]),
 
+            # Floating dropdown panel
             html.Div(id=ID_BBX_DIV_OPN, children=[
                 html.Div(id=ID_DIV_OPN, children=[
                     # Sets the record, a separate call back function to make sure execution order
@@ -180,30 +187,35 @@ class EcgApp:
                 ]),
             ]),
 
-            # dcc.Store(id='time'),  # Debugging only, takes UI interaction epoch time and update finish time
-            dcc.Store(id=ID_STOR_N_LD),
             dbc.Fade(id=ID_FD_MN, is_in=False, children=[
                 html.Div(className=CNM_MNBD, children=[
-                    html.Div(className=CNM_DIV_TMB, children=[
+                    html.Div(className=CNM_DIV_TMB, children=[  # Thumbnail graph on top
                         dcc.Graph(  # Dummy figure, change its range just to change how the RangeSlider looks
                             # Need a dummy for unknown reason so that Dash loads the layout
                             id=ID_TMB, className=CNM_TMB, figure=go.Figure()
                         )
                     ]),
-                    html.Div(id=ID_DIV_TABS, children=[
+                    html.Div(id=ID_DIV_TABS, children=[  # 3 tabs
+                        # Tab 1, the lead channels
                         html.Div(id=ID_DIV_PLTS, children=[  # Which is empty list on init
                             self.get_fig_layout(idx) for idx in self.idxs_lead
                         ]),
 
-                        dcc.Store(id=ID_STOR_ANTN_IDX),  # Write to layout, triggered by clientside callback
+                        # Tab 2, clickable items
+
+
+                        # Static tag list
+                        dcc.Store(id=ID_STOR_TG_IDX),  # Write to layout, triggered by clientside callback
                         # Keep track of number of clicks on tag items, essential for clientside callback
-                        dcc.Store(id=ID_STOR_ANTN_NCS),
-                        html.Div(id=ID_DIV_ANTN, className=ANM_DIV_ANTN_CLPW, children=[
-                            dbc.ListGroup(id=ID_GRP_ANTN)
+                        dcc.Store(id=ID_STOR_TG_NCS),
+                        html.Div(id=ID_DIV_TG, className=ANM_DIV_TG_CLPW, children=[
+                            dbc.ListGroup(id=ID_GRP_TG)
                         ]),
+
+                        # Tab 3, the button
                         # It's okay, always enabled, cos if no lead channel on display, the button is not even visible
-                        html.Button(id=ID_BTN_ANTN, className=join(CNM_BTN, ANM_BTN_ANTN_BDR_SH), n_clicks=0, children=[
-                            html.I(id=ID_IC_ANTN, className=CNM_ANTN_EXPD)
+                        html.Button(id=ID_BTN_TG, className=join(CNM_BTN, ANM_BTN_TG_BDR_SH), n_clicks=0, children=[
+                            html.I(id=ID_IC_TG, className=CNM_TG_EXP)
                         ])
                     ])
                 ])
@@ -259,6 +271,7 @@ class EcgApp:
         """
         :param idx_lead: index of lead as stored in .h5 datasets
         :param tags: Tags within display range as stored in `EcgRecord`
+        :param shapes: List of current user-drawn shapes
 
         .. note:: A valid range has values in [0, sum of all samples across the entire ecg_record),
         one-to-one correspondence with time by `sample_rate`
@@ -299,6 +312,7 @@ class EcgApp:
              # Output(ID_BTN_FIXY, DS),
              Output(ID_BTN_MV_FW, DS),
              Output(ID_BTN_ADV_FW, DS),
+             Output(ID_BTN_CLP_CLR, DS)
              # Output(ID_BTN_ANTN_TG, DS)
              ],
             [Input(ID_DPD_LD_TEMPL, V),
@@ -336,9 +350,9 @@ class EcgApp:
              Output(all_(ID_ITM_LD_ADD), DS),
              Output(all_(ID_GRA), F),
              Output(ID_TMB, F),
-             Output(ID_TMLB, C),
+             Output(ID_TMLB, C),  # Updates the time duration label
              Output(ID_BTN_EXP, DS),
-             Output(ID_STOR_ANTN_NCS, D)],  # Updates the time duration label
+             Output(ID_STOR_TG_NCS, D)],
             [Input(ID_STOR_REC, D),
              Input(ID_DPD_LD_TEMPL, V),
              Input(all_(ID_GRA), 'relayoutData'),
@@ -348,15 +362,16 @@ class EcgApp:
              Input(ID_BTN_FIXY, NC),
              Input(ID_BTN_MV_FW, NC),
              Input(ID_BTN_ADV_FW, NC),
-             Input(ID_IC_ANTN_TG, CNM),  # Ensures `_marking_on` is first toggled
+             Input(ID_IC_TG_TG, CNM),  # Ensures `_marking_on` is first toggled
+             Input(ID_BTN_CLP_CLR, NC),
              Input(ID_STOR_ADD, D),
              Input(ID_STOR_RMV, D),
-             Input(ID_STOR_ANTN_IDX, D)],
+             Input(ID_STOR_TG_IDX, D)],
             [State(ID_DIV_PLTS, C),
              State(all_(ID_ITM_LD_ADD), DS),
              State(all_(ID_GRA), F),
              State(ID_TMB, F),
-             State(ID_STOR_ANTN_NCS, D)],  # Models the change in number of clicks
+             State(ID_STOR_TG_NCS, D)],  # Models the change in number of clicks
             prevent_initial_call=True
         )(self.update_lead_options_disable_layout_figures)
 
@@ -389,23 +404,23 @@ class EcgApp:
         )(self.export_csv)
 
         self.app.callback(
-            [Output(ID_DIV_ANTN, CNM),
-             Output(ID_BTN_ANTN, CNM),
-             Output(ID_IC_ANTN, CNM),
+            [Output(ID_DIV_TG, CNM),
+             Output(ID_BTN_TG, CNM),
+             Output(ID_IC_TG, CNM),
              Output(ID_DIV_PLTS, CNM)],
-            Input(ID_BTN_ANTN, NC),
+            Input(ID_BTN_TG, NC),
             prevent_initial_call=True
         )(self.toggle_tags_panel)
 
         self.app.callback(
-            Output(ID_GRP_ANTN, C),
+            Output(ID_GRP_TG, C),
             Input(ID_STOR_REC, D),
             prevent_initial_call=True
         )(self.get_tags_layout)
 
         self.app.callback(
-            Output(ID_IC_ANTN_TG, CNM),
-            Input(ID_BTN_ANTN_TG, NC),
+            Output(ID_IC_TG_TG, CNM),
+            Input(ID_BTN_TG_TG, NC),
             prevent_initial_call=True
         )(self.toggle_show_markings)
 
@@ -414,9 +429,9 @@ class EcgApp:
                 namespace='clientside',
                 function_name='update_tag_clicked'
             ),
-            Output(ID_STOR_ANTN_IDX, D),
-            Input(all_(ID_ITM_ANTN), NC),
-            State(ID_STOR_ANTN_NCS, D),
+            Output(ID_STOR_TG_IDX, D),
+            Input(all_(ID_ITM_TG), NC),
+            State(ID_STOR_TG_NCS, D),
             prevent_initial_call=True
         )
 
@@ -465,7 +480,7 @@ class EcgApp:
             b = template is not None
         else:  # Due to lead add or remove
             b = len(self.idxs_lead) > 0
-        return lst_to_tuple([b] + [not b for i in range(4)])
+        return lst_to_tuple([b] + [not b for i in range(5)])
 
     def set_add_lead_options(self, record_name):
         # EcgApp.__print_changed_property('update add lead options')
@@ -483,11 +498,11 @@ class EcgApp:
 
     def get_tags_layout(self, record_name):
         if record_name is not None:  # `curr_rec` already loaded
-            layout = [dbc.ListGroupItem(className=CNM_ANTN_BLK, action=True, children=[
-                dbc.Badge(id=m_id(ID_ITM_ANTN, idx), className=join(CNM_BDG, CNM_BDG_LT, CMN_TMLB), n_clicks=0,
+            layout = [dbc.ListGroupItem(className=CNM_TG_BLK, action=True, children=[
+                dbc.Badge(id=m_id(ID_ITM_TG, idx), className=join(CNM_BDG, CNM_BDG_LT, CMN_TMLB), n_clicks=0,
                           children=[self.rec.count_to_str(self.rec.ms_to_count(tm))]),
                 dbc.Badge(className=join(CNM_BDG, CNM_BDG_LT), children=[typ]),
-                html.P(className=CNM_ANTN_TXT, children=[txt])
+                html.P(className=CNM_TG_TXT, children=[txt])
             ]) for idx, (typ, tm, txt) in enumerate(self.rec.tags)]
             return layout
         else:
@@ -566,7 +581,8 @@ class EcgApp:
 
     def update_lead_options_disable_layout_figures(
             self, record_name, template, layouts_fig, layout_tmb,
-            n_clicks_adv_bk, n_clicks_mv_bk, n_clicks_fixy, n_clicks_mv_fw, n_clicks_adv_fw, n_clicks_antn_tg,
+            n_clicks_adv_bk, n_clicks_mv_bk, n_clicks_fixy, n_clicks_mv_fw, n_clicks_adv_fw,
+            n_clicks_mkg_tg, n_clicks_clpr,
             data_add, data_rmv,
             idx_ann_clicked,
             plots, disables_lead_add, figs_gra, fig_tmb, ns_clicks_tag):
@@ -585,7 +601,8 @@ class EcgApp:
         :param n_clicks_fixy: Number of clicks for fix-yaxis button
         :param n_clicks_mv_fw: Number of clicks for nudge forward button
         :param n_clicks_adv_fw: Number of clicks for advance forward button
-        :param n_clicks_antn_tg: Number of clicks for toggle markings button
+        :param n_clicks_mkg_tg: Number of clicks for toggle markings button
+        :param n_clicks_clpr: Number of clicks for clear caliper measurements
         :param data_add: Tuple info on if adding took place and if so the lead index added
         :param data_rmv: Tuple info on the original index of removed lead index, and the lead index removed
         :param idx_ann_clicked: Index of tag clicked
@@ -705,14 +722,29 @@ class EcgApp:
                 plots = dash.no_update
                 disables_lead_add = self.no_update_add_opns
             ns_clicks_tag = dash.no_update
-        elif ID_IC_ANTN_TG == changed_id:
+        elif ID_IC_TG_TG == changed_id:
+            if self.rec is not None:
+                anns = self._get_all_annotations(idx_ann_clicked)
+                for f in figs_gra:
+                    f['layout']['annotations'] = anns
+                plots = dash.no_update
+                disables_lead_add = self.no_update_add_opns
+                fig_tmb = dash.no_update
+                ns_clicks_tag = dash.no_update
+            else:
+                raise PreventUpdate
+        elif ID_BTN_CLP_CLR == changed_id:
+            self.ui.clear_measurements()
+            self._shapes = []
             anns = self._get_all_annotations(idx_ann_clicked)
             for f in figs_gra:
+                f['layout']['shapes'] = self._shapes
                 f['layout']['annotations'] = anns
-            fig_tmb = dash.no_update
             plots = dash.no_update
             disables_lead_add = self.no_update_add_opns
+            fig_tmb = dash.no_update
             ns_clicks_tag = dash.no_update
+
         elif self.move_offset_counts is not None and changed_id in self.move_offset_counts:
             # The keys: [ID_BTN_ADV_BK, ID_BTN_MV_BK, ID_BTN_MV_FW, ID_BTN_ADV_FW] by construction
             offset_count = self.move_offset_counts[changed_id]
@@ -763,7 +795,7 @@ class EcgApp:
                 time_label = None
                 disabled_export_btn = True
             ns_clicks_tag = dash.no_update
-        elif ID_STOR_ANTN_IDX == changed_id and idx_ann_clicked != -1:
+        elif ID_STOR_TG_IDX == changed_id and idx_ann_clicked != -1:
             ns_clicks_tag[idx_ann_clicked] += 1
             count = self.rec.ms_to_count(self.rec.tags[idx_ann_clicked][1])
 
@@ -802,8 +834,9 @@ class EcgApp:
         return plots, disables_lead_add, figs_gra, fig_tmb, time_label, disabled_export_btn, ns_clicks_tag
 
     def _get_all_annotations(self, idx_ann_clicked):
+        """ Static tag and shape measurement annotations """
         anns = self.ui.get_measurement_annotations()
-        if self._marking_on:
+        if self.rec is not None and self._marking_on:
             anns += self.ui.get_tags(*(self.disp_rng[0]), idx_ann_clicked)
         return anns
 
@@ -878,9 +911,9 @@ class EcgApp:
     def toggle_show_markings(self, n_clicks):
         self._marking_on = not self._marking_on
         if n_clicks % 2 == 1:
-            return join(CNM_ANTN_TG, ANM_BTN_ANTN_TG_ROTE)
+            return join(CNM_TG_TG, ANM_BTN_TG_TG_ROTE)
         else:
-            return join(CNM_ANTN_TG, ANM_BTN_ANTN_TG_ROTS)
+            return join(CNM_TG_TG, ANM_BTN_TG_TG_ROTS)
 
     def export_csv(self, n_clicks):
         strt, end = self.disp_rng[0]
@@ -889,9 +922,9 @@ class EcgApp:
     @staticmethod
     def toggle_tags_panel(n_clicks):
         if n_clicks % 2 == 0:
-            return ANM_DIV_ANTN_CLPW, join(CNM_BTN, ANM_BTN_ANTN_BDR_SH), CNM_ANTN_EXPD, ANM_DIV_PLT_EXPW
+            return ANM_DIV_TG_CLPW, join(CNM_BTN, ANM_BTN_TG_BDR_SH), CNM_TG_EXP, ANM_DIV_PLT_EXPW
         else:
-            return ANM_DIV_ANTN_EXPW, join(CNM_BTN, ANM_BTN_ANTN_BDR_HD), CNM_ANTN_EXPD, ANM_DIV_PLT_CLPW
+            return ANM_DIV_TG_EXPW, join(CNM_BTN, ANM_BTN_TG_BDR_HD), CNM_TG_EXP, ANM_DIV_PLT_CLPW
 
     @staticmethod
     def __print_changed_property(func_nm):

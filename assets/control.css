@@ -107,14 +107,25 @@
     margin-right: 2em;
 }
 
-#ic_annotation-toggle {
+
+#ic_tag-toggle {
     transition: all 100ms ease-in-out
 }
 
-.ic-btn-annotations-toggle_rotate-start {
+.btn_tag_show-left-border {
+    border-right: var(--border);
+    transform: scaleX(1);
+}
+
+.btn_tag_hide-left-border {
+    border-right: none;
+    transform: scaleX(-1);
+}
+
+.ic-btn-tags-toggle_rotate-start {
     transform: rotate(90deg);
 }
 
-.ic-btn-annotations-toggle_rotate-end {
+.ic-btn-tags-toggle_rotate-end {
     transform: rotate(0deg);
 }

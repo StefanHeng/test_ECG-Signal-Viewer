@@ -290,3 +290,8 @@ class EcgUi:
         """ Assumes idxs valid and reversely sorted """
         for i in idxs:
             del lst[i]
+
+    def clear_measurements(self):
+        self._n_mesr = 0
+        self._lst_shape_coord = []
+        self.lst_ann_mesr = []

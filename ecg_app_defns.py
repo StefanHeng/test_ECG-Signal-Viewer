@@ -90,29 +90,37 @@ CNM_ADV_BK = 'fas fa-angle-double-left'
 CNM_MV_BK = 'fas fa-angle-left'
 CNM_ADV_FW = 'fas fa-angle-double-right'
 CNM_MV_FW = 'fas fa-angle-right'
-ID_BTN_ANTN_TG = 'btn_annotation-toggle'
-ID_IC_ANTN_TG = 'ic_annotation-toggle'
-CNM_ANTN_TG = 'fas fa-marker'
+ID_BTN_TG_TG = 'btn_tag-toggle'
+ID_IC_TG_TG = 'ic_tag-toggle'
+CNM_TG_TG = 'fas fa-marker'
 
 ID_DIV_TMLB = 'div_time-label'
 ID_TMLB = 'time-label'
 
-ID_DIV_ANTN = 'div_annotations'
-ID_GRP_ANTN = 'list-group_annotations'
-ID_BTN_ANTN = 'btn_annotation'  # Collapse or expand annotation panel
-ID_IC_ANTN = 'ic_annotation'
-CNM_ANTN_EXPD = 'fas fa-chevron-left'
-CNM_ANTN_CLPS = 'fas fa-chevron-right'
-ID_ITM_ANTN = 'item_annotation'
-ID_STOR_ANTN_IDX = 'store_clicked-annotation-index'  # semi-store in a sense
-ID_STOR_ANTN_NCS = 'store_annotation-ns-clicks'
-ID_STOR_REC_ANTNS = 'store_rec-annotations'
-CNM_ANTN_TXT = 'text_annotation'
-CNM_ANTN_BLK = 'annotation-block'
+ID_DIV_TG = 'div_tags'
+ID_GRP_TG = 'list-group_tags'
+ID_BTN_TG = 'btn_tag'  # Collapse or expand annotation panel
+ID_IC_TG = 'ic_tag'
+CNM_TG_EXP = 'fas fa-chevron-left'  # Expand
+CNM_TG_CLP = 'fas fa-chevron-right'  # Collapse
+ID_ITM_TG = 'item_tag'
+ID_STOR_TG_IDX = 'store_clicked-tag-index'  # semi-store in a sense
+ID_STOR_TG_NCS = 'store_tag-ns-clicks'
+ID_STOR_REC_TGS = 'store_rec-tags'
+CNM_TG_TXT = 'text_tag'
+CNM_TG_BLK = 'tag-block'
+
+ID_DIV_CLKED = 'div_editables&clickables'  # The 2nd tab
+ID_DIV_CMT_ED = 'div_comment-edit'
+ID_DIV_CMT_LST = 'div_comment-list'
+
 
 CNM_BDG = 'bdg'
 CNM_BDG_LT = 'badge-light'
 CMN_TMLB = 'time-label'
+
+ID_BTN_CLP_CLR = 'btn_clear-caliper'
+CNM_CLP_CLR = 'fas fa-broom'
 
 ANM_OPQY = 'opaque_1'  # Transition achieved by changing class
 ANM_OPQN = 'opaque_0'
@@ -122,12 +130,12 @@ ANM_DIV_PLT_CLPW = 'div_plots_expand-width'
 ANM_DIV_PLT_EXPW = 'div_plots_collapse-width'
 ANM_IC_OPN_ROTS = 'ic_options_rotate_start'
 ANM_IC_OPN_ROTE = 'ic_options_rotate_end'
-ANM_DIV_ANTN_EXPW = 'div_annotations_expand-width'
-ANM_DIV_ANTN_CLPW = 'div_annotations_collapse-width'
-ANM_BTN_ANTN_BDR_SH = 'btn_annotation_show-left-border'
-ANM_BTN_ANTN_BDR_HD = 'btn_annotation_hide-left-border'
-ANM_BTN_ANTN_TG_ROTS = 'ic-btn-annotations-toggle_rotate-start'
-ANM_BTN_ANTN_TG_ROTE = 'ic-btn-annotations-toggle_rotate-end'
+ANM_DIV_TG_EXPW = 'div_tags_expand-width'
+ANM_DIV_TG_CLPW = 'div_tags_collapse-width'
+ANM_BTN_TG_BDR_SH = 'btn_tag_show-left-border'
+ANM_BTN_TG_BDR_HD = 'btn_tag_hide-left-border'
+ANM_BTN_TG_TG_ROTS = 'ic-btn-tags-toggle_rotate-start'
+ANM_BTN_TG_TG_ROTE = 'ic-btn-tags-toggle_rotate-end'
 
 CNM_BTN = 'btn'
 CNM_MY_DPD = 'my_dropdown'
@@ -183,7 +191,7 @@ DEV_TML_RD = 'rand -> [7, 6, 4, 17, 36]'
 
 
 # Styles
-ANTN_BG_CLR = 'rgba(192, 192, 192, 0.3)'
+ANTN_BG_CLR = 'rgba(192, 192, 192, 0.3)'  # As in plotly annotations
 ANTN_BG_CLR_A5 = 'rgba(192, 192, 192, 0.5)'
 ANTN_BG_CLR_CLK = 'rgba(252, 169, 18, 0.3)'  # primary a3
 ANTN_CLR = 'rgba(0, 0, 0, 0.6)'
