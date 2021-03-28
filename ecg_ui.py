@@ -340,7 +340,7 @@ class EcgUi:
         """
         :return: 4-tuple, (x0, x1, y0, y1) as string representation per return of 'shape_dict_to_coords'
          if a measurement exists, None otherwise """
-        if self._n_mesr > 0:
+        if self.has_measurement():
             x0, x1, y0, y1 = self._lst_shape_coords[self._ord_mesr_edit[-1]]
             return (
                 self.rec.pd_time_to_str(x0),
@@ -348,3 +348,6 @@ class EcgUi:
                 f'{int(y0):,}',
                 f'{int(y1):,}'
             )
+
+    def has_measurement(self):
+        return self._n_mesr > 0

@@ -197,9 +197,9 @@ class EcgApp:
                         html.Div(id=ID_DIV_CMT_TG, className=ANM_DIV_CMT_TG_CLPW, children=[
                             html.Div(id=ID_DIV_CMT_LB),
                             html.Div(id=ID_DIV_CMT_ED, children=[
-                                dbc.Textarea(id=ID_TXTA_CMT, rows=self.MIN_TXTA_RW,
+                                dbc.Textarea(id=ID_TXTA_CMT, rows=self.MIN_TXTA_RW, disabled=True,
                                              placeholder='Edit comment to most recent caliper measurement'),
-                                html.Button(id=ID_BTN_CMT_SBM, className=CNM_BTN, children='SAVE'),
+                                html.Button(id=ID_BTN_CMT_SBM, className=CNM_BTN, disabled=True, children='SAVE'),
                             ]),
                             html.Div(id=ID_DIV_CMT_LST),
 
@@ -358,6 +358,8 @@ class EcgApp:
              Output(ID_TMB, F),
              Output(ID_TMLB, C),  # Updates the time duration label
              Output(ID_DIV_CMT_LB, C),  # Updates the comment range label
+             Output(ID_TXTA_CMT, DS),
+             Output(ID_BTN_CMT_SBM, DS),
              Output(ID_BTN_EXP, DS),
              Output(ID_STOR_TG_NCS, D)],
             [Input(ID_STOR_REC, D),
@@ -417,7 +419,7 @@ class EcgApp:
              Output(ID_DIV_PLTS, CNM)],
             Input(ID_BTN_CMT_TG_TG, NC),
             prevent_initial_call=True
-        )(self.toggle_tags_panel)
+        )(self.toggle_tags_n_comments_panel)
 
         self.app.callback(
             Output(ID_GRP_TG, C),
@@ -566,7 +568,7 @@ class EcgApp:
         if txt is not None:
             n_ch = len(txt) if txt is not None else 0
             n_ln = txt.count('\n')
-            n_row = max(n_ch // 20, n_ln)
+            n_row = max(n_ch // 30, n_ln)
             min_bound = max(n_row + 1, self.MIN_TXTA_RW)
             return min(min_bound, self.MAX_TXTA_RW)
         else:
@@ -654,8 +656,9 @@ class EcgApp:
         changed_id = self.ui.get_id(changed_id_property)
 
         time_label = dash.no_update  # Both dependent on number of leads on plot == 0
-        disabled_export_btn = dash.no_update
+        disable_export_btn = dash.no_update
         cmt_rng_label = dash.no_update
+        disable_comment = dash.no_update
         if ID_STOR_REC == changed_id:  # Reset layout
             self.idxs_lead = []
             plots = []
@@ -668,7 +671,7 @@ class EcgApp:
                 ns_clicks_tag = []
             # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
             time_label = None
-            disabled_export_btn = True
+            disable_export_btn = True
             figs_gra = [dash.no_update for i in figs_gra]
         elif ID_DPD_LD_TEMPL == changed_id:
             if template is not None:
@@ -683,7 +686,7 @@ class EcgApp:
                     disables_lead_add[idx] = True
                 fig_tmb = self.fig_tmb.add_trace(deepcopy(self.idxs_lead), override=True)
                 time_label = self.ui.count_pr_to_time_label(*self.disp_rng[0])
-                disabled_export_btn = False
+                disable_export_btn = False
             else:  # Reset layout
                 self.idxs_lead = []
                 plots = []
@@ -692,7 +695,7 @@ class EcgApp:
                 # figs_gra = []  # For same reason below, the remove button case
                 fig_tmb = self.fig_tmb.add_trace([], override=True)  # Basically removes all trace without adding
                 time_label = None
-                disabled_export_btn = True
+                disable_export_btn = True
             figs_gra = [dash.no_update for i in figs_gra]
             ns_clicks_tag = dash.no_update
 
@@ -716,6 +719,7 @@ class EcgApp:
                 disables_lead_add = self.no_update_add_opns
                 time_label = self.ui.time_range_to_time_label(*x_layout_range)
                 cmt_rng_label = self._create_comment_range_labels()
+                disable_comment = not self.ui.has_measurement()
                 # export button must've been on already
                 ns_clicks_tag = dash.no_update
             # Change in caliper/user-drawn shape
@@ -725,6 +729,7 @@ class EcgApp:
                 self._shapes = figs_gra[idx_idx_changed]['layout']['shapes']
                 self.ui.highlight_most_recent_caliper_edit(figs_gra)
                 cmt_rng_label = self._create_comment_range_labels()
+                disable_comment = not self.ui.has_measurement()
                 for idx, f in enumerate(figs_gra):  # Override original values, for potential text annotation removal
                     f['layout']['annotations'] = anns
                     if idx != idx_idx_changed:
@@ -744,6 +749,7 @@ class EcgApp:
                 disables_lead_add = self.no_update_add_opns
                 time_label = self.ui.time_range_to_time_label(*x_layout_range)
                 cmt_rng_label = self._create_comment_range_labels()
+                disable_comment = not self.ui.has_measurement()
                 ns_clicks_tag = dash.no_update
             else:
                 raise PreventUpdate
@@ -772,6 +778,7 @@ class EcgApp:
             self._shapes = []
             anns = self._get_all_annotations(idx_ann_clicked)
             cmt_rng_label = self._create_comment_range_labels()  # Basically set to none
+            disable_comment = not self.ui.has_measurement()
             for f in figs_gra:
                 f['layout']['shapes'] = self._shapes
                 f['layout']['annotations'] = anns
@@ -800,6 +807,7 @@ class EcgApp:
                 disables_lead_add = self.no_update_add_opns
                 time_label = self.ui.time_range_to_time_label(*x_layout_range)
                 cmt_rng_label = self._create_comment_range_labels()
+                disable_comment = not self.ui.has_measurement()
                 ns_clicks_tag = dash.no_update
             else:
                 raise PreventUpdate
@@ -815,7 +823,7 @@ class EcgApp:
                 figs_gra = [dash.no_update for i in figs_gra]
                 if len(self.idxs_lead) == 1:  # from 0 to 1 lead
                     time_label = self.ui.count_pr_to_time_label(*self.disp_rng[0])
-                    disabled_export_btn = False
+                    disable_export_btn = False
                 ns_clicks_tag = dash.no_update
             else:
                 raise PreventUpdate
@@ -829,7 +837,7 @@ class EcgApp:
             # del figs_gra[idx_idx_changed]'
             if len(self.idxs_lead) == 0:  # from 1 to 0 lead
                 time_label = None
-                disabled_export_btn = True
+                disable_export_btn = True
             ns_clicks_tag = dash.no_update
         elif ID_STOR_TG_IDX == changed_id and idx_ann_clicked != -1:
             ns_clicks_tag[idx_ann_clicked] += 1
@@ -869,7 +877,9 @@ class EcgApp:
         # ic()
         return (
             plots, disables_lead_add, figs_gra, fig_tmb,
-            time_label, cmt_rng_label, disabled_export_btn, ns_clicks_tag
+            time_label, cmt_rng_label,
+            disable_comment, disable_comment, disable_export_btn,
+            ns_clicks_tag
         )
 
     def _get_all_annotations(self, idx_ann_clicked):
@@ -960,7 +970,7 @@ class EcgApp:
         return self.exp.export(strt, end, self.idxs_lead)
 
     @staticmethod
-    def toggle_tags_panel(n_clicks):
+    def toggle_tags_n_comments_panel(n_clicks):
         if n_clicks % 2 == 0:
             return ANM_DIV_CMT_TG_CLPW, join(CNM_BTN, ANM_BTN_TG_BDR_SH), CNM_TG_EXP, ANM_DIV_PLT_EXPW
         else:
