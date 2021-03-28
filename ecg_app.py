@@ -60,16 +60,6 @@ class EcgApp:
         ID_BTN_ADV_FW: pd.Timedelta(2, unit='m')
     }
 
-    CONF = dict(  # Configuration for figure
-        responsive=True,
-        scrollZoom=True,
-        modeBarButtonsToRemove=['lasso2d', 'autoScale2d', 'toggleSpikelines',
-                                'hoverClosestCartesian', 'hoverCompareCartesian'],
-        modeBarButtonsToAdd=['select2d',
-                             'drawrect', 'eraseshape'],
-        displaylogo=False
-    )
-
     def __init__(self, app_name):
         self.rec = None  # Current record
         self.plt = None
@@ -201,20 +191,26 @@ class EcgApp:
                             self.get_fig_layout(idx) for idx in self.idxs_lead
                         ]),
 
-                        # Tab 2, clickable items
+                        # Tab 2, clickable and editable items, comments and tags
+                        html.Div(id=ID_DIV_CMT_TG, className=ANM_DIV_CMT_TG_CLPW, children=[
+                            html.Div(id=ID_DIV_CMT_ED, children=[
+                                dbc.Textarea(id=ID_TXTA_CMT, rows=4,
+                                             placeholder='Add comment to selected box/most recent caliper'),
+                            ]),
+                            html.Div(id=ID_DIV_CMT_LST),
 
-
-                        # Static tag list
-                        dcc.Store(id=ID_STOR_TG_IDX),  # Write to layout, triggered by clientside callback
-                        # Keep track of number of clicks on tag items, essential for clientside callback
-                        dcc.Store(id=ID_STOR_TG_NCS),
-                        html.Div(id=ID_DIV_TG, className=ANM_DIV_TG_CLPW, children=[
-                            dbc.ListGroup(id=ID_GRP_TG)
+                            # Static tag list
+                            dcc.Store(id=ID_STOR_TG_IDX),  # Write to layout, triggered by clientside callback
+                            # Keep track of number of clicks on tag items, essential for clientside callback
+                            dcc.Store(id=ID_STOR_TG_NCS),
+                            html.Div(id=ID_DIV_TG, children=[
+                                dbc.ListGroup(id=ID_GRP_TG)
+                            ]),
                         ]),
 
-                        # Tab 3, the button
+                        # Tab 3, the button to expand/collapse tab 2
                         # It's okay, always enabled, cos if no lead channel on display, the button is not even visible
-                        html.Button(id=ID_BTN_TG, className=join(CNM_BTN, ANM_BTN_TG_BDR_SH), n_clicks=0, children=[
+                        html.Button(id=ID_BTN_CMT_TG_TG, className=join(CNM_BTN, ANM_BTN_TG_BDR_SH), n_clicks=0, children=[
                             html.I(id=ID_IC_TG, className=CNM_TG_EXP)
                         ])
                     ])
@@ -260,7 +256,7 @@ class EcgApp:
 
                 html.Div(className=CNM_DIV_FIG, children=[
                     dcc.Graph(
-                        id=m_id(ID_GRA, idx), className=CNM_GRA, config=self.CONF,
+                        id=m_id(ID_GRA, idx), className=CNM_GRA, config=CONF,
                         figure=self.get_lead_fig(idx, tags, self._shapes)
                     )
                 ])
@@ -404,11 +400,11 @@ class EcgApp:
         )(self.export_csv)
 
         self.app.callback(
-            [Output(ID_DIV_TG, CNM),
-             Output(ID_BTN_TG, CNM),
+            [Output(ID_DIV_CMT_TG, CNM),
+             Output(ID_BTN_CMT_TG_TG, CNM),
              Output(ID_IC_TG, CNM),
              Output(ID_DIV_PLTS, CNM)],
-            Input(ID_BTN_TG, NC),
+            Input(ID_BTN_CMT_TG_TG, NC),
             prevent_initial_call=True
         )(self.toggle_tags_panel)
 
@@ -692,6 +688,7 @@ class EcgApp:
                 self.ui.update_measurement_annotations_shape(l)
                 anns = self._get_all_annotations(idx_ann_clicked)
                 self._shapes = figs_gra[idx_idx_changed]['layout']['shapes']
+                self.ui.highlight_most_recent_caliper_edit(figs_gra)
                 for idx, f in enumerate(figs_gra):  # Override original values, for potential text annotation removal
                     f['layout']['annotations'] = anns
                     if idx != idx_idx_changed:
@@ -853,6 +850,7 @@ class EcgApp:
         removed = self.ui.update_measurement_annotations_time(strt, end, figs_gra)
         if removed:
             self._shapes = figs_gra[0]['layout']['shapes']  # Pick any one, shapes already removed
+            self.ui.highlight_most_recent_caliper_edit(figs_gra)
         anns = self._get_all_annotations(idx_ann_clicked)
         for f in figs_gra:  # Lines up with number of figures plotted
             # Short execution time, no need to multi-process
@@ -922,9 +920,9 @@ class EcgApp:
     @staticmethod
     def toggle_tags_panel(n_clicks):
         if n_clicks % 2 == 0:
-            return ANM_DIV_TG_CLPW, join(CNM_BTN, ANM_BTN_TG_BDR_SH), CNM_TG_EXP, ANM_DIV_PLT_EXPW
+            return ANM_DIV_CMT_TG_CLPW, join(CNM_BTN, ANM_BTN_TG_BDR_SH), CNM_TG_EXP, ANM_DIV_PLT_EXPW
         else:
-            return ANM_DIV_TG_EXPW, join(CNM_BTN, ANM_BTN_TG_BDR_HD), CNM_TG_EXP, ANM_DIV_PLT_CLPW
+            return ANM_DIV_CMT_TG_EXPW, join(CNM_BTN, ANM_BTN_TG_BDR_HD), CNM_TG_EXP, ANM_DIV_PLT_CLPW
 
     @staticmethod
     def __print_changed_property(func_nm):

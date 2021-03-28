@@ -44,7 +44,8 @@ class EcgPlot:
             data=[dict(
                 x=time_vals,
                 y=ecg_vals,
-                mode='lines+markers',  # Markers needed to support box select
+                # mode='lines+markers',  # Markers needed to support box select
+                mode='lines',
                 line=dict(
                     color=CLR_PLT,
                     width=0.5),

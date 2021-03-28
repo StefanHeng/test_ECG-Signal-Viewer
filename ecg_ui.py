@@ -34,6 +34,8 @@ class EcgUi:
         self._lst_shape_coord = []  # List to keep track of plotly user-drawn shapes, in that order
         self.lst_ann_mesr = []  # List of annotation pairs,
         # synchronized with the above, on the corresponding text annotation measurements
+        self._ord_mesr_edit = []  # Keeps track of the order of elements modified by index
+        # Most recent one on end of list
 
     def set_record(self, record):
         self.rec = record
@@ -211,6 +213,17 @@ class EcgUi:
     def get_measurement_annotations(self):
         return [ann for pr in self.lst_ann_mesr for ann in pr]  # Flattens 2d list to 1d
 
+    def _update_measurement_edit_order_after_remove(self, idxs_rmv):
+        """ Update the attribute on (order of measurement edits based on index), based on indices already removed
+        Indices removed should be reversely sorted """
+        self._remove_by_indices(self._ord_mesr_edit, idxs_rmv)
+        # ic(idxs_rmv, self._ord_mesr_edit)
+        for idx_rmv in idxs_rmv:
+            for idx_idx, idx in enumerate(self._ord_mesr_edit):
+                if idx > idx_rmv:  # Decrement by the right amount for the remaining elements
+                    self._ord_mesr_edit[idx_idx] -= 1
+        # Maintain that `ord_mesr_edit` must have uniquely every integer within [0, its length)
+
     def update_measurement_annotations_shape(self, layout_changed):
         """
         Expected to be called on every shape layout change, there will always be a change
@@ -224,24 +237,34 @@ class EcgUi:
                 self._lst_shape_coord.append(coords)
                 self.lst_ann_mesr.append(self.measure(*coords))
                 self._n_mesr += 1
+
+                self._ord_mesr_edit.append(self._n_mesr - 1)  # Index of newly created shape is the last one
             # Linearly check membership for the removed rect
             else:  # A shape removed
                 def _get_idx_removed():  # There must be one and only 1 missing
                     for idx, shape in enumerate(lst_shape):
                         if self.shape_dict_to_coords(shape) != self._lst_shape_coord[idx]:
                             return idx
-                    return -1  # lst_shape is the smaller one, if all equal, the last annotation is removed
+                    # lst_shape is the smaller one, if all equal, the last annotation is removed
+                    return len(self._lst_shape_coord)-1  # Don't use relative offset so that updating order works
                 # Must be that there were a single shape, and it's now removed
                 idx_rmv = _get_idx_removed()
                 del self._lst_shape_coord[idx_rmv]
                 del self.lst_ann_mesr[idx_rmv]
                 self._n_mesr -= 1
+
+                self._update_measurement_edit_order_after_remove([idx_rmv])
         else:  # Change to an existing shape
             # Any one of the keys suffice, e.g. {'shapes[2].x0', 'shapes[2].x1', 'shapes[2].y0', 'shapes[2].y1'}
             idx_ch = self._get_idx_changed_shape(list(layout_changed.keys())[0])
             coords = self.shape_dict_to_coords(layout_changed, changed=True)
             self._lst_shape_coord[idx_ch] = coords
             self.lst_ann_mesr[idx_ch] = self.measure(*coords)
+
+            idx_edt = self._ord_mesr_edit.index(idx_ch)  # Find the original ordering of this edited shape
+            del self._ord_mesr_edit[idx_edt]
+            self._ord_mesr_edit.append(idx_ch)  # Promote to recently edited
+        # ic(self._ord_mesr_edit)
 
     @staticmethod
     def _get_idx_changed_shape(k):
@@ -264,6 +287,8 @@ class EcgUi:
             self._remove_by_indices(self.lst_ann_mesr, idxs)
             for f in figs:
                 self._remove_by_indices(f['layout']['shapes'], idxs)
+
+            self._update_measurement_edit_order_after_remove(idxs)
         return removed
         #     return self.get_measurement_annotations()
         # else:
@@ -295,3 +320,10 @@ class EcgUi:
         self._n_mesr = 0
         self._lst_shape_coord = []
         self.lst_ann_mesr = []
+        self._ord_mesr_edit = []
+
+    def highlight_most_recent_caliper_edit(self, figs_gra):
+        """ Highlights the most recently edited shapes, for a list of figures """
+        for f in figs_gra:
+            for idx, shape in enumerate(f['layout']['shapes']):
+                shape['fillcolor'] = CLR_CLPR_RECT_ACT if idx == self._ord_mesr_edit[-1] else CLR_CLPR_RECT

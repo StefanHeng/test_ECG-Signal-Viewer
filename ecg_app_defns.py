@@ -99,7 +99,6 @@ ID_TMLB = 'time-label'
 
 ID_DIV_TG = 'div_tags'
 ID_GRP_TG = 'list-group_tags'
-ID_BTN_TG = 'btn_tag'  # Collapse or expand annotation panel
 ID_IC_TG = 'ic_tag'
 CNM_TG_EXP = 'fas fa-chevron-left'  # Expand
 CNM_TG_CLP = 'fas fa-chevron-right'  # Collapse
@@ -110,9 +109,12 @@ ID_STOR_REC_TGS = 'store_rec-tags'
 CNM_TG_TXT = 'text_tag'
 CNM_TG_BLK = 'tag-block'
 
-ID_DIV_CLKED = 'div_editables&clickables'  # The 2nd tab
+ID_BTN_CMT_TG_TG = 'btn_comments-n-tags-toggle'  # Collapse or expand comments & tags panel
+
+ID_DIV_CMT_TG = 'div_comments-n-tags'  # The 2nd tab
 ID_DIV_CMT_ED = 'div_comment-edit'
 ID_DIV_CMT_LST = 'div_comment-list'
+ID_TXTA_CMT = 'text-area_comment'
 
 
 CNM_BDG = 'bdg'
@@ -130,8 +132,8 @@ ANM_DIV_PLT_CLPW = 'div_plots_expand-width'
 ANM_DIV_PLT_EXPW = 'div_plots_collapse-width'
 ANM_IC_OPN_ROTS = 'ic_options_rotate_start'
 ANM_IC_OPN_ROTE = 'ic_options_rotate_end'
-ANM_DIV_TG_EXPW = 'div_tags_expand-width'
-ANM_DIV_TG_CLPW = 'div_tags_collapse-width'
+ANM_DIV_CMT_TG_EXPW = 'div_comments-n-tags_expand-width'
+ANM_DIV_CMT_TG_CLPW = 'div_comments-n-tags_collapse-width'
 ANM_BTN_TG_BDR_SH = 'btn_tag_show-left-border'
 ANM_BTN_TG_BDR_HD = 'btn_tag_hide-left-border'
 ANM_BTN_TG_TG_ROTS = 'ic-btn-tags-toggle_rotate-start'
@@ -218,13 +220,27 @@ DEFAULT_BG = 'rgba(229, 236, 246, 0.8)'
 CLR_FONT = 'rgb(102, 102, 102)'  # Color of font
 TRANSP = 'rgba(0, 0, 0, 0)'
 
-CLR_PRIM_A7 = 'rgba(252, 169, 18, 0.7)'
-CLR_PRIM_A5 = 'rgba(252, 169, 18, 0.51)'
-CLR_PRIM_A1 = 'rgba(252, 169, 18, 0.1)'
+# CLR_CLPR_A7 = 'rgba(252, 169, 18, 0.7)'
+CLR_CLPR_RECT = 'rgba(253, 203, 113, 0.51)'
+CLR_CLPR_RECT_ACT = 'rgba(252, 169, 18, 0.51)'  # Color for the most recent edited caliper measurement
+# CLR_CLPR_A1 = 'rgba(252, 169, 18, 0.1)'
+
+
+CONF = dict(  # Configuration for figure
+    responsive=True,
+    scrollZoom=True,
+    modeBarButtonsToRemove=['lasso2d', 'autoScale2d', 'toggleSpikelines',
+                            'hoverClosestCartesian', 'hoverCompareCartesian'],
+    modeBarButtonsToAdd=[
+        # 'select2d',
+        'drawrect', 'eraseshape'
+    ],
+    displaylogo=False
+)
 
 TPL_SHAPE = dict(
     editable=True,
-    fillcolor=CLR_PRIM_A5,
+    fillcolor=CLR_CLPR_RECT,
     line=dict(
         color=TRANSP,
         width=2,
