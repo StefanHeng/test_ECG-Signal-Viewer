@@ -52,6 +52,8 @@ class EcgApp:
     }
 
     MAX_NUM_LD = 8
+    MAX_TXTA_RW = 10  # Maximum number of `rows` for comment textarea
+    MIN_TXTA_RW = 4
 
     MV_OFST_TIMES = {  # On how much time does advance and nudge operations move
         ID_BTN_ADV_BK: pd.Timedelta(-2, unit='m'),
@@ -193,9 +195,11 @@ class EcgApp:
 
                         # Tab 2, clickable and editable items, comments and tags
                         html.Div(id=ID_DIV_CMT_TG, className=ANM_DIV_CMT_TG_CLPW, children=[
+                            html.Div(id=ID_DIV_CMT_LB),
                             html.Div(id=ID_DIV_CMT_ED, children=[
-                                dbc.Textarea(id=ID_TXTA_CMT, rows=4,
-                                             placeholder='Add comment to selected box/most recent caliper'),
+                                dbc.Textarea(id=ID_TXTA_CMT, rows=self.MIN_TXTA_RW,
+                                             placeholder='Edit comment to most recent caliper measurement'),
+                                html.Button(id=ID_BTN_CMT_SBM, className=CNM_BTN, children='SAVE'),
                             ]),
                             html.Div(id=ID_DIV_CMT_LST),
 
@@ -210,9 +214,10 @@ class EcgApp:
 
                         # Tab 3, the button to expand/collapse tab 2
                         # It's okay, always enabled, cos if no lead channel on display, the button is not even visible
-                        html.Button(id=ID_BTN_CMT_TG_TG, className=join(CNM_BTN, ANM_BTN_TG_BDR_SH), n_clicks=0, children=[
-                            html.I(id=ID_IC_TG, className=CNM_TG_EXP)
-                        ])
+                        html.Button(id=ID_BTN_CMT_TG_TG, className=join(CNM_BTN, ANM_BTN_TG_BDR_SH), n_clicks=0,
+                                    children=[
+                                        html.I(id=ID_IC_TG, className=CNM_TG_EXP)
+                                    ])
                     ])
                 ])
             ]),
@@ -342,11 +347,17 @@ class EcgApp:
         )(self.update_lead_height_styles)
 
         self.app.callback(
+            Output(ID_TXTA_CMT, 'rows'),
+            Input(ID_TXTA_CMT, 'value')
+        )(self.update_comment_textarea_height)
+
+        self.app.callback(
             [Output(ID_DIV_PLTS, C),
              Output(all_(ID_ITM_LD_ADD), DS),
              Output(all_(ID_GRA), F),
              Output(ID_TMB, F),
              Output(ID_TMLB, C),  # Updates the time duration label
+             Output(ID_DIV_CMT_LB, C),  # Updates the comment range label
              Output(ID_BTN_EXP, DS),
              Output(ID_STOR_TG_NCS, D)],
             [Input(ID_STOR_REC, D),
@@ -494,10 +505,12 @@ class EcgApp:
 
     def get_tags_layout(self, record_name):
         if record_name is not None:  # `curr_rec` already loaded
+            B = join(CNM_BDG, CNM_BDG_LT)
+            B_T = join(B, CMN_TMLB)
             layout = [dbc.ListGroupItem(className=CNM_TG_BLK, action=True, children=[
-                dbc.Badge(id=m_id(ID_ITM_TG, idx), className=join(CNM_BDG, CNM_BDG_LT, CMN_TMLB), n_clicks=0,
+                dbc.Badge(id=m_id(ID_ITM_TG, idx), className=B_T, n_clicks=0,
                           children=[self.rec.count_to_str(self.rec.ms_to_count(tm))]),
-                dbc.Badge(className=join(CNM_BDG, CNM_BDG_LT), children=[typ]),
+                dbc.Badge(className=B, children=[typ]),
                 html.P(className=CNM_TG_TXT, children=[txt])
             ]) for idx, (typ, tm, txt) in enumerate(self.rec.tags)]
             return layout
@@ -548,21 +561,18 @@ class EcgApp:
             h = f'{int(80 / max(num_lead, 3))}vh'  # So that maximal height is 1/3 of the div
             return [dict(height=h) for i in range(num_lead)]
 
-    def count_to_time_label(self, rng):
-        """
-        :param rng: 2-tuple of pandas time object
-        """
-        strt, end = rng
-        return f'{self.rec.count_to_str(strt)} - {self.rec.count_to_str(end)}'
+    def update_comment_textarea_height(self, txt):
+        """ Rough measure based on number of characters and number of line breaks """
+        if txt is not None:
+            n_ch = len(txt) if txt is not None else 0
+            n_ln = txt.count('\n')
+            n_row = max(n_ch // 20, n_ln)
+            min_bound = max(n_row + 1, self.MIN_TXTA_RW)
+            return min(min_bound, self.MAX_TXTA_RW)
+        else:
+            return self.MIN_TXTA_RW
 
-    def disp_rng_to_time_label(self):
-        return self.count_to_time_label(self.disp_rng[0])
-
-    def time_range_to_time_label(self, rng):
-        strt, end = rng
-        return f'{self.rec.pd_time_to_str(pd.Timestamp(strt))} - {self.rec.pd_time_to_str(pd.Timestamp(end))}'
-
-    def _shift_go_out_of_lim(self, strt, end, offset):
+    def _shift_is_out_of_lim(self, strt, end, offset):
         """ On advance and nudge navigation controls.
 
         Checks if doing a shift at edge that collapses start and end into the same time
@@ -574,6 +584,29 @@ class EcgApp:
             return True
         else:
             return False
+
+    def _create_comment_range_labels(self):
+        coords = self.ui.get_most_recent_measurement_coords()
+        if coords is not None:
+            x0, x1, y0, y1 = coords
+            B = join(CNM_BDG, CNM_BDG_LT, CMN_TMLB)
+            return [
+                html.Div(id=ID_DIV_CMT_LB_T, children=[
+                    'Time: ',
+                    dbc.Badge(className=B, children=x0),
+                    '-',
+                    dbc.Badge(className=B, children=x1),
+                ]),
+                html.Div(id=ID_DIV_CMT_LB_V, children=[
+                    'Voltage: ',
+                    dbc.Badge(className=B, children=y0),
+                    '-',
+                    dbc.Badge(className=B, children=y1),
+                    'mV'
+                ])
+            ]
+        else:
+            return []
 
     def update_lead_options_disable_layout_figures(
             self, record_name, template, layouts_fig, layout_tmb,
@@ -622,6 +655,7 @@ class EcgApp:
 
         time_label = dash.no_update  # Both dependent on number of leads on plot == 0
         disabled_export_btn = dash.no_update
+        cmt_rng_label = dash.no_update
         if ID_STOR_REC == changed_id:  # Reset layout
             self.idxs_lead = []
             plots = []
@@ -648,7 +682,7 @@ class EcgApp:
                 for idx in self.idxs_lead:
                     disables_lead_add[idx] = True
                 fig_tmb = self.fig_tmb.add_trace(deepcopy(self.idxs_lead), override=True)
-                time_label = self.disp_rng_to_time_label()
+                time_label = self.ui.count_pr_to_time_label(*self.disp_rng[0])
                 disabled_export_btn = False
             else:  # Reset layout
                 self.idxs_lead = []
@@ -680,7 +714,8 @@ class EcgApp:
                 plots = dash.no_update
                 # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
                 disables_lead_add = self.no_update_add_opns
-                time_label = self.time_range_to_time_label(x_layout_range)
+                time_label = self.ui.time_range_to_time_label(*x_layout_range)
+                cmt_rng_label = self._create_comment_range_labels()
                 # export button must've been on already
                 ns_clicks_tag = dash.no_update
             # Change in caliper/user-drawn shape
@@ -689,6 +724,7 @@ class EcgApp:
                 anns = self._get_all_annotations(idx_ann_clicked)
                 self._shapes = figs_gra[idx_idx_changed]['layout']['shapes']
                 self.ui.highlight_most_recent_caliper_edit(figs_gra)
+                cmt_rng_label = self._create_comment_range_labels()
                 for idx, f in enumerate(figs_gra):  # Override original values, for potential text annotation removal
                     f['layout']['annotations'] = anns
                     if idx != idx_idx_changed:
@@ -706,7 +742,8 @@ class EcgApp:
                 plots = dash.no_update
                 # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
                 disables_lead_add = self.no_update_add_opns
-                time_label = self.time_range_to_time_label(x_layout_range)
+                time_label = self.ui.time_range_to_time_label(*x_layout_range)
+                cmt_rng_label = self._create_comment_range_labels()
                 ns_clicks_tag = dash.no_update
             else:
                 raise PreventUpdate
@@ -734,6 +771,7 @@ class EcgApp:
             self.ui.clear_measurements()
             self._shapes = []
             anns = self._get_all_annotations(idx_ann_clicked)
+            cmt_rng_label = self._create_comment_range_labels()  # Basically set to none
             for f in figs_gra:
                 f['layout']['shapes'] = self._shapes
                 f['layout']['annotations'] = anns
@@ -746,7 +784,7 @@ class EcgApp:
             # The keys: [ID_BTN_ADV_BK, ID_BTN_MV_BK, ID_BTN_MV_FW, ID_BTN_ADV_FW] by construction
             offset_count = self.move_offset_counts[changed_id]
             strt, end = self.disp_rng[0]
-            if not self._shift_go_out_of_lim(strt, end, offset_count):
+            if not self._shift_is_out_of_lim(strt, end, offset_count):
                 strt += offset_count
                 end += offset_count
                 strt, end = self.rec.keep_range(strt), self.rec.keep_range(end)
@@ -760,7 +798,8 @@ class EcgApp:
                 plots = dash.no_update
                 # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
                 disables_lead_add = self.no_update_add_opns
-                time_label = self.time_range_to_time_label(x_layout_range)
+                time_label = self.ui.time_range_to_time_label(*x_layout_range)
+                cmt_rng_label = self._create_comment_range_labels()
                 ns_clicks_tag = dash.no_update
             else:
                 raise PreventUpdate
@@ -775,7 +814,7 @@ class EcgApp:
                 fig_tmb = self.fig_tmb.add_trace([idx_add], override=False)
                 figs_gra = [dash.no_update for i in figs_gra]
                 if len(self.idxs_lead) == 1:  # from 0 to 1 lead
-                    time_label = self.disp_rng_to_time_label()
+                    time_label = self.ui.count_pr_to_time_label(*self.disp_rng[0])
                     disabled_export_btn = False
                 ns_clicks_tag = dash.no_update
             else:
@@ -807,7 +846,7 @@ class EcgApp:
                 ]
                 self._update_lead_figures(figs_gra, x_layout_range, idx_ann_clicked)
                 fig_tmb['layout']['xaxis']['range'] = x_layout_range
-                time_label = self.disp_rng_to_time_label()
+                time_label = self.ui.count_pr_to_time_label(*self.disp_rng[0])
             else:  # Annotation clicked on is within display range
                 fig_tmb = dash.no_update
                 n_update = [dash.no_update for i in figs_gra]
@@ -828,7 +867,10 @@ class EcgApp:
         else:
             raise PreventUpdate
         # ic()
-        return plots, disables_lead_add, figs_gra, fig_tmb, time_label, disabled_export_btn, ns_clicks_tag
+        return (
+            plots, disables_lead_add, figs_gra, fig_tmb,
+            time_label, cmt_rng_label, disabled_export_btn, ns_clicks_tag
+        )
 
     def _get_all_annotations(self, idx_ann_clicked):
         """ Static tag and shape measurement annotations """

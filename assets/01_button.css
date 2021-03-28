@@ -11,6 +11,8 @@
     /*font-size: 0.75em; !* changes icon size *!*/
     border-radius: 1em;
     background-color: transparent;
+
+    transition: var(--ease-all_q);
 }
 
 .btn:hover {
@@ -54,4 +56,43 @@
 #btn_modal-close:active {
     color: var(--gray_-5);
     background: transparent;
+}
+
+
+#btn_comments-n-tags-toggle {
+    width: 1.5em;
+    height: 80vh;
+    font-size: 0.75em;
+    border-radius: 0;
+    z-index: 200;   /* Needs to be higher than that of textarea */
+
+    border-top: var(--border);
+    border-left: var(--border);
+    border-bottom: var(--border);
+
+    transition: var(--ease-all);
+}
+
+#btn_comment-submit {
+    height: 2em;
+    width: 100%;
+    /*padding: 0.25em;*/
+    color: var(--black_a6);
+
+    border-radius: 0;
+    /*border: 0.125em solid var(--gray_2);*/
+    border-top: var(--border);
+    /*border-bottom: none;*/
+}
+
+#btn_comment-submit:hover {
+    color: var(--light-tint);
+    background-color: var(--primry);
+    border-color: var(--primry);
+}
+
+#btn_comment-submit:active {
+    color: var(--light-tint);
+    background-color: var(--primary-click);
+    border-color: var(--primary-click);
 }

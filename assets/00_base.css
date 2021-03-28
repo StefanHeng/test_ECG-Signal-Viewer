@@ -18,6 +18,8 @@
     --primary_3: #FEDDA0;
     --primary_4: #FEEED0;
 
+    --primary-click: #F5A511;
+
     --primary_a01: rgba(252, 169, 18, 0.01);
     --primary_a1: rgba(252, 169, 18, 0.1);
     --primary_a2: rgba(252, 169, 18, 0.2);
@@ -81,9 +83,11 @@
         0 0 1px rgba(0, 0, 0, 0.4),
         0 0 2px rgba(0, 0, 0, 0.4);
     --ease-all: all 200ms ease-in-out;
+    --ease-all_q: all 100ms ease-in-out;
 
     /*--bottom-border: 0 1px 0 rgba(0, 0, 0, 0.3);*/
     --border: 1px solid var(--black_a3);
+    --border_m: 0.125em solid var(--black_a3);
 
     --round-corner: 0.35em;
 }

@@ -115,6 +115,11 @@ ID_DIV_CMT_TG = 'div_comments-n-tags'  # The 2nd tab
 ID_DIV_CMT_ED = 'div_comment-edit'
 ID_DIV_CMT_LST = 'div_comment-list'
 ID_TXTA_CMT = 'text-area_comment'
+ID_BTN_CMT_SBM = 'btn_comment-submit'
+
+ID_DIV_CMT_LB = 'div_comment-label'
+ID_DIV_CMT_LB_T = 'div_comment-label-time'
+ID_DIV_CMT_LB_V = 'div_comment-label-volt'
 
 
 CNM_BDG = 'bdg'
@@ -139,7 +144,7 @@ ANM_BTN_TG_BDR_HD = 'btn_tag_hide-left-border'
 ANM_BTN_TG_TG_ROTS = 'ic-btn-tags-toggle_rotate-start'
 ANM_BTN_TG_TG_ROTE = 'ic-btn-tags-toggle_rotate-end'
 
-CNM_BTN = 'btn'
+CNM_BTN = 'btn'  # To override LUX bootstrap theme
 CNM_MY_DPD = 'my_dropdown'
 ID_DIV_FIG_OPN = 'div_fig-options'
 CNM_BTN_FIG_OPN = 'btn_fig-options'

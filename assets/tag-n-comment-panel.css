@@ -24,23 +24,43 @@
 }
 
 #div_comments-n-tags > * {
-    border-top: var(--border);
+    border-top: var(--border_m);
 }
 
-#div_comments-n-tags > :first-child {
+#div_comments-n-tags > :first-child, #div_comments-n-tags > :nth-child(2) { /* No broder btwee 1st & 2nd child */
     border-top: none;
+    /*border: 1px solid red;*/
+}
+
+
+#div_comment-label-time, #div_comment-label-volt {
+    padding: 0 0.5em;
+    margin: 0.25em 0;
 }
 
 
 #div_comment-edit {
+    display: flex;
+    flex-direction: column;
+
     width: 100%;
-    height: 30%;
-    min-height: 30%;
+    /*height: 30%;*/
+    /*min-height: 20%;*/
+    /*overflow: hidden;*/
 
     transition: var(--ease-all);
-    padding: 0.15em 0.15em 0;
+    /*padding: 0.15em 0.15em 0;*/
     /*border: 1px red solid;*/
 }
+
+#div_comment-edit > * {
+    margin-bottom: 0.25em;
+}
+
+#div_comment-edit > :last-child {
+    margin-bottom: 0;
+}
+
 
 #div_comment-list {
     width: 100%;
@@ -60,20 +80,6 @@
     transition: var(--ease-all);
 }
 
-
-#btn_comments-n-tags-toggle {
-    width: 1.5em;
-    height: 80vh;
-    font-size: 0.75em;
-    border-radius: 0;
-    z-index: 200;   /* Needs to be higher than that of textarea */
-
-    border-top: var(--border);
-    border-left: var(--border);
-    border-bottom: var(--border);
-
-    transition: var(--ease-all);
-}
 
 .tag-block {
     padding: 0.25em 0.5em;

@@ -3205,7 +3205,7 @@ a.btn.disabled, fieldset:disabled a.btn {
     background-color: transparent
 }
 
-.btn-outline-success:not(:disabled):not(.disabled):active, .btn-outline-success:not(:disabled):not(.disabled).active, .show > .btn-outline-success.dropdown-toggle {
+.btn-outline-success:not(:disabled):not(.disabled):active, .btn-outline-success:not(:disabled):not(.disabled).active, .show > . -success.dropdown-toggle {
     color: #fff;
     background-color: #4bbf73;
     border-color: #4bbf73

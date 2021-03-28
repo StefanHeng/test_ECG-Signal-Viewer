@@ -253,7 +253,7 @@ class EcgRecord:
     def count_to_str(self, count):
         """
         :return: Human-readable time string, specialized to typical ecg range """
-        return self.count_to_pd_time(count).strftime(self.FMT_TMLB)[1:-5]
+        return self.pd_time_to_str(self.count_to_pd_time(count))
 
     def ms_to_count(self, t_ms):
         # ic(t_ms, t_ms * self.spl_rate // 1000)

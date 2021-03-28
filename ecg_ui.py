@@ -31,7 +31,7 @@ class EcgUi:
         self.rec = record
 
         self._n_mesr = 0  # Number of caliper measurements, given by
-        self._lst_shape_coord = []  # List to keep track of plotly user-drawn shapes, in that order
+        self._lst_shape_coords = []  # List to keep track of plotly user-drawn shapes, in that order
         self.lst_ann_mesr = []  # List of annotation pairs,
         # synchronized with the above, on the corresponding text annotation measurements
         self._ord_mesr_edit = []  # Keeps track of the order of elements modified by index
@@ -117,6 +117,13 @@ class EcgUi:
         else:
             return re.match("^(.*)[.](.*)$", str_id).group(1)
 
+    def count_pr_to_time_label(self, strt, end):
+        return f'{self.rec.count_to_str(strt)} - {self.rec.count_to_str(end)}'
+
+    def time_range_to_time_label(self, strt, end):
+        """ Takes in time as strings """
+        return f'{self.rec.pd_time_to_str(pd.Timestamp(strt))} - {self.rec.pd_time_to_str(pd.Timestamp(end))}'
+
     def get_tags(self, strt, end, idx_ann_clicked=-1):
         idx_strt, idx_end = self.rec.get_tag_indices(strt, end)
         anns = []
@@ -157,7 +164,8 @@ class EcgUi:
         """
         :param d_shape: Plotly shape dictionary
         :param changed: Either the dictionary is an entire shape object or just the changes
-        :return The 4-tuple coordinates in order (x0, x1, y0, y1).
+        :return The 4-tuple coordinates in order (x0, x1, y0, y1),
+        where x values are pandas time object and y values are floats
 
         Ensures x0 < x1, y0 < y1
         """
@@ -234,7 +242,7 @@ class EcgUi:
             l = len(lst_shape)
             if l > self._n_mesr:  # New shape added by user
                 coords = self.shape_dict_to_coords(lst_shape[-1])
-                self._lst_shape_coord.append(coords)
+                self._lst_shape_coords.append(coords)
                 self.lst_ann_mesr.append(self.measure(*coords))
                 self._n_mesr += 1
 
@@ -243,13 +251,13 @@ class EcgUi:
             else:  # A shape removed
                 def _get_idx_removed():  # There must be one and only 1 missing
                     for idx, shape in enumerate(lst_shape):
-                        if self.shape_dict_to_coords(shape) != self._lst_shape_coord[idx]:
+                        if self.shape_dict_to_coords(shape) != self._lst_shape_coords[idx]:
                             return idx
                     # lst_shape is the smaller one, if all equal, the last annotation is removed
-                    return len(self._lst_shape_coord)-1  # Don't use relative offset so that updating order works
+                    return len(self._lst_shape_coords) - 1  # Don't use relative offset so that updating order works
                 # Must be that there were a single shape, and it's now removed
                 idx_rmv = _get_idx_removed()
-                del self._lst_shape_coord[idx_rmv]
+                del self._lst_shape_coords[idx_rmv]
                 del self.lst_ann_mesr[idx_rmv]
                 self._n_mesr -= 1
 
@@ -258,7 +266,7 @@ class EcgUi:
             # Any one of the keys suffice, e.g. {'shapes[2].x0', 'shapes[2].x1', 'shapes[2].y0', 'shapes[2].y1'}
             idx_ch = self._get_idx_changed_shape(list(layout_changed.keys())[0])
             coords = self.shape_dict_to_coords(layout_changed, changed=True)
-            self._lst_shape_coord[idx_ch] = coords
+            self._lst_shape_coords[idx_ch] = coords
             self.lst_ann_mesr[idx_ch] = self.measure(*coords)
 
             idx_edt = self._ord_mesr_edit.index(idx_ch)  # Find the original ordering of this edited shape
@@ -283,7 +291,7 @@ class EcgUi:
         if removed:
             idxs.sort(reverse=True)
             self._n_mesr -= len(idxs)
-            self._remove_by_indices(self._lst_shape_coord, idxs)
+            self._remove_by_indices(self._lst_shape_coords, idxs)
             self._remove_by_indices(self.lst_ann_mesr, idxs)
             for f in figs:
                 self._remove_by_indices(f['layout']['shapes'], idxs)
@@ -304,7 +312,7 @@ class EcgUi:
         end = self.rec.count_to_pd_time(end)
         removed = False
         idxs = []
-        for idx, (x0, x1, y0, y1) in enumerate(self._lst_shape_coord):  # Reverse the list
+        for idx, (x0, x1, y0, y1) in enumerate(self._lst_shape_coords):  # Reverse the list
             if x0 >= end or x1 <= strt:
                 removed = True
                 idxs.append(idx)
@@ -318,7 +326,7 @@ class EcgUi:
 
     def clear_measurements(self):
         self._n_mesr = 0
-        self._lst_shape_coord = []
+        self._lst_shape_coords = []
         self.lst_ann_mesr = []
         self._ord_mesr_edit = []
 
@@ -327,3 +335,16 @@ class EcgUi:
         for f in figs_gra:
             for idx, shape in enumerate(f['layout']['shapes']):
                 shape['fillcolor'] = CLR_CLPR_RECT_ACT if idx == self._ord_mesr_edit[-1] else CLR_CLPR_RECT
+
+    def get_most_recent_measurement_coords(self):
+        """
+        :return: 4-tuple, (x0, x1, y0, y1) as string representation per return of 'shape_dict_to_coords'
+         if a measurement exists, None otherwise """
+        if self._n_mesr > 0:
+            x0, x1, y0, y1 = self._lst_shape_coords[self._ord_mesr_edit[-1]]
+            return (
+                self.rec.pd_time_to_str(x0),
+                self.rec.pd_time_to_str(x1),
+                f'{int(y0):,}',
+                f'{int(y1):,}'
+            )
