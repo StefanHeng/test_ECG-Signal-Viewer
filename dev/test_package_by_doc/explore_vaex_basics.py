@@ -33,7 +33,7 @@ if __name__ == "__main__":
     print(type(df.f1.values))
     print(df.f1.values)
     print(df.mean(df.t))
-    print(df.count())
+    print(df.idx_r())
     print(df.mean(df.f1))
     print()
 
@@ -45,14 +45,14 @@ if __name__ == "__main__":
     print(df.mean(df.f5, selection=False))
     print()
 
-    print(df.count(binby=df.t, shape=8))
-    print(df.count(binby=df.t, limits='50%', shape=8))
-    print(df.count(binby=df.t, limits=[-10, 10], shape=8))
-    print(df.count(binby=df.t, limits=[0, 5], shape=8))
-    print(df.count(binby=df.t, limits=[10, -10], shape=8))
-    print(df.count(binby=df.t, limits=[0, 2], shape=8))
-    print(df.count('f1', binby=df.f1, limits='minmax', shape=4))
-    print(df.count(df.f5, binby=df.f5, limits='minmax', shape=16))
+    print(df.idx_r(binby=df.t, shape=8))
+    print(df.idx_r(binby=df.t, limits='50%', shape=8))
+    print(df.idx_r(binby=df.t, limits=[-10, 10], shape=8))
+    print(df.idx_r(binby=df.t, limits=[0, 5], shape=8))
+    print(df.idx_r(binby=df.t, limits=[10, -10], shape=8))
+    print(df.idx_r(binby=df.t, limits=[0, 2], shape=8))
+    print(df.idx_r('f1', binby=df.f1, limits='minmax', shape=4))
+    print(df.idx_r(df.f5, binby=df.f5, limits='minmax', shape=16))
     print()
 
     print(df.mean(df.t, shape=2))
@@ -66,8 +66,8 @@ if __name__ == "__main__":
     print(df.mean(df.f1, binby=df.f1, limits=[0, 50], shape=2))
     print()
 
-    print(df.count(binby=[df.t, df.f1], limits=[[-10, 10], [-10, 20]], shape=(4, 16)))
-    print(df.count(binby=[df.t, df.f1], limits=[[-10, 10], [-10, 20]], shape=(16, 4)))
-    print(df.count(binby=[df.t, df.f1], shape=(8, 4)))
+    print(df.idx_r(binby=[df.t, df.f1], limits=[[-10, 10], [-10, 20]], shape=(4, 16)))
+    print(df.idx_r(binby=[df.t, df.f1], limits=[[-10, 10], [-10, 20]], shape=(16, 4)))
+    print(df.idx_r(binby=[df.t, df.f1], shape=(8, 4)))
 
 

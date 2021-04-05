@@ -118,6 +118,7 @@ ID_TXTA_CMT = 'text-area_comment'
 ID_BTN_CMT_SBM = 'btn_comment-submit'
 
 ID_DIV_CMT_LB = 'div_comment-label'
+ID_DIV_CMT_LB_LD = 'div_comment-label-lead'
 ID_DIV_CMT_LB_T = 'div_comment-label-time'
 ID_DIV_CMT_LB_V = 'div_comment-label-volt'
 

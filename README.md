@@ -6,7 +6,7 @@ Experiment language, libraries; development & test on new features for release o
 
 
 ## Guideline
-Files at root prefixed with `ecg_` are for release. 
+Files at root prefixed with `ecg_` are for package release. 
 
 Files of the form `ecg_dev_run-(.*).py` are time sensitive, iterative scripts for Dash web app integration. 
 Only the most recent versions are meaningful and relevant.

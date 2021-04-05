@@ -87,167 +87,186 @@ class EcgApp:
             FA_CSS_LNK,
             dbc.themes.LUX
         ])
-        self.app.layout = self._set_layout()
+
+        def _set_layout():
+            return html.Div([
+                # Header
+                html.Div(className=CNM_HD, children=[
+                    html.Button(id=ID_BTN_OPN, className=CNM_BTN, n_clicks=0, children=[
+                        html.I(id=ID_IC_OPN, className=CNM_IC_BR)
+                    ]),
+
+                    html.H1(TXT_HD, id=ID_HDTT),
+
+                    html.Button(id=ID_BTN_ADD, className=CNM_BTN, disabled=True, n_clicks=0, children=[
+                        html.I(id=ID_IC_ADD, className=CNM_IC_ADD)
+                    ]),
+                    html.Button(id=ID_BTN_EXP, className=CNM_BTN, disabled=True, n_clicks=0, children=[
+                        html.I(className=CNM_IC_EXP)
+                    ]),
+                    # When target is disabled, ToolTip won't show
+                    dbc.Tooltip(target=ID_BTN_ADD, hide_arrow=False, placement=TTP_PLCM, offset=TTP_OFST,
+                                children='Add a lead channel'),
+                    dbc.Tooltip(target=ID_BTN_EXP, hide_arrow=False, placement=TTP_PLCM, offset=TTP_OFST,
+                                children='Export to csv'),
+                    Download(id=ID_DLD_CSV),
+
+                    html.Div(id=ID_DIV_PLT_CTRL, children=[
+                        html.Button(id=ID_BTN_ADV_BK, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=True,
+                                    children=[
+                                        html.I(className=CNM_ADV_BK)
+                                    ]),
+                        html.Button(id=ID_BTN_MV_BK, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=True, children=[
+                            html.I(className=CNM_MV_BK)
+                        ]),
+                        html.Button(id=ID_BTN_FIXY, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=False,
+                                    n_clicks=0,
+                                    children=[
+                                        html.I(id=ID_IC_FIXY, className=CNM_IC_LKO)
+                                    ]),
+                        html.Button(id=ID_BTN_MV_FW, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=True, children=[
+                            html.I(className=CNM_MV_FW)
+                        ]),
+                        html.Button(id=ID_BTN_ADV_FW, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=True,
+                                    children=[
+                                        html.I(className=CNM_ADV_FW)
+                                    ]),
+                        html.Button(id=ID_BTN_TG_TG, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=False,
+                                    n_clicks=0,
+                                    children=[
+                                        html.I(id=ID_IC_TG_TG, className=join(CNM_TG_TG, ANM_BTN_TG_TG_ROTS))
+                                    ]),
+                        html.Button(id=ID_BTN_CLP_CLR, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=True,
+                                    children=[
+                                        html.I(className=CNM_CLP_CLR)
+                                    ]),
+                    ]),
+                    dbc.Tooltip(target=ID_BTN_ADV_BK, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
+                                delay=TTP_DL, children='Advance backward'),
+                    dbc.Tooltip(target=ID_BTN_MV_BK, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
+                                delay=TTP_DL, children='Nudge backward'),
+                    dbc.Tooltip(target=ID_BTN_FIXY, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
+                                delay=TTP_DL, children='Fix y-axis'),
+                    dbc.Tooltip(target=ID_BTN_MV_FW, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
+                                delay=TTP_DL, children='Nudge forward'),
+                    dbc.Tooltip(target=ID_BTN_ADV_FW, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
+                                delay=TTP_DL, children='Advance forward'),
+                    dbc.Tooltip(target=ID_BTN_TG_TG, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
+                                delay=TTP_DL, children='Show/Hide markings'),
+                    dbc.Tooltip(target=ID_BTN_CLP_CLR, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
+                                delay=TTP_DL, children='Clear caliper measurements'),
+
+                    html.Div(id=ID_DIV_TMLB, children=[
+                        html.P(id=ID_TMLB)
+                    ])
+                ]),
+
+                # Floating dropdown panel
+                html.Div(id=ID_BBX_DIV_OPN, children=[
+                    html.Div(id=ID_DIV_OPN, children=[
+                        # Sets the record, a separate call back function to make sure execution order
+                        dcc.Store(id=ID_STOR_REC),
+                        dcc.Dropdown(
+                            id=ID_DPD_RECR, className=CNM_MY_DPD, placeholder='Select patient record file',
+                            options=[{L: f'{dev(record_nm)}', V: record_nm}],
+                            # value=record_nm
+                        ),
+                        dcc.Dropdown(
+                            id=ID_DPD_LD_TEMPL, className=CNM_MY_DPD, disabled=True,
+                            placeholder='Select lead channel template',
+                            options=[
+                                {L: f'{dev(DEV_TML_S)}', V: DEV_TML_S},
+                                {L: f'{dev(DEV_TML_RG)}', V: DEV_TML_RG},
+                                {L: f'{dev(DEV_TML_RD)}', V: DEV_TML_RD},
+                            ],
+                            # value=DEV_TML_S  # Dev only, for fast testing
+                        )
+                    ]),
+                ]),
+
+                dbc.Fade(id=ID_FD_MN, is_in=False, children=[
+                    html.Div(className=CNM_MNBD, children=[
+                        html.Div(className=CNM_DIV_TMB, children=[  # Thumbnail graph on top
+                            dcc.Graph(  # Dummy figure, change its range just to change how the RangeSlider looks
+                                # Need a dummy for unknown reason so that Dash loads the layout
+                                id=ID_TMB, className=CNM_TMB, figure=go.Figure()
+                            )
+                        ]),
+                        html.Div(id=ID_DIV_TABS, children=[  # 3 tabs
+                            # Tab 1, the lead channels
+                            html.Div(id=ID_DIV_PLTS, children=[  # Which is empty list on init
+                                self.get_fig_layout(idx) for idx in self.idxs_lead
+                            ]),
+
+                            # Tab 2, clickable and editable items, comments and tags
+                            html.Div(id=ID_DIV_CMT_TG, className=ANM_DIV_CMT_TG_CLPW, children=[
+                                html.Div(id=ID_DIV_CMT_LB),
+                                html.Div(id=ID_DIV_CMT_ED, children=[
+                                    dbc.Textarea(id=ID_TXTA_CMT, rows=self.MIN_TXTA_RW, disabled=True,
+                                                 placeholder='Edit comment to most recent caliper measurement'),
+                                    html.Button(id=ID_BTN_CMT_SBM, className=CNM_BTN, disabled=True, children='SAVE'),
+                                ]),
+                                html.Div(id=ID_DIV_CMT_LST),
+
+                                # Static tag list
+                                dcc.Store(id=ID_STOR_TG_IDX),  # Write to layout, triggered by clientside callback
+                                # Keep track of number of clicks on tag items, essential for clientside callback
+                                dcc.Store(id=ID_STOR_TG_NCS),
+                                html.Div(id=ID_DIV_TG, children=[
+                                    dbc.ListGroup(id=ID_GRP_TG)
+                                ]),
+                            ]),
+
+                            # Tab 3, the button to expand/collapse tab 2
+                            # It's okay, always enabled, cos if no lead channel on display,
+                            # the button is not even visible
+                            html.Button(id=ID_BTN_CMT_TG_TG, className=join(CNM_BTN, ANM_BTN_TG_BDR_SH), n_clicks=0,
+                                        children=[
+                                            html.I(id=ID_IC_TG, className=CNM_TG_EXP)
+                                        ])
+                        ])
+                    ])
+                ]),
+
+                dcc.Store(id=ID_STOR_ADD),
+                dcc.Store(id=ID_STOR_RMV),
+
+                dbc.Alert(
+                    id=ID_ALT_MAX_LD, is_open=False, fade=True, duration=4000, dismissable=True, color='danger',
+                    children=f'Error: Maximum of {self.MAX_NUM_LD} lead channels supported for display',
+                ),
+                dbc.Modal(id=ID_MD_ADD, centered=True, is_open=False, scrollable=True, children=[
+                    dbc.ModalHeader(id=ID_MDHD_ADD, children=[
+                        html.H5(TXT_ADD_LD, className=CNM_ADD_LD),
+                        html.Button(id=ID_BTN_MD_CLS, className=CNM_BTN, n_clicks=0, children=[
+                            html.I(className=CNM_IC_MD_CLS)
+                        ]),
+                    ]),
+                    dbc.ModalBody(id=ID_MDBD_ADD, children=[
+                        dbc.ListGroup(id=ID_GRP_LD_ADD),
+                    ]),
+                ]),
+            ])
+        self.app.layout = _set_layout()
         self._set_callbacks()
 
     def run(self, debug=False):
         self.app.run_server(debug=debug)
 
-    def _set_layout(self):
-        return html.Div([
-            # Header
-            html.Div(className=CNM_HD, children=[
-                html.Button(id=ID_BTN_OPN, className=CNM_BTN, n_clicks=0, children=[
-                    html.I(id=ID_IC_OPN, className=CNM_IC_BR)
-                ]),
-
-                html.H1(TXT_HD, id=ID_HDTT),
-
-                html.Button(id=ID_BTN_ADD, className=CNM_BTN, disabled=True, n_clicks=0, children=[
-                    html.I(id=ID_IC_ADD, className=CNM_IC_ADD)
-                ]),
-                html.Button(id=ID_BTN_EXP, className=CNM_BTN, disabled=True, n_clicks=0, children=[
-                    html.I(className=CNM_IC_EXP)
-                ]),
-                # When target is disabled, ToolTip won't show
-                dbc.Tooltip(target=ID_BTN_ADD, hide_arrow=False, placement=TTP_PLCM, offset=TTP_OFST,
-                            children='Add a lead channel'),
-                dbc.Tooltip(target=ID_BTN_EXP, hide_arrow=False, placement=TTP_PLCM, offset=TTP_OFST,
-                            children='Export to csv'),
-                Download(id=ID_DLD_CSV),
-
-                html.Div(id=ID_DIV_PLT_CTRL, children=[
-                    html.Button(id=ID_BTN_ADV_BK, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=True, children=[
-                        html.I(className=CNM_ADV_BK)
-                    ]),
-                    html.Button(id=ID_BTN_MV_BK, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=True, children=[
-                        html.I(className=CNM_MV_BK)
-                    ]),
-                    html.Button(id=ID_BTN_FIXY, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=False, n_clicks=0,
-                                children=[
-                                    html.I(id=ID_IC_FIXY, className=CNM_IC_LKO)
-                                ]),
-                    html.Button(id=ID_BTN_MV_FW, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=True, children=[
-                        html.I(className=CNM_MV_FW)
-                    ]),
-                    html.Button(id=ID_BTN_ADV_FW, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=True, children=[
-                        html.I(className=CNM_ADV_FW)
-                    ]),
-                    html.Button(id=ID_BTN_TG_TG, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=False, n_clicks=0,
-                                children=[
-                                    html.I(id=ID_IC_TG_TG, className=join(CNM_TG_TG, ANM_BTN_TG_TG_ROTS))
-                                ]),
-                    html.Button(id=ID_BTN_CLP_CLR, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=True, children=[
-                        html.I(className=CNM_CLP_CLR)
-                    ]),
-                ]),
-                dbc.Tooltip(target=ID_BTN_ADV_BK, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
-                            delay=TTP_DL, children='Advance backward'),
-                dbc.Tooltip(target=ID_BTN_MV_BK, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
-                            delay=TTP_DL, children='Nudge backward'),
-                dbc.Tooltip(target=ID_BTN_FIXY, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
-                            delay=TTP_DL, children='Fix y-axis'),
-                dbc.Tooltip(target=ID_BTN_MV_FW, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
-                            delay=TTP_DL, children='Nudge forward'),
-                dbc.Tooltip(target=ID_BTN_ADV_FW, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
-                            delay=TTP_DL, children='Advance forward'),
-                dbc.Tooltip(target=ID_BTN_TG_TG, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
-                            delay=TTP_DL, children='Show/Hide markings'),
-                dbc.Tooltip(target=ID_BTN_CLP_CLR, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
-                            delay=TTP_DL, children='Clear caliper measurements'),
-
-                html.Div(id=ID_DIV_TMLB, children=[
-                    html.P(id=ID_TMLB)
-                ])
-            ]),
-
-            # Floating dropdown panel
-            html.Div(id=ID_BBX_DIV_OPN, children=[
-                html.Div(id=ID_DIV_OPN, children=[
-                    # Sets the record, a separate call back function to make sure execution order
-                    dcc.Store(id=ID_STOR_REC),
-                    dcc.Dropdown(
-                        id=ID_DPD_RECR, className=CNM_MY_DPD, placeholder='Select patient record file',
-                        options=[{L: f'{dev(record_nm)}', V: record_nm}],
-                        # value=record_nm
-                    ),
-                    dcc.Dropdown(
-                        id=ID_DPD_LD_TEMPL, className=CNM_MY_DPD, disabled=True,
-                        placeholder='Select lead channel template',
-                        options=[
-                            {L: f'{dev(DEV_TML_S)}', V: DEV_TML_S},
-                            {L: f'{dev(DEV_TML_RG)}', V: DEV_TML_RG},
-                            {L: f'{dev(DEV_TML_RD)}', V: DEV_TML_RD},
-                        ],
-                        # value=DEV_TML_S  # Dev only, for fast testing
-                    )
-                ]),
-            ]),
-
-            dbc.Fade(id=ID_FD_MN, is_in=False, children=[
-                html.Div(className=CNM_MNBD, children=[
-                    html.Div(className=CNM_DIV_TMB, children=[  # Thumbnail graph on top
-                        dcc.Graph(  # Dummy figure, change its range just to change how the RangeSlider looks
-                            # Need a dummy for unknown reason so that Dash loads the layout
-                            id=ID_TMB, className=CNM_TMB, figure=go.Figure()
-                        )
-                    ]),
-                    html.Div(id=ID_DIV_TABS, children=[  # 3 tabs
-                        # Tab 1, the lead channels
-                        html.Div(id=ID_DIV_PLTS, children=[  # Which is empty list on init
-                            self.get_fig_layout(idx) for idx in self.idxs_lead
-                        ]),
-
-                        # Tab 2, clickable and editable items, comments and tags
-                        html.Div(id=ID_DIV_CMT_TG, className=ANM_DIV_CMT_TG_CLPW, children=[
-                            html.Div(id=ID_DIV_CMT_LB),
-                            html.Div(id=ID_DIV_CMT_ED, children=[
-                                dbc.Textarea(id=ID_TXTA_CMT, rows=self.MIN_TXTA_RW, disabled=True,
-                                             placeholder='Edit comment to most recent caliper measurement'),
-                                html.Button(id=ID_BTN_CMT_SBM, className=CNM_BTN, disabled=True, children='SAVE'),
-                            ]),
-                            html.Div(id=ID_DIV_CMT_LST),
-
-                            # Static tag list
-                            dcc.Store(id=ID_STOR_TG_IDX),  # Write to layout, triggered by clientside callback
-                            # Keep track of number of clicks on tag items, essential for clientside callback
-                            dcc.Store(id=ID_STOR_TG_NCS),
-                            html.Div(id=ID_DIV_TG, children=[
-                                dbc.ListGroup(id=ID_GRP_TG)
-                            ]),
-                        ]),
-
-                        # Tab 3, the button to expand/collapse tab 2
-                        # It's okay, always enabled, cos if no lead channel on display, the button is not even visible
-                        html.Button(id=ID_BTN_CMT_TG_TG, className=join(CNM_BTN, ANM_BTN_TG_BDR_SH), n_clicks=0,
-                                    children=[
-                                        html.I(id=ID_IC_TG, className=CNM_TG_EXP)
-                                    ])
-                    ])
-                ])
-            ]),
-
-            dcc.Store(id=ID_STOR_ADD),
-            dcc.Store(id=ID_STOR_RMV),
-
-            dbc.Alert(
-                id=ID_ALT_MAX_LD, is_open=False, fade=True, duration=4000, dismissable=True, color='danger',
-                children=f'Error: Maximum of {self.MAX_NUM_LD} lead channels supported for display',
-            ),
-            dbc.Modal(id=ID_MD_ADD, centered=True, is_open=False, scrollable=True, children=[
-                dbc.ModalHeader(id=ID_MDHD_ADD, children=[
-                    html.H5(TXT_ADD_LD, className=CNM_ADD_LD),
-                    html.Button(id=ID_BTN_MD_CLS, className=CNM_BTN, n_clicks=0, children=[
-                        html.I(className=CNM_IC_MD_CLS)
-                    ]),
-                ]),
-                dbc.ModalBody(id=ID_MDBD_ADD, children=[
-                    dbc.ListGroup(id=ID_GRP_LD_ADD),
-                ]),
-            ]),
-        ])
-
     def get_fig_layout(self, idx, tags=None):
+        def get_lead_fig(idx_lead, tags=None, shapes=None):
+            """
+            :param idx_lead: index of lead as stored in .h5 datasets
+            :param tags: Tags within display range as stored in `EcgRecord`
+            :param shapes: List of current user-drawn shapes
+
+            .. note:: A valid range has values in [0, sum of all samples across the entire ecg_record),
+            one-to-one correspondence with time by `sample_rate`
+
+            :return: dictionary that represents a plotly graph
+            """
+            return self.plt.get_fig(idx_lead, *self.disp_rng[0], tags, shapes, self._yaxis_fixed)
+
         return dbc.Fade(className=CNM_DIV_FD, is_in=True, children=[
             html.Div(id=m_id(ID_DIV_LD, idx), className=CNM_DIV_LD, children=[
                 html.Div(className=CNM_DIV_LDNM, children=[
@@ -267,29 +286,16 @@ class EcgApp:
                 html.Div(className=CNM_DIV_FIG, children=[
                     dcc.Graph(
                         id=m_id(ID_GRA, idx), className=CNM_GRA, config=CONF,
-                        figure=self.get_lead_fig(idx, tags, self._get_all_annotations(self.idx_ann_clicked, idx))
+                        figure=get_lead_fig(idx, tags, self._get_all_annotations(self.idx_ann_clicked, idx))
                     )
                 ])
             ])
         ])
 
-    def get_lead_fig(self, idx_lead, tags=None, shapes=None):
-        """
-        :param idx_lead: index of lead as stored in .h5 datasets
-        :param tags: Tags within display range as stored in `EcgRecord`
-        :param shapes: List of current user-drawn shapes
-
-        .. note:: A valid range has values in [0, sum of all samples across the entire ecg_record),
-        one-to-one correspondence with time by `sample_rate`
-
-        :return: dictionary that represents a plotly graph
-        """
-        return self.plt.get_fig(idx_lead, *self.disp_rng[0], tags, shapes, self._yaxis_fixed)
-
-    def get_lead_xy_vals(self, idx_lead, x_display_range):
-        strt, end = x_display_range
-        # determine if optimization is needed for large sample_range
-        return self.plt.get_xy_vals(idx_lead, strt, end)
+    # def get_lead_xy_vals(self, idx_lead, x_display_range):
+    #     strt, end = x_display_range
+    #     # determine if optimization is needed for large sample_range
+    #     return self.plt.get_xy_vals(idx_lead, strt, end)
 
     def _set_callbacks(self):
         self.app.callback(
@@ -572,48 +578,12 @@ class EcgApp:
         """ Rough measure based on number of characters and number of line breaks """
         if txt is not None:
             n_ch = len(txt) if txt is not None else 0
-            n_ln = txt.count('\n')
+            n_ln = txt.idx_r('\n')
             n_row = max(n_ch // 30, n_ln)
             min_bound = max(n_row + 1, self.MIN_TXTA_RW)
             return min(min_bound, self.MAX_TXTA_RW)
         else:
             return self.MIN_TXTA_RW
-
-    def _shift_is_out_of_lim(self, strt, end, offset):
-        """ On advance and nudge navigation controls.
-
-        Checks if doing a shift at edge that collapses start and end into the same time
-        """
-        # Guess no need to show an error alert, users will figure it out
-        if offset < 0 and end + offset < 0:  # Shift back and end timestamp will be 0
-            return True
-        elif offset > 0 and strt + offset > self.rec.COUNT_END:
-            return True
-        else:
-            return False
-
-    def _create_comment_range_labels(self):
-        coords = self.ui.get_mru_caliper_coords()
-        if coords is not None:
-            x0, x1, y0, y1 = coords
-            B = join(CNM_BDG, CNM_BDG_LT, CMN_TMLB)
-            return [
-                html.Div(id=ID_DIV_CMT_LB_T, children=[
-                    'Time: ',
-                    dbc.Badge(className=B, children=x0),
-                    '-',
-                    dbc.Badge(className=B, children=x1),
-                ]),
-                html.Div(id=ID_DIV_CMT_LB_V, children=[
-                    'Voltage: ',
-                    dbc.Badge(className=B, children=y0),
-                    '-',
-                    dbc.Badge(className=B, children=y1),
-                    'mV'
-                ])
-            ]
-        else:
-            return []
 
     def _get_all_annotations(self, idx_ann_clicked, idx_lead):
         """ Static tag and shape measurement annotations """
@@ -714,6 +684,47 @@ class EcgApp:
                 figs_gra[idx_idx][D][0]['y'] = y_vals
                 figs_gra[idx_idx]['layout']['yaxis']['range'] = self.ui.get_ignore_noise_range(y_vals)
 
+        def _shift_is_out_of_lim(strt, end, offset):
+            """ On advance and nudge navigation controls.
+
+            Checks if doing a shift at edge that collapses start and end into the same time
+            """
+            # Guess no need to show an error alert, users will figure it out
+            if offset < 0 and end + offset < 0:  # Shift back and end timestamp will be 0
+                return True
+            elif offset > 0 and strt + offset > self.rec.COUNT_END:
+                return True
+            else:
+                return False
+
+        def _create_comment_range_labels():
+            c = self.ui.get_mru_caliper_coords()
+            if c is not None:
+                idx_lead, coords = c
+                x0, x1, y0, y1 = coords
+                B = join(CNM_BDG, CNM_BDG_LT, CMN_TMLB)
+                return [
+                    html.Div(id=ID_DIV_CMT_LB_LD, children=[
+                        'On lead ',
+                        dbc.Badge(className=B, children=self.rec.lead_nms[idx_lead])
+                    ]),
+                    html.Div(id=ID_DIV_CMT_LB_T, children=[
+                        'Time: ',
+                        dbc.Badge(className=B, children=x0),
+                        '-',
+                        dbc.Badge(className=B, children=x1),
+                    ]),
+                    html.Div(id=ID_DIV_CMT_LB_V, children=[
+                        'Voltage: ',
+                        dbc.Badge(className=B, children=y0),
+                        '-',
+                        dbc.Badge(className=B, children=y1),
+                        'mV'
+                    ])
+                ]
+            else:
+                return []
+
         changed_id_property = self.get_last_changed_id_property()
         changed_id = self.ui.get_id(changed_id_property)
 
@@ -782,7 +793,7 @@ class EcgApp:
                 # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
                 disables_lead_add = self.no_update_add_opns
                 time_label = self.ui.time_range_to_time_label(*x_layout_range)
-                cmt_rng_label = self._create_comment_range_labels()
+                cmt_rng_label = _create_comment_range_labels()
                 disable_comment = not self.ui.has_measurement()
                 # export button must've been on already
                 ns_clicks_tag = dash.no_update
@@ -794,7 +805,7 @@ class EcgApp:
                 _update_figs_annotations()
                 # self._shapes = figs_gra[idx_idx_changed]['layout']['shapes']
                 self.ui.highlight_mru_caliper_edit(figs_gra, self.idxs_lead)
-                cmt_rng_label = self._create_comment_range_labels()
+                cmt_rng_label = _create_comment_range_labels()
                 disable_comment = not self.ui.has_measurement()
                 # for idx, f in enumerate(figs_gra):  # Override original values, for potential text annotation removal
                 #     # f['layout']['annotations'] = tags + self.ui.get_caliper_annotations(self.idxs_lead[idx])
@@ -814,7 +825,7 @@ class EcgApp:
                 # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
                 disables_lead_add = self.no_update_add_opns
                 time_label = self.ui.time_range_to_time_label(*x_layout_range)
-                cmt_rng_label = self._create_comment_range_labels()
+                cmt_rng_label = _create_comment_range_labels()
                 disable_comment = not self.ui.has_measurement()
                 ns_clicks_tag = dash.no_update
             else:
@@ -846,7 +857,7 @@ class EcgApp:
             # self._shapes = []
             # anns = self._get_all_annotations(idx_ann_clicked)
             _update_figs_annotations()
-            cmt_rng_label = self._create_comment_range_labels()  # Basically set to none
+            cmt_rng_label = _create_comment_range_labels()  # Basically set to none
             disable_comment = not self.ui.has_measurement()
             # for f in figs_gra:
             #     f['layout']['shapes'] = self._shapes
@@ -860,7 +871,7 @@ class EcgApp:
             # The keys: [ID_BTN_ADV_BK, ID_BTN_MV_BK, ID_BTN_MV_FW, ID_BTN_ADV_FW] by construction
             offset_count = self.move_offset_counts[changed_id]
             strt, end = self.disp_rng[0]
-            if not self._shift_is_out_of_lim(strt, end, offset_count):
+            if not _shift_is_out_of_lim(strt, end, offset_count):
                 strt += offset_count
                 end += offset_count
                 strt, end = self.rec.keep_range(strt), self.rec.keep_range(end)
@@ -875,7 +886,7 @@ class EcgApp:
                 # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
                 disables_lead_add = self.no_update_add_opns
                 time_label = self.ui.time_range_to_time_label(*x_layout_range)
-                cmt_rng_label = self._create_comment_range_labels()
+                cmt_rng_label = _create_comment_range_labels()
                 disable_comment = not self.ui.has_measurement()
                 ns_clicks_tag = dash.no_update
             else:

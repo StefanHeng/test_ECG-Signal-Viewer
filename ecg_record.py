@@ -11,7 +11,7 @@ from random import randint
 from icecream import ic
 
 from data_link import *
-from dev_helper import record_nm
+from dev_helper import *
 
 
 class EcgRecord:
@@ -31,9 +31,11 @@ class EcgRecord:
     FMT_TMLB = '%H:%M:%S.%f'
 
     # @profile
-    def __init__(self, path):
-        self.record = h5py.File(path, 'r')
-        self.nm = path.stem  # By pathlib Path, gets the file name without last extension
+    def __init__(self, path_rec, path_rec_processed):
+        self.record = h5py.File(path_rec, 'r')
+        self.record_p = h5py.File(path_rec_processed, 'r')
+        self.idxs_rpeak = self.record_p['r-peaks']
+        self.nm = path_rec.stem  # By pathlib Path, gets the file name without last extension
         self._seg_keys = list(self.record.keys())  # keys to each segment compiled in the .h5 file
         self.tags, self.tags_tm = self._get_tags()  # `_ann_tm` to make bisect easy
         self.N_TAG = len(self.tags_tm)
@@ -126,8 +128,10 @@ class EcgRecord:
         return bisect_left(self._sample_counts_acc, strt), bisect_right(self._sample_counts_acc, end)
 
     # @profile
-    def get_ecg_samples(self, idx_lead, strt, end, step=1):
+    def get_ecg_samples(self, idx_lead, strt=-1, end=-1, step=1):
         """ Continuous samples of ecg magnitudes, specified by counted range
+
+        If strt and end unspecified, the entire record will be returned
 
         :param idx_lead: index of the lead
         :param strt: start sample count
@@ -138,6 +142,8 @@ class EcgRecord:
         .. note:: optimized for large sample_range
         .. seealso:: `EcgApp._Plot.get_fig()`
         """
+        if strt == -1 and end == -1:
+            strt, end = 0, self.COUNT_END
         idx_strt, idx_end = self._locate_seg_idx(strt, end)
         if idx_strt != 0:
             strt = strt - self._sample_counts_acc[idx_strt - 1]
@@ -293,10 +299,16 @@ class EcgRecord:
         strt = randint(0, self.COUNT_END - N)
         return strt, strt + N
 
+    def r_peak_indices(self, strt, end):
+        """ Offset to the starting count """
+        idx_strt = bisect_left(self.idxs_rpeak, strt)
+        idx_end = bisect_left(self.idxs_rpeak, end)
+        return self.idxs_rpeak[idx_strt:idx_end] - strt
+
     @staticmethod
-    def example(path=DATA_PATH.joinpath(record_nm)):
+    def example(path_rec=DATA_PATH.joinpath(record_nm), path_rec_processed=CURR.joinpath(record_p_nm)):
         """Fast process a simple example for testing """
-        return EcgRecord(path)
+        return EcgRecord(path_rec, path_rec_processed)
 
 
 if __name__ == "__main__":

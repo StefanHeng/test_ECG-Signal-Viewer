@@ -114,7 +114,7 @@ def create_selection(days, hours):
 
 def compute_geomap_data(days, hours):
     df, selection = create_selection(days, hours)
-    return df.count(binby=df.pickup_zone, selection=selection)
+    return df.idx_r(binby=df.pickup_zone, selection=selection)
 
 
 if __name__ == "__main__":

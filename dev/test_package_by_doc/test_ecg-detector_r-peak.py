@@ -24,8 +24,8 @@ if __name__ == "__main__":
     y = rec.get_ecg_samples(idx_lead, strt, end)
     x = rec.get_time_values(strt, end)
 
-    marker = EcgMarker(rec)
-    my_r_peaks = marker.r_peak_indices(idx_lead, y)
+    mkr = EcgMarker(rec)
+    my_r_peaks = mkr.r_peak_indices(idx_lead, y)
 
     detectors = Detectors(2000)
     funcs = [
@@ -38,15 +38,17 @@ if __name__ == "__main__":
     ]
 
     plt.figure(figsize=(18, 6))
-    plt.plot(x, y, label='ori', lw=1)
-    plt.plot(x, marker.bandpass_filter(y), lw=1, label='filtered')
+    plt.plot(x, y, label='Data, ori', marker='o', markersize=0.3, linewidth=0.25)
+    plt.plot(x, mkr.bandpass_filter(y), label='Data, filtered', marker='o', markersize=0.3, linewidth=0.25)
     colors = ['b', 'g', 'r', 'c', 'm', 'y']
 
     for i, func in enumerate(funcs):
         if i == 5:
             for count in func(y):
-                plt.axvline(x=rec.count_to_pd_time(count + strt), c=colors[i], lw=1)
+                plt.axvline(x=rec.count_to_pd_time(count + strt), c=colors[i], lw=1, label='R peak, package')
     for count in my_r_peaks:
-        plt.axvline(x=rec.count_to_pd_time(count + strt), c='purple', lw=1)
-    plt.legend(loc=0)
+        plt.axvline(x=rec.count_to_pd_time(count + strt), c='purple', lw=1, label='R peak, optim')
+    handles, labels = plt.gca().get_legend_handles_labels()  # Distinct labels
+    by_label = dict(zip(labels, handles))
+    plt.legend(by_label.values(), by_label.keys())
     plt.show()

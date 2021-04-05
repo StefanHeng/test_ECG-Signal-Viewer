@@ -172,7 +172,8 @@ class EcgUi:
 
     def get_mru_caliper_coords(self):
         if self._ord_caliper:
-            return self.calipers[self._ord_caliper[-1]].get_mru_caliper_coords()
+            idx_lead = self._ord_caliper[-1]
+            return idx_lead, self.calipers[idx_lead].get_mru_caliper_coords()
 
     def highlight_mru_caliper_edit(self, figs_gra, idxs_lead):
         """ Highlights the most recently edited shapes, for a list of figures """

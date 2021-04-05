@@ -3,8 +3,10 @@ import numpy as np
 from scipy.signal import butter, lfilter, hilbert, iirnotch
 from ecgdetectors import Detectors
 
+import h5py
+
 from data_link import *
-from dev_helper import record_nm
+from dev_helper import *
 from ecg_record import EcgRecord
 
 from icecream import ic
@@ -84,9 +86,10 @@ class EcgMarker:
         return lfilter(b, a, signal)
 
     def r_peak_indices(self, idx_lead, ecg_vals):
+        """ For initial processing """
         indices = np.array(self.r_peak_detector.two_average_detector(ecg_vals))
         func = np.argmin if self.rec.is_negative[idx_lead] else np.argmax
-        n = ecg_vals.shape[0]
+        n = ecg_vals.size
         indices_offset = np.vectorize(lambda idx: func(ecg_vals[
                                 max(0, idx - self.R_SCH_WD_CNT):
                                 min(n, idx + self.R_SCH_WD_CNT)
@@ -128,6 +131,24 @@ class EcgMarker:
         else:
             return -1  # An int to be compatible with np.ndarray
 
+    def export(self, idx_ld_r=0, postfix='preprocessing'):
+        """ Handles exporting R peak values to HDF5 file, based on current record file, on lead III
+        TODO: Will include QRS complex times, filtered ECG signal for display
+        :param idx_ld_r: Index of the lead for running r peak detection
+        :param postfix: The Filename output will be '<record-file-name>_<postfix>.hdf5'
+        """
+        ecg_vals = self.rec.get_ecg_samples(idx_ld_r, step=1)  # Every single value
+        ic(ecg_vals.shape)
+        idxs_r = self.r_peak_indices(idx_ld_r, ecg_vals)
+        ic(idxs_r.shape)
+        fl_nm = f'{self.rec.nm}_{postfix}.hdf5'
+        path = f'data/{fl_nm}'
+        ic(path)
+        open(path, 'a').close()  # Create file in OS
+        fl = h5py.File(path, 'w')
+        fl.create_dataset('r-peaks', data=idxs_r)
+        print(f'Features extracted: {[(k, fl[k]) for k in fl]}')
+
     @staticmethod
-    def example(record=EcgRecord(DATA_PATH.joinpath(record_nm))):
+    def example(record=EcgRecord(DATA_PATH.joinpath(record_nm), CURR.joinpath(record_p_nm))):
         return EcgMarker(record)
