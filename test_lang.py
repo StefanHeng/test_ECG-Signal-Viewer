@@ -27,6 +27,9 @@ from icecream import ic
 #     return us * sample_rate // (10 ** 6)
 
 
+from enum import Enum  # for enum34, or the stdlib version
+# from aenum import Enum  # for the aenum version
+
 # @profile
 # def main():
 #     d = {0: 'a'}
@@ -148,11 +151,11 @@ if __name__ == "__main__":
     # ic(t1_p + d)
     # ic(d < t_max)
 
-    l = [
-        [1, 2, 3],
-        [4, 5, 6]
-    ]
-    ic([i for s in l for i in s])
+    # l = [
+    #     [1, 2, 3],
+    #     [4, 5, 6]
+    # ]
+    # ic([i for s in l for i in s])
     # ic(np.concatenate(l))
 
     # d = {
@@ -187,10 +190,15 @@ if __name__ == "__main__":
     # ic("{:,}".format(a))
     # ic(f'{a:,}')
 
-    rec = EcgRecord.example()
-    v = rec.get_time_values(0, 1000)
-    ic(v[0], v.iat[-1])
+    # rec = EcgRecord.example()
+    # v = rec.get_time_values(0, 1000)
+    # ic(v[0], v.iat[-1])
+    Animal = Enum('Animal', 'ant bee cat dog')
 
+    ic(Animal.ant)  # returns <Animal.ant: 1>
+    ic(Animal['ant'])  # returns <Animal.ant: 1> (string lookup)
+    ic(Animal.ant.name)  # returns 'ant' (inverse lookup)
+    ic(Animal(1).name)
 
 
 

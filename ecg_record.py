@@ -44,6 +44,7 @@ class EcgRecord:
         # Multiplying factor for converting to time in microseconds
         self.FAC_TO_US = 10 ** 6 / self.spl_rate
         self.lead_nms = [lead['name'] for lead in metadata['sigheader']]
+        self.n_lead = len(self.lead_nms)
         self.is_negative = [lead['isNegative'] for lead in metadata['sigheader']]
 
         self._sample_counts = self._get_sample_counts()

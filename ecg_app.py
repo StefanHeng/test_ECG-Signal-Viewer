@@ -15,6 +15,8 @@ from datetime import datetime  # , timedelta
 from copy import deepcopy
 from bisect import bisect_left
 import concurrent.futures
+# from typing import List, Set, Dict, Tuple, Optional
+from typing import List, Dict
 
 from icecream import ic
 
@@ -51,9 +53,11 @@ class EcgApp:
         DEV_TML_RD: [6, 5, 3, 16, 35]
     }
 
-    MAX_NUM_LD = 8
+    MAX_NUM_LD = 12
     MAX_TXTA_RW = 10  # Maximum number of `rows` for comment textarea
     MIN_TXTA_RW = 4
+
+    HT_LDS = 85  # Height that the leads take on, as a percentage of view window size
 
     MV_OFST_TIMES = {  # On how much time does advance and nudge operations move
         ID_BTN_ADV_BK: pd.Timedelta(-2, unit='m'),
@@ -72,7 +76,8 @@ class EcgApp:
         self.fig_tmb = None
         self._yaxis_fixed = False
         self._marking_on = False
-        self._shapes = []  # Current shapes drawn, to be synchronized across new leads added
+        # self._shapes = []  # Current shapes drawn, to be synchronized across new leads added
+        self.idx_ann_clicked = None
 
         self.move_offset_counts = None  # Runtime optimization, semi-constants dependent to record
         self.no_update_add_opns = None
@@ -262,7 +267,7 @@ class EcgApp:
                 html.Div(className=CNM_DIV_FIG, children=[
                     dcc.Graph(
                         id=m_id(ID_GRA, idx), className=CNM_GRA, config=CONF,
-                        figure=self.get_lead_fig(idx, tags, self._shapes)
+                        figure=self.get_lead_fig(idx, tags, self._get_all_annotations(self.idx_ann_clicked, idx))
                     )
                 ])
             ])
@@ -560,7 +565,7 @@ class EcgApp:
         if num_lead == 0:  # The layout is hidden anyway
             return [dash.no_update for i in range(num_lead)]
         else:
-            h = f'{int(80 / max(num_lead, 3))}vh'  # So that maximal height is 1/3 of the div
+            h = f'{int(self.HT_LDS / max(num_lead, 3))}vh'  # So that maximal height is 1/3 of the div
             return [dict(height=h) for i in range(num_lead)]
 
     def update_comment_textarea_height(self, txt):
@@ -588,7 +593,7 @@ class EcgApp:
             return False
 
     def _create_comment_range_labels(self):
-        coords = self.ui.get_most_recent_measurement_coords()
+        coords = self.ui.get_mru_caliper_coords()
         if coords is not None:
             x0, x1, y0, y1 = coords
             B = join(CNM_BDG, CNM_BDG_LT, CMN_TMLB)
@@ -610,13 +615,20 @@ class EcgApp:
         else:
             return []
 
+    def _get_all_annotations(self, idx_ann_clicked, idx_lead):
+        """ Static tag and shape measurement annotations """
+        anns = self.ui.get_caliper_annotations(idx_lead)
+        if self.rec is not None and self._marking_on:
+            anns += self.ui.get_tags(*(self.disp_rng[0]), idx_ann_clicked)
+        return anns
+
     def update_lead_options_disable_layout_figures(
             self, record_name, template, layouts_fig, layout_tmb,
             n_clicks_adv_bk, n_clicks_mv_bk, n_clicks_fixy, n_clicks_mv_fw, n_clicks_adv_fw,
             n_clicks_mkg_tg, n_clicks_clpr,
             data_add, data_rmv,
             idx_ann_clicked,
-            plots, disables_lead_add, figs_gra, fig_tmb, ns_clicks_tag):
+            plots, disables_lead_add, figs_gra: List[Dict[str, Dict]], fig_tmb, ns_clicks_tag):
         """Display lead figures based on current record and template selected, and based on lead selection in modal
 
         Initializes lead selections
@@ -652,6 +664,56 @@ class EcgApp:
         # Shared output must be in a single function call per Dash callback
         # => Forced to update in a single function call
         # ic()
+
+        def _get_tag_annotations():
+            """ Independent by lead """
+            if self.rec is not None and self._marking_on:
+                return self.ui.get_tags(*(self.disp_rng[0]), idx_ann_clicked)
+            else:
+                return []
+
+        def _update_figs_annotations():
+            tags = _get_tag_annotations()
+            for i, f in enumerate(figs_gra):
+                # ic(self.idxs_lead[i])
+                f['layout']['annotations'] = tags + self.ui.get_caliper_annotations(self.idxs_lead[i])
+                # ic(self.ui.get_caliper_annotations(self.idxs_lead[i]))
+
+        def _update_lead_figures():
+            strt, end = self.disp_rng[0]
+            sample_factor = self.plt.get_sample_factor(strt, end)
+            x_vals = self.rec.get_time_values(strt, end, sample_factor)
+            args = [(idx_idx, idx_lead, sample_factor)
+                    for idx_idx, idx_lead in enumerate(self.idxs_lead)]
+            # Multi-threading for mainly IO
+            with concurrent.futures.ThreadPoolExecutor(max_workers=self.MAX_NUM_LD) as executor:
+                executor.map(lambda p: _set_y_vals(*p), args)
+
+            # ic()
+            removed = self.ui.update_caliper_annotations_time(strt, end, figs_gra, self.idxs_lead)
+            # ic()
+            if removed:
+                # self._shapes = figs_gra[0]['layout']['shapes']  # Pick any one, shapes already removed
+                self.ui.highlight_mru_caliper_edit(figs_gra, self.idxs_lead)
+            # anns = self._get_all_annotations(idx_ann_clicked)
+            _update_figs_annotations()
+            for f in figs_gra:  # Lines up with number of figures plotted
+                # Short execution time, no need to multi-process
+                f[D][0]['x'] = x_vals
+                # f['layout']['annotations'] = anns
+                # Without this line, the range displayed can be invalid
+                f['layout']['xaxis']['range'] = x_layout_range  # This has to be the last assignment
+
+        def _set_y_vals(idx_idx, idx_lead, sample_factor):
+            y_vals = self.rec.get_ecg_samples(idx_lead, strt, end, sample_factor)
+            if self._yaxis_fixed:
+                rang = figs_gra[idx_idx]['layout']['yaxis']['range']
+                figs_gra[idx_idx][D][0]['y'] = y_vals
+                figs_gra[idx_idx]['layout']['yaxis']['range'] = rang  # Preserves the original range, by intuition
+            else:
+                figs_gra[idx_idx][D][0]['y'] = y_vals
+                figs_gra[idx_idx]['layout']['yaxis']['range'] = self.ui.get_ignore_noise_range(y_vals)
+
         changed_id_property = self.get_last_changed_id_property()
         changed_id = self.ui.get_id(changed_id_property)
 
@@ -677,8 +739,10 @@ class EcgApp:
             if template is not None:
                 self.idxs_lead = deepcopy(self.LD_TEMPL[template])  # Deepcopy cos idx_lead may mutate
                 # Override for any template change could happen before
-                anns = self._get_all_annotations(idx_ann_clicked)
-                plots = [self.get_fig_layout(idx, anns) for idx in self.idxs_lead]
+                # anns = self._get_all_annotations(idx_ann_clicked)
+                tags = _get_tag_annotations()
+                plots = [self.get_fig_layout(idx, tags + self.ui.get_caliper_annotations(idx))
+                         for idx in self.idxs_lead]
                 # lead_styles = self.get_lead_height_styles()
                 # Linear, more efficient than checking index in `self.idxs_lead`
                 disables_lead_add = [False for i in disables_lead_add]
@@ -712,7 +776,7 @@ class EcgApp:
                 yaxis_rng_ori = l_c['yaxis']['range']
                 fig_tmb['layout']['xaxis']['range'] = x_layout_range = \
                     self.ui.get_x_layout_range(layouts_fig[idx_idx_changed])
-                self._update_lead_figures(figs_gra, x_layout_range, idx_ann_clicked)
+                _update_lead_figures()
                 l_c['yaxis']['range'] = yaxis_rng_ori
                 plots = dash.no_update
                 # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
@@ -724,16 +788,18 @@ class EcgApp:
                 ns_clicks_tag = dash.no_update
             # Change in caliper/user-drawn shape
             elif layouts_fig is not None and self.ui.shape_updated(l):
-                self.ui.update_measurement_annotations_shape(l)
-                anns = self._get_all_annotations(idx_ann_clicked)
-                self._shapes = figs_gra[idx_idx_changed]['layout']['shapes']
-                self.ui.highlight_most_recent_caliper_edit(figs_gra)
+                self.ui.update_caliper_annotations_shape(l, idx_changed)
+                # anns = self._get_all_annotations(idx_ann_clicked)
+                # tags = self._get_tag_annotations(idx_ann_clicked)
+                _update_figs_annotations()
+                # self._shapes = figs_gra[idx_idx_changed]['layout']['shapes']
+                self.ui.highlight_mru_caliper_edit(figs_gra, self.idxs_lead)
                 cmt_rng_label = self._create_comment_range_labels()
                 disable_comment = not self.ui.has_measurement()
-                for idx, f in enumerate(figs_gra):  # Override original values, for potential text annotation removal
-                    f['layout']['annotations'] = anns
-                    if idx != idx_idx_changed:
-                        f['layout']['shapes'] = self._shapes
+                # for idx, f in enumerate(figs_gra):  # Override original values, for potential text annotation removal
+                #     # f['layout']['annotations'] = tags + self.ui.get_caliper_annotations(self.idxs_lead[idx])
+                #     if idx != idx_idx_changed:
+                #         f['layout']['shapes'] = self._shapes
             else:
                 raise PreventUpdate
         elif ID_TMB == changed_id:  # Changes in thumbnail figure have to be range change
@@ -742,7 +808,7 @@ class EcgApp:
             if self.rec is not None:
                 self.disp_rng[0] = self.ui.get_x_display_range(fig_tmb['layout'])
                 x_layout_range = fig_tmb['layout']['xaxis']['range']
-                self._update_lead_figures(figs_gra, x_layout_range, idx_ann_clicked)
+                _update_lead_figures()
                 fig_tmb = dash.no_update
                 plots = dash.no_update
                 # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
@@ -764,9 +830,11 @@ class EcgApp:
             ns_clicks_tag = dash.no_update
         elif ID_IC_TG_TG == changed_id:
             if self.rec is not None:
-                anns = self._get_all_annotations(idx_ann_clicked)
-                for f in figs_gra:
-                    f['layout']['annotations'] = anns
+                # anns = self._get_all_annotations(idx_ann_clicked)
+                # tags = self._get_tag_annotations(idx_ann_clicked)
+                # for f in figs_gra:
+                #     f['layout']['annotations'] = tags + self.ui.get_caliper_annotations()
+                _update_figs_annotations()
                 plots = dash.no_update
                 disables_lead_add = self.no_update_add_opns
                 fig_tmb = dash.no_update
@@ -775,13 +843,14 @@ class EcgApp:
                 raise PreventUpdate
         elif ID_BTN_CLP_CLR == changed_id:
             self.ui.clear_measurements()
-            self._shapes = []
-            anns = self._get_all_annotations(idx_ann_clicked)
+            # self._shapes = []
+            # anns = self._get_all_annotations(idx_ann_clicked)
+            _update_figs_annotations()
             cmt_rng_label = self._create_comment_range_labels()  # Basically set to none
             disable_comment = not self.ui.has_measurement()
-            for f in figs_gra:
-                f['layout']['shapes'] = self._shapes
-                f['layout']['annotations'] = anns
+            # for f in figs_gra:
+            #     f['layout']['shapes'] = self._shapes
+            #     # f['layout']['annotations'] = anns
             plots = dash.no_update
             disables_lead_add = self.no_update_add_opns
             fig_tmb = dash.no_update
@@ -800,7 +869,7 @@ class EcgApp:
                     self.rec.count_to_pd_time(strt),
                     self.rec.count_to_pd_time(end)
                 ]
-                self._update_lead_figures(figs_gra, x_layout_range, idx_ann_clicked=idx_ann_clicked)
+                _update_lead_figures()
                 fig_tmb['layout']['xaxis']['range'] = x_layout_range
                 plots = dash.no_update
                 # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
@@ -816,7 +885,7 @@ class EcgApp:
             added, idx_add = data_add
             # Need to check if clicking actually added a lead
             if added:  # Else error alert will raise
-                anns = self._get_all_annotations(idx_ann_clicked)
+                anns = self._get_all_annotations(idx_ann_clicked, idx_add)
                 plots.append(self.get_fig_layout(idx_add, anns))
                 disables_lead_add[idx_add] = True
                 fig_tmb = self.fig_tmb.add_trace([idx_add], override=False)
@@ -852,7 +921,7 @@ class EcgApp:
                     self.rec.count_to_pd_time(strt),
                     self.rec.count_to_pd_time(end)
                 ]
-                self._update_lead_figures(figs_gra, x_layout_range, idx_ann_clicked)
+                _update_lead_figures()
                 fig_tmb['layout']['xaxis']['range'] = x_layout_range
                 time_label = self.ui.count_pr_to_time_label(*self.disp_rng[0])
             else:  # Annotation clicked on is within display range
@@ -875,51 +944,13 @@ class EcgApp:
         else:
             raise PreventUpdate
         # ic()
+        self.idx_ann_clicked = idx_ann_clicked
         return (
             plots, disables_lead_add, figs_gra, fig_tmb,
             time_label, cmt_rng_label,
             disable_comment, disable_comment, disable_export_btn,
             ns_clicks_tag
         )
-
-    def _get_all_annotations(self, idx_ann_clicked):
-        """ Static tag and shape measurement annotations """
-        anns = self.ui.get_measurement_annotations()
-        if self.rec is not None and self._marking_on:
-            anns += self.ui.get_tags(*(self.disp_rng[0]), idx_ann_clicked)
-        return anns
-
-    def _update_lead_figures(self, figs_gra, x_layout_range, idx_ann_clicked=-1):
-        strt, end = self.disp_rng[0]
-        sample_factor = self.plt.get_sample_factor(strt, end)
-        x_vals = self.rec.get_time_values(strt, end, sample_factor)
-        args = [(figs_gra, idx_idx, idx_lead, strt, end, sample_factor)
-                for idx_idx, idx_lead in enumerate(self.idxs_lead)]
-        # Multi-threading for mainly IO
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self.MAX_NUM_LD) as executor:
-            executor.map(lambda p: self._set_y_vals(*p), args)
-
-        removed = self.ui.update_measurement_annotations_time(strt, end, figs_gra)
-        if removed:
-            self._shapes = figs_gra[0]['layout']['shapes']  # Pick any one, shapes already removed
-            self.ui.highlight_most_recent_caliper_edit(figs_gra)
-        anns = self._get_all_annotations(idx_ann_clicked)
-        for f in figs_gra:  # Lines up with number of figures plotted
-            # Short execution time, no need to multi-process
-            f[D][0]['x'] = x_vals
-            f['layout']['annotations'] = anns
-            # Without this line, the range displayed can be invalid
-            f['layout']['xaxis']['range'] = x_layout_range  # This has to be the last assignment
-
-    def _set_y_vals(self, figs_gra, idx_idx, idx_lead, strt, end, sample_factor):
-        y_vals = self.rec.get_ecg_samples(idx_lead, strt, end, sample_factor)
-        if self._yaxis_fixed:
-            rang = figs_gra[idx_idx]['layout']['yaxis']['range']
-            figs_gra[idx_idx][D][0]['y'] = y_vals
-            figs_gra[idx_idx]['layout']['yaxis']['range'] = rang  # Preserves the original range, by intuition
-        else:
-            figs_gra[idx_idx][D][0]['y'] = y_vals
-            figs_gra[idx_idx]['layout']['yaxis']['range'] = self.ui.get_ignore_noise_range(y_vals)
 
     @staticmethod
     def toggle_modal(n_clicks_add_btn, n_clicks_close_btn, is_open):

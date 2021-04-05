@@ -120,7 +120,6 @@ ID_BTN_CMT_SBM = 'btn_comment-submit'
 ID_DIV_CMT_LB = 'div_comment-label'
 ID_DIV_CMT_LB_T = 'div_comment-label-time'
 ID_DIV_CMT_LB_V = 'div_comment-label-volt'
-ID_STOR_CMT_DS = 'store_comment-disabled'
 
 
 CNM_BDG = 'bdg'

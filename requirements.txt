@@ -1,17 +1,17 @@
-numpy==1.20.1
+numpy==1.20.2
 
 dash==1.19.0
 plotly==4.14.3
-pandas==1.2.2
-vaex==3.0.0
+pandas==1.2.3
+vaex==4.1.0
 pyorbital==1.6.0
-h5py==3.1.0
+h5py==3.2.1
 pyarrow==3.0.0
 requests==2.25.1
 
 Flask==1.1.2
 icecream==2.1.0
-scipy==1.6.1
-matplotlib==3.3.4
+scipy==1.6.2
+matplotlib==3.4.1
 biosppy==0.6.1
 joblib==1.0.1
