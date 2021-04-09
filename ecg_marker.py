@@ -131,7 +131,7 @@ class EcgMarker:
         else:
             return -1  # An int to be compatible with np.ndarray
 
-    def export(self, idx_ld_r=0, postfix='preprocessing'):
+    def export(self, idx_ld_r=0, postfix='preprocessed'):
         """ Handles exporting R peak values to HDF5 file, based on current record file, on lead III
         TODO: Will include QRS complex times, filtered ECG signal for display
         :param idx_ld_r: Index of the lead for running r peak detection
@@ -146,8 +146,13 @@ class EcgMarker:
         ic(path)
         open(path, 'a').close()  # Create file in OS
         fl = h5py.File(path, 'w')
-        fl.create_dataset('r-peaks', data=idxs_r)
-        print(f'Features extracted: {[(k, fl[k]) for k in fl]}')
+        ic(fl)
+        fl.create_dataset('r-peak-idxs', data=idxs_r)
+        fl.create_dataset('r-peak-vals', data=np.stack(
+            [self.rec.get_ecg_samples(i)[idxs_r] for i in range(self.rec.n_lead)]
+        ))
+        print(f'Preprocessed: {[(k, fl[k]) for k in fl]}')
+        fl.close()
 
     @staticmethod
     def example(record=EcgRecord(DATA_PATH.joinpath(record_nm), CURR.joinpath(record_p_nm))):

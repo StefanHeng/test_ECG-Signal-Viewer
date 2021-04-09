@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 import concurrent.futures
+# from typing import Dict
 
 from ecg_app_defns import *
 
@@ -18,9 +19,9 @@ class EcgPlot:
     # Ad-hoc values for now, in the future should be calculated from device info
     # Default starting point, in the future should be retrieved from user
     _DISPLAY_WIDTH = 30  # in rem, display_width * display_scale_t gets the number of points to render
-    _DISPLAY_SCALE_T = 20  # #continuous time stamps to display in 1rem
+    _DISPLAY_SCALE_T = 30  # #continuous time stamps to display in 1rem
     _DISPLAY_SCALE_ECG = 20  # magnitude of ecg in a 1rem
-    SP_RT_READABLE = 125  # Sufficient frequency (Hz) for human differentiable graphing
+    SP_RT_READABLE = 250  # Sufficient frequency (Hz) for human differentiable graphing
 
     def __init__(self, record, parent):
         self.rec = record
@@ -66,6 +67,7 @@ class EcgPlot:
                     range=[time_vals[0], time_vals.iat[-1]]
                 ),
                 yaxis=dict(
+                    # range=self.parn.ui.get_ignore_noise_range(strt, end),
                     range=self.parn.ui.get_ignore_noise_range(ecg_vals),
                     fixedrange=yaxis_fixed
                 ),
@@ -172,6 +174,7 @@ class EcgPlot:
             for idx, idx_lead in enumerate(idxs_lead_add):
                 self.idxs_lead.append(idx_lead)
                 y_vals = res_y_vals[idx]
+                # rang = self.parn.parn.ui.get_ignore_noise_range(y_vals)
                 rang = self.parn.parn.ui.get_ignore_noise_range(y_vals)
                 y_vals = self.parn.parn.ui.strip_noise(y_vals, rang[0], rang[1])
                 self.fig['data'][idx_lead]['x'] = self.x_vals

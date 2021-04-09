@@ -40,24 +40,24 @@ def t_stamp():
 
 ic.configureOutput(prefix=t_stamp)
 
-
 class EcgApp:
     """Handles the Dash web app, interface with potentially multiple records
 
     Encapsulates all UI interactions including HTML layout, callbacks
     """
-    LD_TEMPL = {
-        # Arbitrary, for testing only, users should spawn all the leads via UI
-        DEV_TML_S: [0],
-        DEV_TML_RG: list(range(8)),
-        DEV_TML_RD: [6, 5, 3, 16, 35]
-    }
-
     MAX_NUM_LD = 12
     MAX_TXTA_RW = 10  # Maximum number of `rows` for comment textarea
     MIN_TXTA_RW = 4
 
     HT_LDS = 85  # Height that the leads take on, as a percentage of view window size
+
+    LD_TEMPL = {
+        # Arbitrary, for testing only, users should spawn all the leads via UI
+        DEV_TML_S: [0],
+        DEV_TML_RG: list(range(8)),
+        DEV_TML_RD: [6, 5, 3, 16, 35],
+        DEV_TML_RG2: list(range(12))
+    }
 
     MV_OFST_TIMES = {  # On how much time does advance and nudge operations move
         ID_BTN_ADV_BK: pd.Timedelta(-2, unit='m'),
@@ -176,8 +176,9 @@ class EcgApp:
                             placeholder='Select lead channel template',
                             options=[
                                 {L: f'{dev(DEV_TML_S)}', V: DEV_TML_S},
-                                {L: f'{dev(DEV_TML_RG)}', V: DEV_TML_RG},
                                 {L: f'{dev(DEV_TML_RD)}', V: DEV_TML_RD},
+                                {L: f'{dev(DEV_TML_RG)}', V: DEV_TML_RG},
+                                {L: f'{dev(DEV_TML_RG2)}', V: DEV_TML_RG2},
                             ],
                             # value=DEV_TML_S  # Dev only, for fast testing
                         )
@@ -474,7 +475,9 @@ class EcgApp:
         # EcgApp.__print_changed_property('init record')
         if record_name is not None:
             # Makes sure the following attributes are set first before needed
-            self.rec = EcgRecord(DATA_PATH.joinpath(record_name))
+            path = DATA_PATH.joinpath(record_name)
+            path_p = CURR.joinpath(f'{path.stem}_preprocessed.hdf5')  # Preprocessed record
+            self.rec = EcgRecord(path, path_p)
             self.plt = EcgPlot(self.rec, self)  # A `plot` serves a record
             self.ui = EcgUi(self.rec)
             self.exp.set_record(self.rec)
@@ -578,7 +581,7 @@ class EcgApp:
         """ Rough measure based on number of characters and number of line breaks """
         if txt is not None:
             n_ch = len(txt) if txt is not None else 0
-            n_ln = txt.idx_r('\n')
+            n_ln = txt.count('\n')
             n_row = max(n_ch // 30, n_ln)
             min_bound = max(n_row + 1, self.MIN_TXTA_RW)
             return min(min_bound, self.MAX_TXTA_RW)
@@ -650,6 +653,7 @@ class EcgApp:
                 # ic(self.ui.get_caliper_annotations(self.idxs_lead[i]))
 
         def _update_lead_figures():
+            # ic()
             strt, end = self.disp_rng[0]
             sample_factor = self.plt.get_sample_factor(strt, end)
             x_vals = self.rec.get_time_values(strt, end, sample_factor)
@@ -673,6 +677,7 @@ class EcgApp:
                 # f['layout']['annotations'] = anns
                 # Without this line, the range displayed can be invalid
                 f['layout']['xaxis']['range'] = x_layout_range  # This has to be the last assignment
+            # ic()
 
         def _set_y_vals(idx_idx, idx_lead, sample_factor):
             y_vals = self.rec.get_ecg_samples(idx_lead, strt, end, sample_factor)
@@ -683,6 +688,7 @@ class EcgApp:
             else:
                 figs_gra[idx_idx][D][0]['y'] = y_vals
                 figs_gra[idx_idx]['layout']['yaxis']['range'] = self.ui.get_ignore_noise_range(y_vals)
+                # figs_gra[idx_idx]['layout']['yaxis']['range'] = self.ui.get_ignore_noise_range(strt, end)
 
         def _shift_is_out_of_lim(strt, end, offset):
             """ On advance and nudge navigation controls.

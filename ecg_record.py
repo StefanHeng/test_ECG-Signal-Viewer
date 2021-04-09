@@ -34,7 +34,9 @@ class EcgRecord:
     def __init__(self, path_rec, path_rec_processed):
         self.record = h5py.File(path_rec, 'r')
         self.record_p = h5py.File(path_rec_processed, 'r')
-        self.idxs_rpeak = self.record_p['r-peaks']
+        # ic([p for p in self.record_p])
+        self.idxs_rpeak = self.record_p['r-peak-idxs']
+        self.vals_rpeak = self.record_p['r-peak-vals']  # Synchronized by index
         self.nm = path_rec.stem  # By pathlib Path, gets the file name without last extension
         self._seg_keys = list(self.record.keys())  # keys to each segment compiled in the .h5 file
         self.tags, self.tags_tm = self._get_tags()  # `_ann_tm` to make bisect easy
@@ -304,6 +306,11 @@ class EcgRecord:
         idx_strt = bisect_left(self.idxs_rpeak, strt)
         idx_end = bisect_left(self.idxs_rpeak, end)
         return self.idxs_rpeak[idx_strt:idx_end] - strt
+
+    def r_peak_vals(self, idx_lead, strt, end):
+        idx_strt = bisect_left(self.idxs_rpeak, strt)
+        idx_end = bisect_left(self.idxs_rpeak, end)
+        return self.vals_rpeak[idx_lead][idx_strt:idx_end]
 
     @staticmethod
     def example(path_rec=DATA_PATH.joinpath(record_nm), path_rec_processed=CURR.joinpath(record_p_nm)):

@@ -17,6 +17,20 @@
     transition: var(--ease-all);
 }
 
+#div_plots > * {
+    border-top: var(--border);
+    /*border: 1px red solid;*/
+}
+
+#div_plots > :first-child {
+    border-top: none;
+}
+
+#div_plots > :last-child {
+    border-bottom: none;
+}
+
+
 .div_plots_expand-width {  /* Partitions the width, with annotation panel and button */
     width: 98vw;
 }

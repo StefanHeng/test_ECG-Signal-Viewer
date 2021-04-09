@@ -1,13 +1,18 @@
 import numpy as np
 import pandas as pd
-import re
 
+import os
+# import json
+
+import re
 from random import random
 from enum import Enum
+from bisect import insort_left
 
 from icecream import ic
 
 from ecg_app_defns import *
+from data_link import *
 
 CLP_CH = Enum('CaliperChange', 'Add Remove Edit')  # Caliper change
 
@@ -26,15 +31,18 @@ class EcgUi:
 
     NUM_SAMPLES = 29  # Number of samples to take for randomization
     PERCENT_NUM = 5  # Number for a rough percentile sample count, based on NUM_SAMPLES
+    PERCENTILE = 80  # Percentile for noise removal on automatic display range
 
     def __init__(self, record):  # Linked record automatically updates by parent
         self.rec = record
         self.calipers = [self.Caliper(record, i) for i in range(self.rec.n_lead)] if self.rec is not None else []
         self._ord_caliper = []  # History of caliper measurement by lead & caliper index 2-tuple, as a stack
+        # self.comments = self.Comments(record)
 
     def set_record(self, record):
         self.rec = record
         self.calipers = [self.Caliper(record, i) for i in range(self.rec.n_lead)] if self.rec is not None else []
+        # self.comments = self.comments.init(record)
 
     def get_display_range(self, layout_fig):
         """
@@ -80,8 +88,24 @@ class EcgUi:
         """
         return np.vectorize(lambda x: x if bot < x < top else 0)(vals)
 
-    def get_ignore_noise_range(self, vals):  # TODO
+    def get_ignore_noise_range(self, vals, z=5):
+        # samples = []
+        # n = vals.shape[0]  # vals should be a numpy array
+        # for i in range(self.NUM_SAMPLES):
+        #     samples.append(int(random() * (n + 1)))  # Uniform distribution, with slight inaccuracy
+        # samples.sort()  # Small array size makes sorting efficient
+        # half_range = max(samples[self.PERCENT_NUM - 1], samples[-self.PERCENT_NUM])  # For symmetry
+        # half_range *= 40  # By nature of ECG waveform signals
+
+        # Update: try standard deviation range
+        half_range = z * np.std(vals)
+        m = np.mean(vals)
+        return m-half_range, m+half_range
+
+    def get_ignore_noise_range_(self, strt, end):  # TODO
         """ Returns an initial, pseudo range of ECG values given a set of samples
+
+        Based on R peaks in the original record
 
         A multiple of percentile range, should include all non-outliers
 
@@ -89,13 +113,16 @@ class EcgUi:
 
         :return: Start and end values """
         # Through randomization
-        samples = []
-        n = vals.shape[0]  # vals should be a numpy array
-        for i in range(self.NUM_SAMPLES):
-            samples.append(int(random() * (n + 1)))  # Uniform distribution, with slight inaccuracy
-        samples.sort()  # Small array size makes sorting efficient
-        half_range = max(samples[self.PERCENT_NUM - 1], samples[-self.PERCENT_NUM])  # For symmetry
-        half_range *= 40  # By nature of ECG waveform signals
+        # ecg_vals = self.rec.get_ecg_samples(0, strt, end)
+        # ic(strt, end, ecg_vals.shape)
+        # peaks = ecg_vals[self.rec.r_peak_indices(strt, end)]
+        peaks = self.rec.r_peak_vals(strt, end)
+        sample = np.random.choice(peaks, size=min(peaks.size, self.NUM_SAMPLES), replace=False)  # Uniform distribution
+        ic(peaks, sample)
+        sample.sort()  # Small array size makes sorting efficient
+        # half_range = max(sample[self.PERCENT_NUM - 1], sample[-self.PERCENT_NUM])  # For symmetry
+        half_range = np.percentile(sample, self.PERCENTILE)
+        half_range *= 1.4
         return -half_range, half_range
 
     @staticmethod
@@ -429,3 +456,34 @@ class EcgUi:
 
         def has_measurement(self):
             return self._n_mesr > 0
+
+    # class Comments:
+    #     """ Keeps track of comments made for a patient record file and storage between EcgApp use sessions
+    #
+    #     Comments are stored in sorted order in a list
+    #     Each comment is a 5-element list of the format `<x.center>, <y.center>, <x.1>, <y.1>, <msg>`,
+    #     which encodes python's natural sorted order for each object
+    #     """
+    #     def init(self, record):
+    #         self.nm = record.nm
+    #         self.path = CURR.joinpath(f'{self.nm}_comments.json')
+    #         if not os.path.exists(self.path):
+    #             open(self.path, 'a').close()  # Create file if no comments made before
+    #             self.comments = []
+    #         else:
+    #             config = open(self.path, 'r')
+    #             self.comments = json.load(config)
+    #
+    #     def __init__(self, record):
+    #         self.nm = None
+    #         self.path = None
+    #         self.comments = None
+    #         if record is not None:
+    #             self.init(record)
+    #
+    #     def insert(self, comment):
+    #         insort_left(self.comments, comment)
+    #
+    #     def flush(self):
+    #         """ Writes all changes made to comments into original JSON file """
+

@@ -3,6 +3,7 @@ import numpy as np
 from bisect import bisect_left, bisect_right
 from functools import reduce
 import re
+import json
 
 import dash
 import dash_html_components as html
@@ -193,12 +194,27 @@ if __name__ == "__main__":
     # rec = EcgRecord.example()
     # v = rec.get_time_values(0, 1000)
     # ic(v[0], v.iat[-1])
-    Animal = Enum('Animal', 'ant bee cat dog')
+    # Animal = Enum('Animal', 'ant bee cat dog')
+    #
+    # ic(Animal.ant)  # returns <Animal.ant: 1>
+    # ic(Animal['ant'])  # returns <Animal.ant: 1> (string lookup)
+    # ic(Animal.ant.name)  # returns 'ant' (inverse lookup)
+    # ic(Animal(1).name)
 
-    ic(Animal.ant)  # returns <Animal.ant: 1>
-    ic(Animal['ant'])  # returns <Animal.ant: 1> (string lookup)
-    ic(Animal.ant.name)  # returns 'ant' (inverse lookup)
-    ic(Animal(1).name)
+    # ic(np.random.choice(10, size=19, replace=False))
+    # ic(np.percentile(np.arange(20), 85))
+
+    cmt1 = [20, 30, 12, 3, 'haha']
+    cmt2 = [20, 30, 12, 3, 'he']
+    ic(cmt1 < cmt2)
+
+    cmts = [cmt1, cmt2]
+    cfg = 'config.json'
+    # with open(cfg, 'w') as f:
+    #     json.dump(cmts, f)
+
+    cs = json.load(open(cfg, 'r'))
+    ic(cs)
 
 
 

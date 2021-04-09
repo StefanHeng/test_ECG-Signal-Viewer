@@ -195,6 +195,7 @@ def lst_to_tuple(lst):
 
 DEV_TML_S = 'single -> 1: I'
 DEV_TML_RG = 'range(8) -> [1, 8]'
+DEV_TML_RG2 = 'range(12) -> [1, 12]'
 DEV_TML_RD = 'rand -> [7, 6, 4, 17, 36]'
 
 
