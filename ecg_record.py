@@ -224,16 +224,21 @@ class EcgRecord:
         """
         Within range [0, maximum sample count)
         """
-        return self.keep_range(self.pd_time_to_count(pd.Timestamp(time) - self.EPOCH_START))
+        return self.keep_range(self.pd_delta_to_count(pd.Timestamp(time) - self.EPOCH_START))
 
-    def pd_time_to_count(self, t):
+    def pd_delta_to_count(self, t):
         """
         :param t: pandas time object
         .. note:: Doesn't check valid record indexing
         """
         # Optimization: integer instead of float arithmetic while preserving accuracy
-        t_us = t // self.UNIT_1US
-        return t_us * self.spl_rate // (10 ** 6)
+        return self._us_to_count(t // self.UNIT_1US)
+
+    def pd_time_to_count(self, t):
+        return self.pd_delta_to_count(t - self.EPOCH_START)
+
+    def _us_to_count(self, us):
+        return us * self.spl_rate // (10 ** 6)
 
     def keep_range(self, count):
         """ Make sure the index into record stays within bounds """

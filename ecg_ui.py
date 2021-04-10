@@ -2,12 +2,12 @@ import numpy as np
 import pandas as pd
 
 import os
-# import json
+import json
 
 import re
 from random import random
 from enum import Enum
-from bisect import insort_left
+from bisect import insort_left, bisect_left
 
 from icecream import ic
 
@@ -37,7 +37,7 @@ class EcgUi:
         self.rec = record
         self.calipers = [self.Caliper(record, i) for i in range(self.rec.n_lead)] if self.rec is not None else []
         self._ord_caliper = []  # History of caliper measurement by lead & caliper index 2-tuple, as a stack
-        # self.comments = self.Comments(record)
+        self.comments = self.Comments(record)
 
     def set_record(self, record):
         self.rec = record
@@ -238,6 +238,20 @@ class EcgUi:
         else:
             return False
 
+    def update_comment(self, comment):
+        """
+        Can potentially modify an existing comment, or add a new one
+
+        :param comment: 6-element list of <x.center>, <y.center>, <x.0>, <y.0>, <lead_idx>, <msg>
+        """
+        self.comments.update_comment_(comment)
+
+    def save_comment_changes(self):
+        self.comments.flush()
+
+    def get_comment_list(self, idxs_lead):
+        return self.comments.get_comment_list(idxs_lead)
+
     class Caliper:
         """ Handles caliper internal updates for a single lead,
         depending on `EcgApp` time range navigation and caliper measurement creation, removal and edit.
@@ -276,6 +290,7 @@ class EcgUi:
                 x0, x1, y0, y1 = d_shape['x0'], d_shape['x1'], d_shape['y0'], d_shape['y1']
             x0 = pd.to_datetime(x0)
             x1 = pd.to_datetime(x1)
+            y0, y1 = int(y0), int(y1)
             x0, x1 = (x0, x1) if x0 < x1 else (x1, x0)  # The relative magnitude depends on
             y0, y1 = (y0, y1) if y0 < y1 else (y1, y0)
             return x0, x1, y0, y1
@@ -443,47 +458,76 @@ class EcgUi:
 
         def get_mru_caliper_coords(self):
             """
-            :return: 4-tuple, (x0, x1, y0, y1) as string representation per return of 'shape_dict_to_coords'
-             if a measurement exists, None otherwise """
+            :return: 4-tuple, (x0, x1, y0, y1) as pandas time objects and integer voltages
+            if a measurement exists, None otherwise """
             if self.has_measurement():
-                x0, x1, y0, y1 = self._lst_shape_coords[self._ord_mesr_edit[-1]]
-                return (
-                    self.rec.pd_time_to_str(x0),
-                    self.rec.pd_time_to_str(x1),
-                    f'{int(y0):,}',
-                    f'{int(y1):,}'
-                )
+                return self._lst_shape_coords[self._ord_mesr_edit[-1]]
+                # x0, x1, y0, y1 = self._lst_shape_coords[self._ord_mesr_edit[-1]]
+                # return (
+                    # self.rec.pd_time_to_str(x0),
+                    # self.rec.pd_time_to_str(x1),
+                    # f'{int(y0):,}',
+                    # f'{int(y1):,}'
+                # )
 
         def has_measurement(self):
             return self._n_mesr > 0
 
-    # class Comments:
-    #     """ Keeps track of comments made for a patient record file and storage between EcgApp use sessions
-    #
-    #     Comments are stored in sorted order in a list
-    #     Each comment is a 5-element list of the format `<x.center>, <y.center>, <x.1>, <y.1>, <msg>`,
-    #     which encodes python's natural sorted order for each object
-    #     """
-    #     def init(self, record):
-    #         self.nm = record.nm
-    #         self.path = CURR.joinpath(f'{self.nm}_comments.json')
-    #         if not os.path.exists(self.path):
-    #             open(self.path, 'a').close()  # Create file if no comments made before
-    #             self.comments = []
-    #         else:
-    #             config = open(self.path, 'r')
-    #             self.comments = json.load(config)
-    #
-    #     def __init__(self, record):
-    #         self.nm = None
-    #         self.path = None
-    #         self.comments = None
-    #         if record is not None:
-    #             self.init(record)
-    #
-    #     def insert(self, comment):
-    #         insort_left(self.comments, comment)
-    #
-    #     def flush(self):
-    #         """ Writes all changes made to comments into original JSON file """
+    class Comments:
+        """ Keeps track of comments made for a patient record file and storage between EcgApp use sessions
 
+        Comments are stored in sorted order in a list
+        Each comment is a 6-element list of the format `<x.center>, <y.center>, <x.0>, <y.0>, <lead_idx>, <msg>`,
+        which encodes python's natural sorted order for each object
+
+        the x values are in terms of integer ECG sample counts
+        """
+        C = 'comments'
+
+        def init(self, record):
+            self.nm = record.nm
+            self.path = CURR.joinpath(f'{self.nm}_comments.json')
+            if not os.path.exists(self.path) or os.stat(self.path).st_size == 0:
+                with open(self.path, 'w') as f:
+                    json.dump([], f, indent=4)
+                # open(self.path, 'a').close()  # Create file if no comments made before
+                # self.comments = []
+            # else:
+            f = open(self.path, 'r')
+            self.lst = json.load(f)
+            self.n_cmts = 0  # Number of comments
+            f.close()
+
+        def __init__(self, record):
+            self.nm = None
+            self.path = None
+            self.lst = None
+            self.n_cmts = 0
+            if record is not None:
+                self.init(record)
+
+        def __len__(self):
+            return self.n_cmts
+
+        def update_comment_(self, comment):
+            idx = bisect_left(self.lst, comment)
+            if idx < self.n_cmts and self.lst[idx][:-1] == comment[:-1]:  # Only difference is the message
+                self.lst[idx][-1] = comment[-1]
+            else:
+                self.lst.insert(idx, comment)
+                self.n_cmts += 1
+            ic(self.lst)
+            self.flush()
+
+        def flush(self):
+            """ Writes all changes made to comments into original JSON file """
+            config = open(self.path, 'w')
+            json.dump(self.lst, config, indent=4)
+            config.close()
+
+        def get_comment_list(self, idxs_lead):
+            lst = []
+            for row in self.lst:
+                if row[-2] in idxs_lead:  # <x.center>, <lead_idx>, <msg>
+                    lst.append([row[0], row[-2], row[-1]])
+            return lst

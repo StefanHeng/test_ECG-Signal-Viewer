@@ -1,4 +1,7 @@
 #alert_max-lead-error {
+}
+
+.alert {
     position: absolute;
     top: 0.5em;
     left: 20%;
@@ -7,4 +10,5 @@
 
     margin: auto;
     border-radius: 0.5em;
+
 }

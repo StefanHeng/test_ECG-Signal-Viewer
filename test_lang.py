@@ -204,17 +204,53 @@ if __name__ == "__main__":
     # ic(np.random.choice(10, size=19, replace=False))
     # ic(np.percentile(np.arange(20), 85))
 
-    cmt1 = [20, 30, 12, 3, 'haha']
-    cmt2 = [20, 30, 12, 3, 'he']
-    ic(cmt1 < cmt2)
-
-    cmts = [cmt1, cmt2]
-    cfg = 'config.json'
+    # cmt1 = [20, 30, 12, 3, 'haha']
+    # cmt2 = [20, 30, 12, 3, 'he']
+    # ic(cmt1 < cmt2)
+    #
+    # cmt0 = [0, 0, 0, 0, 0, 'as']
+    # cmt3 = [40, 0, 0, 0, 0, 'asd']
+    # cmts = [cmt0, cmt1, cmt2, cmt3]
+    # cmt_s = [60, 30, 12, 3, 'a']
+    # ic(bisect_left(cmts, cmt1), bisect_right(cmts, cmt1))
+    # ic(bisect_left(cmts, cmt_s), bisect_right(cmts, cmt_s))
+    #
+    # cmts.insert(4, cmt_s)
+    # ic(cmts)
+    # cfg = 'config.json'
     # with open(cfg, 'w') as f:
     #     json.dump(cmts, f)
 
-    cs = json.load(open(cfg, 'r'))
-    ic(cs)
+    # cs = json.load(open(cfg, 'r'))
+    # ic(cs)
 
+    # st2 = 'blah\nhaha'
+    # ic(st2.partition('\n'))
+    # ic(st2[:st2.find('\n')])
+    # st = 'Split the string at the first occurrence of *sep*, and return a 3-tuple containing the part ' \
+    #     'before the separator, the separator itself, '
+    #
+    #
+    # def _get_words_by_lim(c, lim=30):
+    #     # s = ''
+    #     # l = 0
+    #     # wd, c = c.partition(' ')
+    #     # l_wd = len(wd)
+    #     # while l + l_wd <= lim:
+    #     #     s += wd
+    #     #     l += l_wd
+    #     #     wd, c = c.partition(' ')
+    #     #     l_wd = len(wd)
+    #     # return s
+    #     s = c[:lim]
+    #     s = s[:s.rindex(' ')]
+    #     return s
+    #
+    # ic(_get_words_by_lim(st))
+
+    # s = 'asd'
+    # ic(s.find(' '))
+    inf = float('inf')
+    ic(float('inf') == inf)
 
 

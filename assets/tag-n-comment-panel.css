@@ -88,17 +88,21 @@
 }
 
 
-.tag-block {
+.tag-block, .comment-block {
     padding: 0.25em 0.5em;
     margin: 0.125em;
 }
 
-.tag-block:active {
+.tag-block > *, .comment-block > * {
+    margin-right: 0.5em;
+}
+
+.tag-block:active, .comment-block:active {
     background-color: #f7f7f9;
     border-color: transparent;
 }
 
-.text_tag {
+.text_tag, .text_comment {
     display: inline-block;
     margin: 0;
 

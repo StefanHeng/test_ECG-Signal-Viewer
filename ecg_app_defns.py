@@ -3,6 +3,30 @@ from dash.dependencies import MATCH, ALL
 import plotly.graph_objects as go
 
 
+# Syntactic sugar
+def m_id(typ, idx):
+    """Generate match id """
+    return {T: typ, I: idx}
+
+
+def mch(id_str):
+    """Pattern matching id used in callbacks """
+    return {T: id_str, I: MATCH}
+
+
+def all_(id_str):
+    return {T: id_str, I: ALL}
+
+
+def join(*class_nms):  # For Dash className
+    """Join string arguments into whitespace-separated single string """
+    return ' '.join(class_nms)
+
+
+def lst_to_tuple(lst):
+    return *lst,
+
+
 FA_CSS_LNK = 'https://use.fontawesome.com/releases/v5.8.1/css/all.css'
 
 CNM_HD = 'header'
@@ -91,7 +115,7 @@ CNM_MV_BK = 'fas fa-angle-left'
 CNM_ADV_FW = 'fas fa-angle-double-right'
 CNM_MV_FW = 'fas fa-angle-right'
 ID_BTN_TG_TG = 'btn_tag-toggle'
-ID_IC_TG_TG = 'ic_tag-toggle'
+ID_IC_TG_TG = 'ic_tag-toggle'  # Toggle showing or hiding markings
 CNM_TG_TG = 'fas fa-marker'
 
 ID_DIV_TMLB = 'div_time-label'
@@ -99,8 +123,8 @@ ID_TMLB = 'time-label'
 
 ID_DIV_TG = 'div_tags'
 ID_GRP_TG = 'list-group_tags'
-ID_IC_TG = 'ic_tag'
-CNM_TG_EXP = 'fas fa-chevron-left'  # Expand
+ID_IC_CMT_TG_TG = 'ic_tag'  # Place holder for the expand/collapse panel symbol
+CNM_TG_EXP = 'fas fa-chevron-left'  # Expand tag & comment panel
 CNM_TG_CLP = 'fas fa-chevron-right'  # Collapse
 ID_ITM_TG = 'item_tag'
 ID_STOR_TG_IDX = 'store_clicked-tag-index'  # semi-store in a sense
@@ -121,11 +145,26 @@ ID_DIV_CMT_LB = 'div_comment-label'
 ID_DIV_CMT_LB_LD = 'div_comment-label-lead'
 ID_DIV_CMT_LB_T = 'div_comment-label-time'
 ID_DIV_CMT_LB_V = 'div_comment-label-volt'
+ID_ALT_CMT_SVD = 'alert_comment-saved'
 
+CNM_ALT = 'alert'
+
+ID_GRP_CMT = 'list-group_comments'
+CNM_CMT_BLK = 'comment-block'
+ID_BDG_CMT_TM = 'badge_comment-timestamp'
+CNM_CMT_TXT = 'text_comment'
+ID_BTN_CMT_ITM_TG = 'btn_comment-item'  # Toggle Expand/collapse whole content of comment entry
+ID_IC_CMT_ITM_TG = 'ic_comment-item'
+CNM_CMT_CLP = 'fas fa-chevron-up'
+CNM_CMT_EXP = 'fas fa-chevron-down'
+ID_CLP_CMT_ITM = 'collapse_comment-item'  # For dbc component on hiding/showing comment entry
 
 CNM_BDG = 'bdg'
 CNM_BDG_LT = 'badge-light'
 CMN_TMLB = 'time-label'
+# My badge style
+CNM_BDG_MY = join(CNM_BDG, CNM_BDG_LT)
+CNM_BDG_MY_INT = join(CNM_BDG_MY, CMN_TMLB)  # The interactive version
 
 ID_BTN_CLP_CLR = 'btn_clear-caliper'
 CNM_CLP_CLR = 'fas fa-broom'
@@ -167,31 +206,6 @@ V = 'value'
 NC = 'n_clicks'
 L = 'label'
 DS = 'disabled'
-
-
-# Syntactic sugar
-def m_id(typ, idx):
-    """Generate match id """
-    return {T: typ, I: idx}
-
-
-def mch(id_str):
-    """Pattern matching id used in callbacks """
-    return {T: id_str, I: MATCH}
-
-
-def all_(id_str):
-    return {T: id_str, I: ALL}
-
-
-def join(*class_nms):  # For Dash className
-    """Join string arguments into whitespace-separated single string """
-    return ' '.join(class_nms)
-
-
-def lst_to_tuple(lst):
-    return *lst,
-
 
 DEV_TML_S = 'single -> 1: I'
 DEV_TML_RG = 'range(8) -> [1, 8]'
