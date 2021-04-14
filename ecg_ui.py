@@ -17,6 +17,12 @@ from data_link import *
 CLP_CH = Enum('CaliperChange', 'Add Remove Edit')  # Caliper change
 
 
+def remove_by_indices(lst, idxs):
+    """ Assumes idxs valid and reversely sorted """
+    for i in idxs:
+        del lst[i]
+
+
 class EcgUi:
     # Keys inside `relayoutData`
     K_XS = 'xaxis.range[0]'  # Start limit for horizontals axis
@@ -88,7 +94,8 @@ class EcgUi:
         """
         return np.vectorize(lambda x: x if bot < x < top else 0)(vals)
 
-    def get_ignore_noise_range(self, vals, z=5):
+    @staticmethod
+    def get_ignore_noise_range(vals, z=5):
         # samples = []
         # n = vals.shape[0]  # vals should be a numpy array
         # for i in range(self.NUM_SAMPLES):
@@ -98,8 +105,11 @@ class EcgUi:
         # half_range *= 40  # By nature of ECG waveform signals
 
         # Update: try standard deviation range
+        # ic('in ignore noise')
+        # ic()
         half_range = z * np.std(vals)
         m = np.mean(vals)
+        # ic()
         return m-half_range, m+half_range
 
     def get_ignore_noise_range_(self, strt, end):  # TODO
@@ -202,15 +212,20 @@ class EcgUi:
             idx_lead = self._ord_caliper[-1]
             return idx_lead, self.calipers[idx_lead].get_mru_caliper_coords()
 
-    def highlight_mru_caliper_edit(self, figs_gra, idxs_lead):
-        """ Highlights the most recently edited shapes, for a list of figures """
+    def highlight_mru_caliper_edit(self, figs_gra, idxs_lead, idxs_ignore=[]):
+        """ Highlights the most recently edited shapes, for a list of figures
+        Potentially, need to ignore the leads removed by Dash callback nature """
+        # ic(self._ord_caliper, idxs_lead)
         for i, f in enumerate(figs_gra):
-            for idx, shape in enumerate(f['layout']['shapes']):
-                idx_ld = idxs_lead[i]
-                if idx_ld == self._ord_caliper[-1] and idx == self.calipers[idx_ld].mru_index():  # There's only 1
-                    shape['fillcolor'] = CLR_CLPR_RECT_ACT
-                else:
-                    shape['fillcolor'] = CLR_CLPR_RECT
+            # ic(i, idxs_ignore, i not in idxs_ignore)
+            idx_ld = idxs_lead[i]
+            if idx_ld not in idxs_ignore:
+                for idx, shape in enumerate(f['layout']['shapes']):
+                    # ic(idxs_lead)
+                    if idx_ld == self._ord_caliper[-1] and idx == self.calipers[idx_ld].mru_index():  # There's only 1
+                        shape['fillcolor'] = CLR_CLPR_RECT_ACT
+                    else:
+                        shape['fillcolor'] = CLR_CLPR_RECT
 
     def clear_measurements(self):
         for c in self.calipers:
@@ -218,6 +233,16 @@ class EcgUi:
 
     def get_caliper_annotations(self, idx_ld):
         return self.calipers[idx_ld].get_measurement_annotations()
+
+    def update_caliper_lead_removed(self, idx_ld_rmv):
+        """ When a single lead channel is removed
+        Returns true if caliper measurements removed
+        """
+        idxs_rmv = [idx for idx, i in enumerate(self._ord_caliper) if i == idx_ld_rmv]
+        # Remove all caliper measurement history associated with this lead
+        remove_by_indices(self._ord_caliper, sorted(idxs_rmv, reverse=True))
+        self.calipers[idx_ld_rmv].clear_measurements()  # Clear caliper measurements on the lead removed
+        return idx_ld_rmv != []
 
     def update_caliper_annotations_time(self, strt, end, figs, idxs_lead):
         caliper_removed_lds = [self.calipers[idx].update_caliper_annotations_time(strt, end, figs[i])
@@ -251,6 +276,9 @@ class EcgUi:
 
     def get_comment_list(self, idxs_lead):
         return self.comments.get_comment_list(idxs_lead)
+
+    def get_comment(self, key):
+        return self.comments[key]
 
     class Caliper:
         """ Handles caliper internal updates for a single lead,
@@ -337,16 +365,10 @@ class EcgUi:
         def get_measurement_annotations(self):
             return [ann for pr in self.lst_ann_mesr for ann in pr]  # Flattens 2d list to 1d
 
-        @staticmethod
-        def _remove_by_indices(lst, idxs):
-            """ Assumes idxs valid and reversely sorted """
-            for i in idxs:
-                del lst[i]
-
         def _update_caliper_edit_order_after_remove(self, idxs_rmv):
             """ Update the attribute on (order of measurement edits based on index), based on indices already removed
             Indices removed should be reversely sorted """
-            self._remove_by_indices(self._ord_mesr_edit, idxs_rmv)
+            remove_by_indices(self._ord_mesr_edit, idxs_rmv)
             # ic(idxs_rmv, self._ord_mesr_edit)
             for idx_rmv in idxs_rmv:
                 for idx_idx, idx in enumerate(self._ord_mesr_edit):
@@ -435,10 +457,10 @@ class EcgUi:
             if removed:
                 idxs.sort(reverse=True)
                 self._n_mesr -= len(idxs)
-                self._remove_by_indices(self._lst_shape_coords, idxs)
-                self._remove_by_indices(self.lst_ann_mesr, idxs)
+                remove_by_indices(self._lst_shape_coords, idxs)
+                remove_by_indices(self.lst_ann_mesr, idxs)
                 # for f in figs:
-                self._remove_by_indices(fig['layout']['shapes'], idxs)
+                remove_by_indices(fig['layout']['shapes'], idxs)
 
                 self._update_caliper_edit_order_after_remove(idxs)
             return removed
@@ -516,7 +538,7 @@ class EcgUi:
             else:
                 self.lst.insert(idx, comment)
                 self.n_cmts += 1
-            ic(self.lst)
+            # ic(self.lst)
             self.flush()
 
         def flush(self):
@@ -527,7 +549,12 @@ class EcgUi:
 
         def get_comment_list(self, idxs_lead):
             lst = []
-            for row in self.lst:
+            idxs = []
+            for idx, row in enumerate(self.lst):
                 if row[-2] in idxs_lead:  # <x.center>, <lead_idx>, <msg>
+                    idxs.append(idx)
                     lst.append([row[0], row[-2], row[-1]])
-            return lst
+            return idxs, lst
+
+        def __getitem__(self, key):
+            return self.lst[key]

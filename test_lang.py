@@ -250,7 +250,10 @@ if __name__ == "__main__":
 
     # s = 'asd'
     # ic(s.find(' '))
-    inf = float('inf')
-    ic(float('inf') == inf)
+    # inf = float('inf')
+    # ic(float('inf') == inf)
+
+    a = [3, 23, 4, 123]
+    ic(sorted(a, reverse=True), a)
 
 

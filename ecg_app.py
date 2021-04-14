@@ -84,6 +84,7 @@ class EcgApp:
         self._marking_on = False
         # self._shapes = []  # Current shapes drawn, to be synchronized across new leads added
         self.idx_ann_clicked = None
+        self.ks_cmts = None  # Keys for internal comment data lookup, by order of each comment on display
 
         self.move_offset_counts = None  # Runtime optimization, semi-constants dependent to record
         self.no_update_add_opns = None
@@ -413,7 +414,8 @@ class EcgApp:
              Input(ID_BTN_CLP_CLR, NC),
              Input(ID_STOR_ADD, D),
              Input(ID_STOR_RMV, D),
-             Input(ID_STOR_TG_IDX, D)],
+             Input(ID_STOR_TG_IDX, D),  # Static tag click
+             Input(all_(ID_BDG_CMT_TM), NC)],  # Comment timestamp click
             [State(ID_DIV_PLTS, C),
              State(all_(ID_ITM_LD_ADD), DS),
              State(all_(ID_GRA), F),
@@ -620,7 +622,7 @@ class EcgApp:
         if id_changed == ID_BTN_CMT_SBM:
             # There's definitely a mru if button clicked
             idx_lead, (x0, x1, y0, y1) = self.ui.get_mru_caliper_coords()
-            ic(idx_lead, (x0, x1, y0, y1))
+            # ic(idx_lead, (x0, x1, y0, y1))
             x0 = self.rec.pd_time_to_count(x0)
             x1 = self.rec.pd_time_to_count(x1)
             cmt = [
@@ -633,7 +635,7 @@ class EcgApp:
             cmt_saved = True
 
         idxs_lead = self.LD_TEMPL[template] if id_changed == ID_DPD_LD_TEMPL else self.idxs_lead
-        cmts = self.ui.get_comment_list(idxs_lead)
+        self.ks_cmts, cmts = self.ui.get_comment_list(idxs_lead)
 
         def _get_1st_line_idx(s):
             """ Index up until first new line char """
@@ -695,7 +697,7 @@ class EcgApp:
             n_clicks_adv_bk, n_clicks_mv_bk, n_clicks_fixy, n_clicks_mv_fw, n_clicks_adv_fw,
             n_clicks_mkg_tg, n_clicks_clpr,
             data_add, data_rmv,
-            idx_ann_clicked,
+            idx_ann_clicked, ns_clicks_cmt,
             plots, disables_lead_add, figs_gra: List[Dict[str, Dict]], fig_tmb, ns_clicks_tag):
         """Display lead figures based on current record and template selected, and based on lead selection in modal
 
@@ -717,6 +719,7 @@ class EcgApp:
         :param data_add: Tuple info on if adding took place and if so the lead index added
         :param data_rmv: Tuple info on the original index of removed lead index, and the lead index removed
         :param idx_ann_clicked: Index of tag clicked
+        :param ns_clicks_cmt: Number of clicks for comment timestamp
 
         # States
         :param plots: Div list of of lead currently on plot
@@ -753,11 +756,15 @@ class EcgApp:
             strt, end = self.disp_rng[0]
             sample_factor = self.plt.get_sample_factor(strt, end)
             x_vals = self.rec.get_time_values(strt, end, sample_factor)
-            args = [(idx_idx, idx_lead, sample_factor)
+            lst_args = [(idx_idx, idx_lead, strt, end, sample_factor)  # The strt, end variables here cannot be saved
                     for idx_idx, idx_lead in enumerate(self.idxs_lead)]
+            # ic(lst_args)
             # Multi-threading for mainly IO
+            # for a in args:
+            #     _set_y_vals(*a)
             with concurrent.futures.ThreadPoolExecutor(max_workers=self.MAX_NUM_LD) as executor:
-                executor.map(lambda p: _set_y_vals(*p), args)
+                # ic('inside threading')
+                executor.map(lambda args: _set_y_vals(*args), lst_args)
 
             # ic()
             removed = self.ui.update_caliper_annotations_time(strt, end, figs_gra, self.idxs_lead)
@@ -775,8 +782,9 @@ class EcgApp:
                 f['layout']['xaxis']['range'] = x_layout_range  # This has to be the last assignment
             # ic()
 
-        def _set_y_vals(idx_idx, idx_lead, sample_factor):
+        def _set_y_vals(idx_idx, idx_lead, strt, end, sample_factor):
             y_vals = self.rec.get_ecg_samples(idx_lead, strt, end, sample_factor)
+            # ic(strt, end, y_vals)
             if self._yaxis_fixed:
                 rang = figs_gra[idx_idx]['layout']['yaxis']['range']
                 figs_gra[idx_idx][D][0]['y'] = y_vals
@@ -832,7 +840,7 @@ class EcgApp:
                 ]
             else:
                 return []
-
+        # ic()
         changed_id_property = self.get_last_changed_id_property()
         changed_id = self.ui.get_id(changed_id_property)
 
@@ -859,6 +867,7 @@ class EcgApp:
                 self.idxs_lead = deepcopy(self.LD_TEMPL[template])  # Deepcopy cos idx_lead may mutate
                 # Override for any template change could happen before
                 # anns = self._get_all_annotations(idx_ann_clicked)
+                self.ui.clear_measurements()  # Remove all caliper measurements as the easiest solution
                 tags = _get_tag_annotations()
                 plots = [self.get_fig_layout(idx, tags + self.ui.get_caliper_annotations(idx))
                          for idx in self.idxs_lead]
@@ -895,7 +904,9 @@ class EcgApp:
                 yaxis_rng_ori = l_c['yaxis']['range']
                 fig_tmb['layout']['xaxis']['range'] = x_layout_range = \
                     self.ui.get_x_layout_range(layouts_fig[idx_idx_changed])
+                # ic('call update lead figures')
                 _update_lead_figures()
+                # ic(x_layout_range, self.disp_rng[0])
                 l_c['yaxis']['range'] = yaxis_rng_ori
                 plots = dash.no_update
                 # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
@@ -1018,9 +1029,16 @@ class EcgApp:
         elif ID_STOR_RMV == changed_id:
             idx_idx_rmv, idx_rmv = data_rmv  # There will always be something to remove
             self.fig_tmb.remove_trace(idx_idx_rmv, idx_rmv)
+            # Clear all potential caliper measurements on this lead before removal, to update MRU
+            idxs_lead = deepcopy(self.idxs_lead)
+            idxs_lead.insert(idx_idx_rmv, idx_rmv)
+            # Need to resort back to assuming figure not yet removed
+            if self.ui.update_caliper_lead_removed(idx_rmv):
+                self.ui.highlight_mru_caliper_edit(figs_gra, idxs_lead, idxs_ignore=[idx_rmv])
+                cmt_rng_label = _create_comment_range_labels()
             del plots[idx_idx_rmv]
             disables_lead_add[idx_rmv] = False
-            figs_gra = [dash.no_update] * len(figs_gra)
+            # figs_gra = [dash.no_update] * len(figs_gra)
             # Surprisingly when I have the line below, Dash gives weird exception, instead of not having this line
             # del figs_gra[idx_idx_changed]'
             if len(self.idxs_lead) == 0:  # from 1 to 0 lead
@@ -1060,6 +1078,11 @@ class EcgApp:
                         figs_gra = n_update
             plots = dash.no_update
             disables_lead_add = self.no_update_add_opns
+        elif ID_BDG_CMT_TM == changed_id:
+            idx_cmt_ch = self.ui.get_pattern_match_index(changed_id_property)
+            k = self.ks_cmts[idx_cmt_ch]
+            # TODO
+            raise PreventUpdate
         else:
             raise PreventUpdate
         # ic()
