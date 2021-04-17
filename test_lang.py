@@ -214,6 +214,7 @@ if __name__ == "__main__":
     # cmt_s = [60, 30, 12, 3, 'a']
     # ic(bisect_left(cmts, cmt1), bisect_right(cmts, cmt1))
     # ic(bisect_left(cmts, cmt_s), bisect_right(cmts, cmt_s))
+    # ic(bisect_left(cmts, [0] + [-1] * 5))
     #
     # cmts.insert(4, cmt_s)
     # ic(cmts)
@@ -253,7 +254,10 @@ if __name__ == "__main__":
     # inf = float('inf')
     # ic(float('inf') == inf)
 
-    a = [3, 23, 4, 123]
-    ic(sorted(a, reverse=True), a)
+    # a = [3, 23, 4, 123]
+    # ic(sorted(a, reverse=True), a)
+
+    a = [0, 1, 2, 3, 4, 5]
+    ic(a[0:4] + a[5:])
 
 

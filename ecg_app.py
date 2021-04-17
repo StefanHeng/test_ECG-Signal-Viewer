@@ -27,6 +27,7 @@ from ecg_app_defns import *
 from ecg_record import EcgRecord
 from ecg_plot import EcgPlot
 from ecg_ui import EcgUi
+from ecg_comment import EcgComment
 from ecg_export import EcgExport
 
 
@@ -76,6 +77,7 @@ class EcgApp:
         self.rec = None  # Current record
         self.plt = None
         self.ui = EcgUi(None)
+        self.cmts = EcgComment(None)
         self.exp = EcgExport()
         self.idxs_lead = []
         self.disp_rng = EcgPlot.DISP_RNG_INIT
@@ -508,7 +510,8 @@ class EcgApp:
             self.rec = EcgRecord(path, path_p)
             self.plt = EcgPlot(self.rec, self)  # A `plot` serves a record
             self.ui = EcgUi(self.rec)
-            self.exp.set_record(self.rec)
+            self.cmts.init(self.rec)
+            self.exp.set_record(self.rec, self.cmts)
             # An empty preview and hidden, see `EcgPlot.Thumbnail`
             self.fig_tmb = EcgPlot.Thumbnail(self.rec, self.plt)
 
@@ -631,11 +634,11 @@ class EcgApp:
                 x0, y0,
                 idx_lead, msg
             ]
-            self.ui.update_comment(cmt)
+            self.cmts.update_comment(cmt)
             cmt_saved = True
 
         idxs_lead = self.LD_TEMPL[template] if id_changed == ID_DPD_LD_TEMPL else self.idxs_lead
-        self.ks_cmts, cmts = self.ui.get_comment_list(idxs_lead)
+        self.ks_cmts, cmts = self.cmts.get_comment_list(idxs_lead)
 
         def _get_1st_line_idx(s):
             """ Index up until first new line char """
