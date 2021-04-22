@@ -220,6 +220,9 @@ class EcgRecord:
         counts = np.linspace(strt, end, num=self.count_n_sample(strt, end, step))
         return pd.to_timedelta(pd.Series(self._counts_to_us(counts)), unit='us')
 
+    def count_to_pd_delta(self, count):
+        return pd.to_timedelta(self._counts_to_us(count), unit='us')
+
     def time_str_to_count(self, time):
         """
         Within range [0, maximum sample count)

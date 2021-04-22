@@ -3,8 +3,9 @@ import pandas as pd
 
 import concurrent.futures
 # from typing import Dict
+from enum import Enum
 
-from ecg_app_defns import *
+from ecg_defns_n_util import *
 
 
 class EcgPlot:
@@ -64,12 +65,14 @@ class EcgPlot:
                 hoverdistance=0,
                 hoverinfo=None,
                 xaxis=dict(
-                    range=[time_vals[0], time_vals.iat[-1]]
+                    range=[time_vals[0], time_vals.iat[-1]],
                 ),
                 yaxis=dict(
                     # range=self.parn.ui.get_ignore_noise_range(strt, end),
                     range=self.parn.ui.get_ignore_noise_range(ecg_vals),
-                    fixedrange=yaxis_fixed
+                    fixedrange=yaxis_fixed,
+                    # zeroline=True, zerolinewidth=5,
+                    zerolinecolor=CLR_BLK_A4
                 ),
                 annotations=annotations,
                 shapes=shapes,
@@ -175,7 +178,7 @@ class EcgPlot:
                 self.idxs_lead.append(idx_lead)
                 y_vals = res_y_vals[idx]
                 # rang = self.parn.parn.ui.get_ignore_noise_range(y_vals)
-                rang = self.parn.parn.ui.get_ignore_noise_range(y_vals)
+                rang = self.parn.parn.ui.get_ignore_noise_range(y_vals, z=3)
                 y_vals = self.parn.parn.ui.strip_noise(y_vals, rang[0], rang[1])
                 self.fig['data'][idx_lead]['x'] = self.x_vals
                 self.fig['data'][idx_lead]['y'] = self.lst_y_vals[idx_lead] = y_vals

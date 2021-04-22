@@ -1,5 +1,6 @@
-from dash.dependencies import MATCH, ALL
+import pandas as pd
 
+from dash.dependencies import MATCH, ALL
 import plotly.graph_objects as go
 
 
@@ -25,6 +26,24 @@ def join(*class_nms):  # For Dash className
 
 def lst_to_tuple(lst):
     return *lst,
+
+
+def remove_by_indices(lst, idxs):
+    """ Assumes idxs valid and reversely sorted """
+    for i in idxs:
+        del lst[i]
+
+
+def flatten(*lsts):
+    """ Flatten list of list of elements to list of elements """
+    return [e for lst in lsts for e in lst]
+
+
+UNIT_1MS = pd.to_timedelta(1, unit='ms')
+
+
+def pd_time_to_ms(t):
+    return t // UNIT_1MS
 
 
 FA_CSS_LNK = 'https://use.fontawesome.com/releases/v5.8.1/css/all.css'
@@ -115,7 +134,7 @@ CNM_MV_BK = 'fas fa-angle-left'
 CNM_ADV_FW = 'fas fa-angle-double-right'
 CNM_MV_FW = 'fas fa-angle-right'
 ID_BTN_TG_TG = 'btn_tag-toggle'
-ID_IC_TG_TG = 'ic_tag-toggle'  # Toggle showing or hiding markings
+ID_IC_TG_TG = 'ic_marking-toggle'  # Toggle showing or hiding markings
 CNM_TG_TG = 'fas fa-marker'
 
 ID_DIV_TMLB = 'div_time-label'
@@ -194,6 +213,18 @@ CNM_IC_LK = 'fas fa-lock'  # Font Awesome
 CNM_IC_LKO = 'fas fa-lock-open'
 # ID_STOR_IS_FIXY = 'id_is_yaxis_fixed'
 
+ID_BTN_CLP_SYNC = 'btn_synchronize-calipers'
+ID_IC_CLP_SYNC = 'ic_synchronize-calipers'
+CNM_CLP_SYNC_EXP = 'fas fa-expand-arrows-alt'  # Expand caliper measurement to be synchronized across all leads
+CNM_CLP_SYNC_CLP = 'fas fa-compress-arrows-alt'  # Collapse each synchronized caliper measurement to a single lead
+# CNM_CLP_SYNC_EXP = 'fas fa-expand-alt'  # For class
+# CNM_CLP_SYNC_CLP = 'fas fa-compress-alt'
+
+ID_ALT_FIXY = 'alert_fix-yaxis'
+ID_ALT_TG_TG = 'alert_tag-toggle'
+ID_ALT_CLP_CLR = 'alert_clear-caliper'
+ID_ALT_CLP_SYNC = 'alert_synchronize-calipers'
+
 # Syntactic sugar
 T = 'type'  # For Dash pattern matching callbacks
 I = 'index'
@@ -208,7 +239,8 @@ L = 'label'
 DS = 'disabled'
 
 DEV_TML_S = 'single -> 1: I'
-DEV_TML_RG = 'range(8) -> [1, 8]'
+DEV_TML_RG0 = 'range(3) -> [1, 3]'
+DEV_TML_RG1 = 'range(8) -> [1, 8]'
 DEV_TML_RG2 = 'range(12) -> [1, 12]'
 DEV_TML_RD = 'rand -> [7, 6, 4, 17, 36]'
 
@@ -240,6 +272,7 @@ GRAY_0 = '#808080'  # Gray
 DEFAULT_BG = 'rgba(229, 236, 246, 0.8)'
 CLR_FONT = 'rgb(102, 102, 102)'  # Color of font
 TRANSP = 'rgba(0, 0, 0, 0)'
+CLR_BLK_A4 = 'rgba(0, 0, 0, 0.4)'
 
 # CLR_CLPR_A7 = 'rgba(252, 169, 18, 0.7)'
 CLR_CLPR_RECT = 'rgba(253, 203, 113, 0.51)'

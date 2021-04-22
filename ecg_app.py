@@ -23,7 +23,7 @@ from icecream import ic
 from data_link import *
 from dev_helper import *
 
-from ecg_app_defns import *
+from ecg_defns_n_util import *
 from ecg_record import EcgRecord
 from ecg_plot import EcgPlot
 from ecg_ui import EcgUi
@@ -40,7 +40,6 @@ def t_stamp():
 
 
 ic.configureOutput(prefix=t_stamp)
-
 
 INF = float('inf')
 
@@ -59,9 +58,10 @@ class EcgApp:
     LD_TEMPL = {
         # Arbitrary, for testing only, users should spawn all the leads via UI
         DEV_TML_S: [0],
-        DEV_TML_RG: list(range(8)),
+        DEV_TML_RG0: list(range(3)),
+        DEV_TML_RG1: list(range(8)),
+        DEV_TML_RG2: list(range(12)),
         DEV_TML_RD: [6, 5, 3, 16, 35],
-        DEV_TML_RG2: list(range(12))
     }
 
     MV_OFST_TIMES = {  # On how much time does advance and nudge operations move
@@ -87,6 +87,7 @@ class EcgApp:
         # self._shapes = []  # Current shapes drawn, to be synchronized across new leads added
         self.idx_ann_clicked = None
         self.ks_cmts = None  # Keys for internal comment data lookup, by order of each comment on display
+        self._shapes = []  # Current shapes drawn, to be synchronized across new leads added
 
         self.move_offset_counts = None  # Runtime optimization, semi-constants dependent to record
         self.no_update_add_opns = None
@@ -98,6 +99,9 @@ class EcgApp:
         ])
 
         def _set_layout():
+            ttp_config = dict(hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST, delay=TTP_DL)
+            btn_scc_config = dict(is_open=False, fade=True, duration=2000, dismissable=True, color='success',
+                                  className=CNM_ALT)
             return html.Div([
                 # Header
                 html.Div(className=CNM_HD, children=[
@@ -122,53 +126,40 @@ class EcgApp:
 
                     html.Div(id=ID_DIV_PLT_CTRL, children=[
                         html.Button(id=ID_BTN_ADV_BK, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=True,
-                                    children=[
-                                        html.I(className=CNM_ADV_BK)
-                                    ]),
+                                    children=[html.I(className=CNM_ADV_BK)]),
                         html.Button(id=ID_BTN_MV_BK, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=True, children=[
                             html.I(className=CNM_MV_BK)
                         ]),
                         html.Button(id=ID_BTN_FIXY, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=False,
-                                    n_clicks=0,
-                                    children=[
-                                        html.I(id=ID_IC_FIXY, className=CNM_IC_LKO)
-                                    ]),
+                                    n_clicks=0, children=[html.I(id=ID_IC_FIXY, className=CNM_IC_LKO)]),
                         html.Button(id=ID_BTN_MV_FW, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=True, children=[
                             html.I(className=CNM_MV_FW)
                         ]),
                         html.Button(id=ID_BTN_ADV_FW, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=True,
-                                    children=[
-                                        html.I(className=CNM_ADV_FW)
-                                    ]),
+                                    children=[html.I(className=CNM_ADV_FW)]),
                         html.Button(id=ID_BTN_TG_TG, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=False,
                                     n_clicks=0,
-                                    children=[
-                                        html.I(id=ID_IC_TG_TG, className=join(CNM_TG_TG, ANM_BTN_TG_TG_ROTS))
-                                    ]),
+                                    children=[html.I(id=ID_IC_TG_TG, className=join(CNM_TG_TG, ANM_BTN_TG_TG_ROTS))]),
                         html.Button(id=ID_BTN_CLP_CLR, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=True,
-                                    children=[
-                                        html.I(className=CNM_CLP_CLR)
-                                    ]),
+                                    children=[html.I(className=CNM_CLP_CLR)]),
+                        html.Button(id=ID_BTN_CLP_SYNC, className=join(CNM_BTN, CNM_BTN_FIG_OPN), disabled=False,
+                                    n_clicks=0, children=[html.I(id=ID_IC_CLP_SYNC, className=CNM_CLP_SYNC_EXP)]),
                     ]),
-                    dbc.Tooltip(target=ID_BTN_ADV_BK, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
-                                delay=TTP_DL, children='Advance backward'),
-                    dbc.Tooltip(target=ID_BTN_MV_BK, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
-                                delay=TTP_DL, children='Nudge backward'),
-                    dbc.Tooltip(target=ID_BTN_FIXY, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
-                                delay=TTP_DL, children='Fix y-axis'),
-                    dbc.Tooltip(target=ID_BTN_MV_FW, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
-                                delay=TTP_DL, children='Nudge forward'),
-                    dbc.Tooltip(target=ID_BTN_ADV_FW, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
-                                delay=TTP_DL, children='Advance forward'),
-                    dbc.Tooltip(target=ID_BTN_TG_TG, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
-                                delay=TTP_DL, children='Show/Hide markings'),
-                    dbc.Tooltip(target=ID_BTN_CLP_CLR, hide_arrow=False, placement=TTP_PLCM_PLT_CTRL, offset=TTP_OFST,
-                                delay=TTP_DL, children='Clear caliper measurements'),
+                    dbc.Tooltip(target=ID_BTN_ADV_BK, children='Advance backward', **ttp_config),
+                    dbc.Tooltip(target=ID_BTN_MV_BK, children='Nudge backward', **ttp_config),
+                    dbc.Tooltip(target=ID_BTN_FIXY, children='Fix voltage range', **ttp_config),
+                    dbc.Tooltip(target=ID_BTN_MV_FW, children='Nudge forward', **ttp_config),
+                    dbc.Tooltip(target=ID_BTN_ADV_FW, children='Advance forward', **ttp_config),
+                    dbc.Tooltip(target=ID_BTN_TG_TG, children='Show/Hide markings', **ttp_config),
+                    dbc.Tooltip(target=ID_BTN_CLP_CLR, children='Clear caliper measurements', **ttp_config),
+                    dbc.Tooltip(target=ID_BTN_CLP_SYNC, children='Synchronize caliper across leads', **ttp_config),
 
-                    html.Div(id=ID_DIV_TMLB, children=[
-                        html.P(id=ID_TMLB)
-                    ])
+                    html.Div(id=ID_DIV_TMLB, children=[html.P(id=ID_TMLB)])
                 ]),
+                dbc.Alert(id=ID_ALT_FIXY, children=f'Voltage ranges fixed', **btn_scc_config),
+                dbc.Alert(id=ID_ALT_TG_TG, children=f'Static tags shown', **btn_scc_config),
+                dbc.Alert(id=ID_ALT_CLP_CLR, children=f'Caliper measurements cleared', **btn_scc_config),
+                dbc.Alert(id=ID_ALT_CLP_SYNC, children=f'Caliper measurements synchronized', **btn_scc_config),
 
                 # Floating dropdown panel
                 html.Div(id=ID_BBX_DIV_OPN, children=[
@@ -183,21 +174,19 @@ class EcgApp:
                         dcc.Dropdown(
                             id=ID_DPD_LD_TEMPL, className=CNM_MY_DPD, disabled=True,
                             placeholder='Select lead channel template',
-                            options=[
-                                {L: f'{dev(DEV_TML_S)}', V: DEV_TML_S},
-                                {L: f'{dev(DEV_TML_RD)}', V: DEV_TML_RD},
-                                {L: f'{dev(DEV_TML_RG)}', V: DEV_TML_RG},
-                                {L: f'{dev(DEV_TML_RG2)}', V: DEV_TML_RG2},
-                            ],
+                            options=[{L: f'{dev(tpl_nm)}', V: tpl_nm} for tpl_nm in self.LD_TEMPL],
+                            # options=[
+                            #     {L: f'{dev(DEV_TML_S)}', V: DEV_TML_S},
+                            #     {L: f'{dev(DEV_TML_RD)}', V: DEV_TML_RD},
+                            #     {L: f'{dev(DEV_TML_RG)}', V: DEV_TML_RG},
+                            #     {L: f'{dev(DEV_TML_RG2)}', V: DEV_TML_RG2},
+                            # ],
                             # value=DEV_TML_S  # Dev only, for fast testing
                         )
                     ]),
                 ]),
 
-                dbc.Alert(
-                    id=ID_ALT_CMT_SVD, is_open=False, fade=True, duration=1000, dismissable=True, color='success',
-                    className=CNM_ALT, children=f'Comment saved',
-                ),
+                dbc.Alert(id=ID_ALT_CMT_SVD, children=f'Comment saved', **btn_scc_config),
                 dbc.Fade(id=ID_FD_MN, is_in=False, children=[
                     html.Div(className=CNM_MNBD, children=[
                         html.Div(className=CNM_DIV_TMB, children=[  # Thumbnail graph on top
@@ -237,9 +226,7 @@ class EcgApp:
                             # It's okay, always enabled, cos if no lead channel on display,
                             # the button is not even visible
                             html.Button(id=ID_BTN_CMT_TG_TG, className=join(CNM_BTN, ANM_BTN_TG_BDR_SH), n_clicks=0,
-                                        children=[
-                                            html.I(id=ID_IC_CMT_TG_TG, className=CNM_TG_EXP)
-                                        ])
+                                        children=[html.I(id=ID_IC_CMT_TG_TG, className=CNM_TG_EXP)])
                         ])
                     ])
                 ]),
@@ -259,10 +246,8 @@ class EcgApp:
                             html.I(className=CNM_IC_MD_CLS)
                         ]),
                     ]),
-                    dbc.ModalBody(id=ID_MDBD_ADD, children=[
-                        dbc.ListGroup(id=ID_GRP_LD_ADD),
-                    ]),
-                ]),
+                    dbc.ModalBody(id=ID_MDBD_ADD, children=[dbc.ListGroup(id=ID_GRP_LD_ADD)]),
+                ])
             ])
 
         self.app.layout = _set_layout()
@@ -272,7 +257,7 @@ class EcgApp:
         self.app.run_server(debug=debug)
 
     def get_fig_layout(self, idx, tags=None):
-        def get_lead_fig(idx_lead, tags=None, shapes=None):
+        def _get_lead_fig(idx_lead, tags=None, shapes=None):
             """
             :param idx_lead: index of lead as stored in .h5 datasets
             :param tags: Tags within display range as stored in `EcgRecord`
@@ -283,6 +268,7 @@ class EcgApp:
 
             :return: dictionary that represents a plotly graph
             """
+            # ic(shapes)
             return self.plt.get_fig(idx_lead, *self.disp_rng[0], tags, shapes, self._yaxis_fixed)
 
         return dbc.Fade(className=CNM_DIV_FD, is_in=True, children=[
@@ -304,16 +290,12 @@ class EcgApp:
                 html.Div(className=CNM_DIV_FIG, children=[
                     dcc.Graph(
                         id=m_id(ID_GRA, idx), className=CNM_GRA, config=CONF,
-                        figure=get_lead_fig(idx, tags, self._get_all_annotations(self.idx_ann_clicked, idx))
+                        figure=_get_lead_fig(idx, tags=tags,
+                                             shapes=self._shapes if self.ui.caliper_is_synchronized() else [])
                     )
                 ])
             ])
         ])
-
-    # def get_lead_xy_vals(self, idx_lead, x_display_range):
-    #     strt, end = x_display_range
-    #     # determine if optimization is needed for large sample_range
-    #     return self.plt.get_xy_vals(idx_lead, strt, end)
 
     def _set_callbacks(self):
         self.app.callback(
@@ -342,8 +324,9 @@ class EcgApp:
              # Output(ID_BTN_FIXY, DS),
              Output(ID_BTN_MV_FW, DS),
              Output(ID_BTN_ADV_FW, DS),
-             Output(ID_BTN_CLP_CLR, DS)
+             Output(ID_BTN_CLP_CLR, DS),
              # Output(ID_BTN_ANTN_TG, DS)
+             # Output(ID_BTN_CLP_SYNC, DS)
              ],
             [Input(ID_DPD_LD_TEMPL, V),
              Input(ID_STOR_ADD, D),
@@ -414,6 +397,7 @@ class EcgApp:
              Input(ID_BTN_ADV_FW, NC),
              Input(ID_IC_TG_TG, CNM),  # Ensures `_marking_on` is first toggled
              Input(ID_BTN_CLP_CLR, NC),
+             Input(ID_IC_CLP_SYNC, CNM),  # Ensures caliper synchronization is first toggled
              Input(ID_STOR_ADD, D),
              Input(ID_STOR_RMV, D),
              Input(ID_STOR_TG_IDX, D),  # Static tag click
@@ -443,10 +427,28 @@ class EcgApp:
         )(self.toggle_max_lead_error)
 
         self.app.callback(
-            Output(ID_IC_FIXY, CNM),
+            [Output(ID_IC_FIXY, CNM),
+             Output(ID_ALT_FIXY, 'is_open'),
+             Output(ID_ALT_FIXY, C)],
             Input(ID_BTN_FIXY, NC),
             prevent_initial_call=True
         )(self.update_fix_yaxis_icon)
+
+        self.app.callback(
+            [Output(ID_IC_CLP_SYNC, CNM),
+             Output(ID_ALT_CLP_SYNC, 'is_open'),
+             Output(ID_ALT_CLP_SYNC, C)],
+            Input(ID_BTN_CLP_SYNC, NC),
+            prevent_initial_call=True
+        )(self.update_synchronize_caliper)
+
+        self.app.callback(
+            [Output(ID_IC_TG_TG, CNM),
+             Output(ID_ALT_TG_TG, 'is_open'),
+             Output(ID_ALT_TG_TG, C)],
+            Input(ID_BTN_TG_TG, NC),
+            prevent_initial_call=True
+        )(self.toggle_show_markings)
 
         self.app.callback(
             Output(ID_DLD_CSV, D),
@@ -468,12 +470,6 @@ class EcgApp:
             Input(ID_STOR_REC, D),
             prevent_initial_call=True
         )(self.get_tags_layout)
-
-        self.app.callback(
-            Output(ID_IC_TG_TG, CNM),
-            Input(ID_BTN_TG_TG, NC),
-            prevent_initial_call=True
-        )(self.toggle_show_markings)
 
         self.app.clientside_callback(
             ClientsideFunction(  # clientside callback for efficiency
@@ -622,6 +618,8 @@ class EcgApp:
         """
         id_changed = self.ui.get_id(self.get_last_changed_id_property())
         cmt_saved = False
+        if id_changed == ID_DPD_LD_TEMPL and template is None:  # Remove all comments from panel
+            return cmt_saved, []
         if id_changed == ID_BTN_CMT_SBM:
             # There's definitely a mru if button clicked
             idx_lead, (x0, x1, y0, y1) = self.ui.get_mru_caliper_coords()
@@ -691,6 +689,7 @@ class EcgApp:
     def _get_all_annotations(self, idx_ann_clicked, idx_lead):
         """ Static tag and shape measurement annotations """
         anns = self.ui.get_caliper_annotations(idx_lead)
+        # ic(anns)
         if self.rec is not None and self._marking_on:
             anns += self.ui.get_tags(*(self.disp_rng[0]), idx_ann_clicked)
         return anns
@@ -698,7 +697,7 @@ class EcgApp:
     def update_lead_options_disable_layout_figures(
             self, record_name, template, layouts_fig, layout_tmb,
             n_clicks_adv_bk, n_clicks_mv_bk, n_clicks_fixy, n_clicks_mv_fw, n_clicks_adv_fw,
-            n_clicks_mkg_tg, n_clicks_clpr,
+            n_clicks_mkg_tg, n_clicks_clpr, cnm_sync,
             data_add, data_rmv,
             idx_ann_clicked, ns_clicks_cmt,
             plots, disables_lead_add, figs_gra: List[Dict[str, Dict]], fig_tmb, ns_clicks_tag):
@@ -719,6 +718,7 @@ class EcgApp:
         :param n_clicks_adv_fw: Number of clicks for advance forward button
         :param n_clicks_mkg_tg: Number of clicks for toggle markings button
         :param n_clicks_clpr: Number of clicks for clear caliper measurements
+        :param cnm_sync: Class name for caliper synchronization icon
         :param data_add: Tuple info on if adding took place and if so the lead index added
         :param data_rmv: Tuple info on the original index of removed lead index, and the lead index removed
         :param idx_ann_clicked: Index of tag clicked
@@ -754,13 +754,18 @@ class EcgApp:
                 f['layout']['annotations'] = tags + self.ui.get_caliper_annotations(self.idxs_lead[i])
                 # ic(self.ui.get_caliper_annotations(self.idxs_lead[i]))
 
+        def _clear_figs_shapes():
+            self._shapes = []
+            for f in figs_gra:
+                f['layout']['shapes'] = []
+
         def _update_lead_figures():
             # ic()
             strt, end = self.disp_rng[0]
             sample_factor = self.plt.get_sample_factor(strt, end)
             x_vals = self.rec.get_time_values(strt, end, sample_factor)
             lst_args = [(idx_idx, idx_lead, strt, end, sample_factor)  # The strt, end variables here cannot be saved
-                    for idx_idx, idx_lead in enumerate(self.idxs_lead)]
+                        for idx_idx, idx_lead in enumerate(self.idxs_lead)]
             # ic(lst_args)
             # Multi-threading for mainly IO
             # for a in args:
@@ -773,7 +778,7 @@ class EcgApp:
             removed = self.ui.update_caliper_annotations_time(strt, end, figs_gra, self.idxs_lead)
             # ic()
             if removed:
-                # self._shapes = figs_gra[0]['layout']['shapes']  # Pick any one, shapes already removed
+                self._shapes = figs_gra[0]['layout']['shapes']  # Pick any one, shapes already removed
                 self.ui.highlight_mru_caliper_edit(figs_gra, self.idxs_lead)
             # anns = self._get_all_annotations(idx_ann_clicked)
             _update_figs_annotations()
@@ -843,6 +848,7 @@ class EcgApp:
                 ]
             else:
                 return []
+
         # ic()
         changed_id_property = self.get_last_changed_id_property()
         changed_id = self.ui.get_id(changed_id_property)
@@ -870,7 +876,6 @@ class EcgApp:
                 self.idxs_lead = deepcopy(self.LD_TEMPL[template])  # Deepcopy cos idx_lead may mutate
                 # Override for any template change could happen before
                 # anns = self._get_all_annotations(idx_ann_clicked)
-                self.ui.clear_measurements()  # Remove all caliper measurements as the easiest solution
                 tags = _get_tag_annotations()
                 plots = [self.get_fig_layout(idx, tags + self.ui.get_caliper_annotations(idx))
                          for idx in self.idxs_lead]
@@ -893,6 +898,7 @@ class EcgApp:
                 disable_export_btn = True
             figs_gra = [dash.no_update] * len(figs_gra)
             ns_clicks_tag = dash.no_update
+            self.ui.clear_measurements()  # Remove all caliper measurements as the easiest solution
 
         elif ID_GRA == changed_id and self.idxs_lead:  # != []; RelayoutData changed, graph has pattern matched ID
             # When a record is selected, ID_GRA is in changed_id for unknown reason
@@ -925,6 +931,11 @@ class EcgApp:
                 # anns = self._get_all_annotations(idx_ann_clicked)
                 # tags = self._get_tag_annotations(idx_ann_clicked)
                 _update_figs_annotations()
+                if self.ui.caliper_is_synchronized():  # Broadcast shape changes to all leads
+                    self._shapes = figs_gra[idx_idx_changed]['layout']['shapes']
+                    for idx, f in enumerate(figs_gra):
+                        if idx != idx_idx_changed:
+                            f['layout']['shapes'] = self._shapes
                 # self._shapes = figs_gra[idx_idx_changed]['layout']['shapes']
                 self.ui.highlight_mru_caliper_edit(figs_gra, self.idxs_lead)
                 cmt_rng_label = _create_comment_range_labels()
@@ -974,13 +985,18 @@ class EcgApp:
                 ns_clicks_tag = dash.no_update
             else:
                 raise PreventUpdate
-        elif ID_BTN_CLP_CLR == changed_id:
-            self.ui.clear_measurements()
+        elif ID_BTN_CLP_CLR == changed_id or ID_IC_CLP_SYNC == changed_id:
+            if self.rec is None:  # Toggle without a record selected
+                raise PreventUpdate
+            if ID_BTN_CLP_CLR == changed_id:  # Otherwise, caliper is already toggled & cleared
+                self.ui.clear_measurements()
             # self._shapes = []
             # anns = self._get_all_annotations(idx_ann_clicked)
             _update_figs_annotations()
+            _clear_figs_shapes()
             cmt_rng_label = _create_comment_range_labels()  # Basically set to none
             disable_comment = not self.ui.has_measurement()
+            # TODO: Removes all calipers instead of expanding just for now
             # for f in figs_gra:
             #     f['layout']['shapes'] = self._shapes
             #     # f['layout']['annotations'] = anns
@@ -988,6 +1004,22 @@ class EcgApp:
             disables_lead_add = self.no_update_add_opns
             fig_tmb = dash.no_update
             ns_clicks_tag = dash.no_update
+        # elif ID_IC_CLP_SYNC == changed_id:  # Toggled synchronization of caliper across leads
+        #     # TODO: Expand previous caliper measurements into the other mode
+        #     # if self.ui.caliper_is_synchronized():  # Independent caliper => Synchronized caliper
+        #     #     self.ui.caliper_independent_to_synchronized(figs_gra)
+        #     #     # self.ui.highlight_mru_caliper_edit(figs_gra)
+        #     # else:
+        #     #     self.ui.caliper_synchronized_to_independent()
+        #     plots = dash.no_update
+        #     # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
+        #     disables_lead_add = self.no_update_add_opns
+        #     fig_tmb = dash.no_update
+        #     # time_label = dash.no_update
+        #     # cmt_rng_label = dash.no_update
+        #     # disable_comment = dash.no_update
+        #     # disable_export_btn = dash.no_update
+        #     # ns_clicks_tag = dash.no_update
 
         elif self.move_offset_counts is not None and changed_id in self.move_offset_counts:
             # The keys: [ID_BTN_ADV_BK, ID_BTN_MV_BK, ID_BTN_MV_FW, ID_BTN_ADV_FW] by construction
@@ -1084,7 +1116,7 @@ class EcgApp:
         elif ID_BDG_CMT_TM == changed_id:
             idx_cmt_ch = self.ui.get_pattern_match_index(changed_id_property)
             k = self.ks_cmts[idx_cmt_ch]
-            # TODO
+            # TODO: Show the caliper associated with comment if not already
             raise PreventUpdate
         else:
             raise PreventUpdate
@@ -1130,16 +1162,23 @@ class EcgApp:
     def update_fix_yaxis_icon(n_clicks):
         # if self._yaxis_fixed:  # Init with yaxis unlocked
         if n_clicks % 2 == 0:
-            return CNM_IC_LKO
+            return CNM_IC_LKO, True, 'Voltage ranges fixed'
         else:
-            return CNM_IC_LK
+            return CNM_IC_LK, True, 'Voltage ranges automatic'
+
+    def update_synchronize_caliper(self, n_clicks):
+        self.ui.toggle_caliper_synchronization()
+        if n_clicks % 2 == 0:
+            return CNM_CLP_SYNC_EXP, True, 'Caliper measurements independent'
+        else:
+            return CNM_CLP_SYNC_CLP, True, 'Caliper measurements synchronized'
 
     def toggle_show_markings(self, n_clicks):
         self._marking_on = not self._marking_on
         if n_clicks % 2 == 1:
-            return join(CNM_TG_TG, ANM_BTN_TG_TG_ROTE)
+            return join(CNM_TG_TG, ANM_BTN_TG_TG_ROTE), True, 'Static tags shown'
         else:
-            return join(CNM_TG_TG, ANM_BTN_TG_TG_ROTS)
+            return join(CNM_TG_TG, ANM_BTN_TG_TG_ROTS), True, 'Static tags hidden'
 
     def export_csv(self, n_clicks):
         strt, end = self.disp_rng[0]

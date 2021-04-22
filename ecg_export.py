@@ -76,11 +76,18 @@ class EcgExport:
                 d = dict()
                 for cmt in lst:
                     count = cmt[0]
-                    cmt = cmt[:4] + cmt[5:]  # Remove the lead index element
+                    # cmt = cmt[:4] + cmt[5:]  # Remove the lead index element
+                    d_cmt = dict(
+                        xc=str(self.rec.count_to_pd_delta(cmt[0])),
+                        yc=cmt[1],
+                        x0=str(self.rec.count_to_pd_delta(cmt[2])),
+                        y0=cmt[3],
+                        msg=cmt[-1]
+                    )
                     if count in d:
-                        d[count].append(cmt)
+                        d[count].append(d_cmt)
                     else:
-                        d[count] = [cmt]
+                        d[count] = [d_cmt]
                 return d
 
             for count, cmts in _get_comments().items():

@@ -12,6 +12,7 @@ import dash_bootstrap_components as dbc
 
 from data_link import *
 from dev_helper import *
+from ecg_defns_n_util import *
 from ecg_record import EcgRecord
 from ecg_plot import EcgPlot
 from ecg_ui import EcgUi
@@ -29,6 +30,7 @@ from icecream import ic
 
 
 from enum import Enum  # for enum34, or the stdlib version
+
 # from aenum import Enum  # for the aenum version
 
 # @profile
@@ -257,7 +259,50 @@ if __name__ == "__main__":
     # a = [3, 23, 4, 123]
     # ic(sorted(a, reverse=True), a)
 
-    a = [0, 1, 2, 3, 4, 5]
-    ic(a[0:4] + a[5:])
+    # a = [0, 1, 2, 3, 4, 5]
+    # ic(a[0:4] + a[5:])
 
+    # a = [0, 1, 2]
+    # b = [3, 4, 5]
+    # zipped = list(zip(a, b))
+    # unzipped = list(zip(*zipped))
+    # ic(zipped, unzipped)
+    # a, b = unzipped
+    # a, b = list(a), list(b)
+    # ic(a, b)
 
+    # ret = ([0, 1],
+    #        ((0,
+    #          (pd.Timestamp('1970-01-01 00:00:23.395000'),
+    #           pd.Timestamp('1970-01-01 00:00:29.467700'),
+    #           -4941,
+    #           15811)),),
+    #        ((1,
+    #          (pd.Timestamp('1970-01-01 00:00:10.030100'),
+    #           pd.Timestamp('1970-01-01 00:00:15.182000'),
+    #           -4644,
+    #           9921)),))
+    # a, b, c = ret
+    # ic(a, b, c)
+    #
+    # captain: str  # Note: no initial value!
+
+    # ic('s' in None)
+
+    l = [[{'editable': True,
+           'fillcolor': 'rgba(252, 169, 18, 0.51)',
+           'fillrule': 'evenodd',
+           'layer': 'above',
+           'line': {'color': 'rgba(0, 0, 0, 0)', 'dash': 'solid', 'width': 2},
+           'opacity': 1,
+           'type': 'rect',
+           'x0': '1970-01-01 00:00:31.7574',
+           'x1': '1970-01-01 00:00:36.4363',
+           'xref': 'x',
+           'y0': 14928.579528552322,
+           'y1': -2880.7292021192707,
+           'yref': 'y'}],
+         [],
+         []]
+    # ic(sum(l))
+    ic(flatten(*l))
