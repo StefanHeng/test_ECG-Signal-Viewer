@@ -373,7 +373,8 @@ class EcgApp:
              Output(ID_BTN_CMT_SBM, DS),
              Output(ID_BTN_EXP, DS),
              Output(ID_STOR_TG_NCS, D),
-             Output(ID_STOR_CH_HT, D)],
+             Output(ID_STOR_CH_HT, D),
+             Output(ID_TXTA_CMT, 'value')],
             [Input(ID_STOR_REC, D),
              Input(ID_DPD_LD_TEMPL, V),
              Input(all_(ID_GRA), 'relayoutData'),
@@ -448,6 +449,12 @@ class EcgApp:
             Input(ID_BTN_FIXY, NC),
             prevent_initial_call=True
         )(self.update_fix_yaxis_icon)
+
+        self.app.callback(
+            Output(ID_ALT_CLP_CLR, 'is_open'),
+            Input(ID_BTN_CLP_CLR, NC),
+            prevent_initial_call=True
+        )(self.show_clear_calipers_alert)
 
         self.app.callback(
             [Output(ID_IC_CLP_SYNC, CNM),
@@ -659,7 +666,7 @@ class EcgApp:
             else:
                 return []
 
-        def _get_all_annotations(self, idx_ann_clicked, idx_lead):
+        def _get_all_annotations(idx_ann_clicked, idx_lead):
             """ Static tag and shape measurement annotations """
             anns = self.ui.get_caliper_annotations(idx_lead)
             if self.rec is not None and self._marking_on:
@@ -685,7 +692,7 @@ class EcgApp:
             with concurrent.futures.ThreadPoolExecutor(max_workers=self.MAX_NUM_LD) as executor:
                 executor.map(lambda args: _set_y_vals(*args), lst_args)
 
-            removed = self.ui.update_caliper_annotations_time(strt, end, figs_gra, self.idxs_lead)
+            removed = self.ui.update_caliper_annotations_time(strt, end, figs_gra, self.idxs_lead, idx_changed)
             if removed:
                 self._shapes = figs_gra[0]['layout']['shapes']  # Pick any one, shapes already removed
                 self.ui.highlight_mru_caliper_edit(figs_gra, self.idxs_lead)
@@ -759,6 +766,8 @@ class EcgApp:
         cmt_rng_label = dash.no_update
         disable_comment = dash.no_update
         change_heights = dash.no_update
+        flush_comment_panel = dash.no_update
+        idx_changed = None  # for updating the lead index associated with a comment, only relevant for figure pan & zoom
         if ID_STOR_REC == changed_id:  # Reset layout
             self.idxs_lead = []
             plots = []
@@ -822,7 +831,9 @@ class EcgApp:
                 ns_clicks_tag = dash.no_update
             # Change in caliper/user-drawn shape
             elif layouts_fig is not None and self.ui.shape_updated(l):
-                self.ui.update_caliper_annotations_shape(l, idx_changed)
+                update = self.ui.update_caliper_annotations_shape(l, idx_changed)
+                if update != CLP_CH.Edit:
+                    flush_comment_panel = ''  # Clear the comment existing text
                 _update_figs_annotations()
                 if self.ui.caliper_is_synchronized():  # Broadcast shape changes to all leads
                     self._shapes = figs_gra[idx_idx_changed]['layout']['shapes']
@@ -1003,7 +1014,9 @@ class EcgApp:
             plots, disables_lead_add, figs_gra, fig_tmb,
             time_label, cmt_rng_label,
             disable_comment, disable_comment, disable_export_btn,
-            ns_clicks_tag, change_heights
+            ns_clicks_tag,
+            change_heights,
+            flush_comment_panel
         )
 
     @staticmethod
@@ -1110,6 +1123,10 @@ class EcgApp:
             return CNM_IC_LKO, True, 'Voltage ranges automatic'
         else:
             return CNM_IC_LK, True, 'Voltage ranges fixed'
+
+    @staticmethod
+    def show_clear_calipers_alert(n_clicks):
+        return True
 
     def update_synchronize_caliper(self, n_clicks):
         self.ui.toggle_caliper_synchronization()

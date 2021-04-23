@@ -1,15 +1,11 @@
 import numpy as np
 
 import re
-from enum import Enum
 from typing import List
 
 from icecream import ic
 
 from ecg_defns_n_util import *
-
-CLP_CH = Enum('CaliperChange', 'Add Remove Edit')  # Caliper change
-CLP_SYNC = Enum('LeadSynchronization', 'Synchronized Independent')  # 2 possible caliper types
 
 
 def _shape_dict_to_coords(d_shape, changed=False):
@@ -261,7 +257,8 @@ class EcgUi:
         self.clp.clear_measurements()
 
     def update_caliper_annotations_shape(self, layout, idx_ld):
-        self.clp.update_caliper_annotations_shape(layout, idx_ld)
+        """ Returns whether the caliper change was caliper creation/edit/removal """
+        return self.clp.update_caliper_annotations_shape(layout, idx_ld)
 
     def highlight_mru_caliper_edit(self, figs_gra, idxs_lead=[], idxs_ignore=[]):
         # ic(type(self.clp))
@@ -277,10 +274,9 @@ class EcgUi:
     def get_mru_caliper_coords(self):
         return self.clp.get_mru_caliper_coords()
 
-    def update_caliper_annotations_time(self, strt, end, figs, idxs_lead):
+    def update_caliper_annotations_time(self, strt, end, figs, idxs_lead, idx_ld_ch):
         if self.caliper_is_synchronized():
-            self.clp: EcgUi.CaliperS
-            self.clp.update_caliper_annotations_time(strt, end, figs)
+            self.clp.update_caliper_annotations_time(strt, end, figs, idx_ld_ch)
         else:
             self.clp.update_caliper_annotations_time(strt, end, figs, idxs_lead)
 
@@ -318,6 +314,7 @@ class EcgUi:
                 self._ord_caliper.append(idx_ld)
             elif update == CLP_CH.Remove and (idx_ld == self._ord_caliper[-1]):
                 del self._ord_caliper[-1]
+            return update
 
         def get_mru_caliper_coords(self):
             if self._ord_caliper:
@@ -560,6 +557,7 @@ class EcgUi:
                     self._n_mesr += 1
 
                     self._ord_mesr_edit.append(self._n_mesr - 1)  # Index of newly created shape is the last one
+                    return CLP_CH.Add
                 # Linearly check membership for the removed rect
                 else:  # A shape removed
                     # Must be that there were a single shape, and it's now removed
@@ -568,10 +566,11 @@ class EcgUi:
                     del self.lst_ann_mesr[idx_rmv]
                     del self._ld_idxs_coord[idx_rmv]
                     self._n_mesr -= 1
-                    if self._n_mesr >= 1:
+                    if idx_ld is not None and self.has_measurement():
                         self._ld_idxs_coord[-1] = idx_ld
 
                     self._update_measurement_edit_order_after_remove([idx_rmv])
+                    return CLP_CH.Remove
             else:  # Change to an existing shape
                 # Any one of the keys suffice, e.g. {'shapes[2].x0', 'shapes[2].x1', 'shapes[2].y0', 'shapes[2].y1'}
                 idx_ch = self._get_idx_changed_shape(list(layout_changed.keys())[0])
@@ -583,6 +582,7 @@ class EcgUi:
                 idx_edt = self._ord_mesr_edit.index(idx_ch)  # Find the original ordering of this edited shape
                 del self._ord_mesr_edit[idx_edt]
                 self._ord_mesr_edit.append(idx_ch)  # Promote to recently edited
+                return CLP_CH.Edit
 
         @staticmethod
         def _get_idx_changed_shape(k):
@@ -590,7 +590,7 @@ class EcgUi:
             """
             return int(re.match(r'^shapes\[([0-9]+)]\.(.){2}$', k).group(1))
 
-        def update_caliper_annotations_time(self, strt, end, figs):
+        def update_caliper_annotations_time(self, strt, end, figs, idx_ld):
             """ Expected to be called on every display time range change, there might not be a change
 
             Removes user-drawn shapes out of range if any, in the `figs` argument
@@ -612,6 +612,8 @@ class EcgUi:
                     remove_by_indices(f['layout']['shapes'], idxs)
 
                 self._update_measurement_edit_order_after_remove(idxs)
+            if self.has_measurement():
+                self._ld_idxs_coord[-1] = idx_ld
             return removed
 
         def clear_measurements(self):

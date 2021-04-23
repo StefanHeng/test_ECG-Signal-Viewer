@@ -3,6 +3,8 @@ import pandas as pd
 from dash.dependencies import MATCH, ALL
 import plotly.graph_objects as go
 
+from enum import Enum
+
 
 # Syntactic sugar
 def m_id(typ, idx):
@@ -290,3 +292,6 @@ TPL.layout.annotationdefaults = dict(
     xref="x",
     yref='y',
 )
+
+CLP_CH = Enum('CaliperChange', 'Add Remove Edit')  # Caliper change
+CLP_SYNC = Enum('LeadSynchronization', 'Synchronized Independent')  # 2 possible caliper types
