@@ -605,12 +605,7 @@ class EcgApp:
                 return is_open
 
     def update_lead_height_styles(self, change_heights):
-        # triggered_ids = [d['prop_id'] for d in dash.callback_context.triggered]
-        # ic(triggered_ids)
         num_lead = len(self.idxs_lead)
-        # if num_lead == 0:  # The layout is hidden anyway
-        #     return [dash.no_update] * num_lead
-        # else:
         h = f'{int(self.HT_LDS / max(num_lead, 3))}vh'  # So that maximal height is 1/3 of the div
         return [dict(height=h)] * num_lead
 

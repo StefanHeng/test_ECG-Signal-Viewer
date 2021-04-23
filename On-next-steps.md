@@ -63,11 +63,11 @@ The design is thought through but the UI interactions is not implemented.
 
 
 
-## Caliper measurement mode switch 
+### Caliper measurement mode switch
 
 Caliper measurement is supported for both 
 
-1. Synchronized: caliper measurement on 1 channel is broadcast 
+1. Synchronized: caliper measurement on 1 channel is broadcast to all channels on display 
 
 For now for simplicity, when users switch mode, all existing caliper measurements are removed 
 
@@ -75,6 +75,21 @@ A more convenient solution would be
 
 - Keep track of most recent edited lead index for each caliper measurement 
 - For transferring from synchronized to independent which is the less intuitive part, take advantage of the above 
+
+
+
+
+
+### Log in & preferences 
+
+Several static declarations can be subject to user preference: e.g. 
+
+- Maximal lead on display 
+- Discrete jump size 
+- Lead templates 
+- Maximal number of points on display for each channel 
+
+
 
 
 
