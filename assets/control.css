@@ -49,9 +49,7 @@
     transition: var(--ease-all);
     border-radius: 0.35em;
     -webkit-backdrop-filter: blur(15px);
-    /*background: rgba(255, 255, 255, 0.2);*/
     background: rgba(var(--light_primary), 0.9);
-    /*border: 1px green solid;*/
 }
 
 #div_options > * {
@@ -99,8 +97,6 @@
     display: flex;
     flex-direction: row;
     margin: 0 auto 0.25em;
-
-    /*border: 1px solid red;*/
 }
 
 #div_plot-controls > :nth-child(5) {  /* Some gap, after all navigation based buttons */

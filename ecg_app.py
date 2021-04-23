@@ -5,18 +5,14 @@ import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State, ClientsideFunction
 from dash_extensions import Download
 from dash.exceptions import PreventUpdate
-
 import plotly.graph_objs as go
 
-import pandas as pd
-
-# import time
-from datetime import datetime  # , timedelta
 from copy import deepcopy
-from bisect import bisect_left
 import concurrent.futures
-# from typing import List, Set, Dict, Tuple, Optional
 from typing import List, Dict
+
+from datetime import datetime
+from bisect import bisect_left
 
 from icecream import ic
 
@@ -84,7 +80,6 @@ class EcgApp:
         self.fig_tmb = None
         self._yaxis_fixed = False
         self._marking_on = False
-        # self._shapes = []  # Current shapes drawn, to be synchronized across new leads added
         self.idx_ann_clicked = None
         self.ks_cmts = None  # Keys for internal comment data lookup, by order of each comment on display
         self._shapes = []  # Current shapes drawn, to be synchronized across new leads added
@@ -175,12 +170,6 @@ class EcgApp:
                             id=ID_DPD_LD_TEMPL, className=CNM_MY_DPD, disabled=True,
                             placeholder='Select lead channel template',
                             options=[{L: f'{dev(tpl_nm)}', V: tpl_nm} for tpl_nm in self.LD_TEMPL],
-                            # options=[
-                            #     {L: f'{dev(DEV_TML_S)}', V: DEV_TML_S},
-                            #     {L: f'{dev(DEV_TML_RD)}', V: DEV_TML_RD},
-                            #     {L: f'{dev(DEV_TML_RG)}', V: DEV_TML_RG},
-                            #     {L: f'{dev(DEV_TML_RG2)}', V: DEV_TML_RG2},
-                            # ],
                             # value=DEV_TML_S  # Dev only, for fast testing
                         )
                     ]),
@@ -223,7 +212,7 @@ class EcgApp:
                             ]),
 
                             # Tab 3, the button to expand/collapse tab 2
-                            # It's okay, always enabled, cos if no lead channel on display,
+                            # It's fine that this is always enabled, cos if no lead channel on display,
                             # the button is not even visible
                             html.Button(id=ID_BTN_CMT_TG_TG, className=join(CNM_BTN, ANM_BTN_TG_BDR_SH), n_clicks=0,
                                         children=[html.I(id=ID_IC_CMT_TG_TG, className=CNM_TG_EXP)])
@@ -233,12 +222,14 @@ class EcgApp:
 
                 dcc.Store(id=ID_STOR_ADD),
                 dcc.Store(id=ID_STOR_RMV),
+                dcc.Store(id=ID_STOR_CH_HT),
 
                 dbc.Alert(
                     id=ID_ALT_MAX_LD, is_open=False, fade=True, duration=4000, dismissable=True, color='danger',
                     className=CNM_ALT,
                     children=f'Error: Maximum of {self.MAX_NUM_LD} lead channels supported for display',
                 ),
+                # Panel modal, lists lead names for adding a lead channel for display
                 dbc.Modal(id=ID_MD_ADD, centered=True, is_open=False, scrollable=True, children=[
                     dbc.ModalHeader(id=ID_MDHD_ADD, children=[
                         html.H5(TXT_ADD_LD, className=CNM_ADD_LD),
@@ -268,7 +259,6 @@ class EcgApp:
 
             :return: dictionary that represents a plotly graph
             """
-            # ic(shapes)
             return self.plt.get_fig(idx_lead, *self.disp_rng[0], tags, shapes, self._yaxis_fixed)
 
         return dbc.Fade(className=CNM_DIV_FD, is_in=True, children=[
@@ -282,9 +272,7 @@ class EcgApp:
                         ])
                     ]),
                     dbc.Tooltip(target=f'{ID_BTN_LD_RMV_WP}{idx}', hide_arrow=False, placement=TTP_PLCM,
-                                offset=TTP_OFST,
-                                # delay=dict(show=500, hide=500),
-                                children='Remove the lead channel'),
+                                offset=TTP_OFST, children='Remove the lead channel'),
                 ]),
 
                 html.Div(className=CNM_DIV_FIG, children=[
@@ -315,7 +303,13 @@ class EcgApp:
              Output(ID_BTN_ADD, DS)],
             Input(ID_STOR_REC, D),
             prevent_initial_call=True
-        )(self.toggle_disable)
+        )(self.toggle_record_disable)
+
+        self.app.callback(
+            Output(ID_GRP_LD_ADD, C),
+            Input(ID_STOR_REC, D),
+            prevent_initial_call=True
+        )(self.set_add_lead_options)
 
         self.app.callback(
             [Output(ID_FD_MN, 'is_in'),
@@ -332,13 +326,7 @@ class EcgApp:
              Input(ID_STOR_ADD, D),
              Input(ID_STOR_RMV, D)],
             prevent_initial_call=True
-        )(self.toggle_layout_fade)
-
-        self.app.callback(
-            Output(ID_GRP_LD_ADD, C),
-            Input(ID_STOR_REC, D),
-            prevent_initial_call=True
-        )(self.set_add_lead_options)
+        )(self.toggle_layout_fade_n_lead_disable)
 
         # Make sure index is updated first before other callbacks update based on `idxs_lead`
         self.app.callback(
@@ -354,26 +342,25 @@ class EcgApp:
         )(self.update_lead_indices_remove)
 
         self.app.callback(
+            Output(ID_MD_ADD, 'is_open'),
+            [Input(ID_BTN_ADD, NC),
+             Input(ID_BTN_MD_CLS, NC)],
+            [State(ID_MD_ADD, 'is_open')],
+            prevent_initial_call=True
+        )(self.toggle_modal_display)
+
+        self.app.callback(
+            Output(ID_ALT_MAX_LD, 'is_open'),
+            [Input(ID_STOR_ADD, D),
+             Input(ID_DPD_LD_TEMPL, V)],
+            State(ID_ALT_MAX_LD, 'is_open'),
+            prevent_initial_call=True
+        )(self.toggle_max_lead_error)
+
+        self.app.callback(
             Output(all_(ID_DIV_LD), 'style'),
-            Input(ID_DIV_PLTS, C),
+            Input(ID_STOR_CH_HT, D)
         )(self.update_lead_height_styles)
-
-        self.app.callback(
-            Output(ID_TXTA_CMT, 'rows'),
-            Input(ID_TXTA_CMT, 'value'),
-            prevent_initial_call=True
-        )(self.update_comment_textarea_height)
-
-        self.app.callback(
-            [Output(ID_ALT_CMT_SVD, 'is_open'),
-             Output(ID_GRP_CMT, C)],
-            [Input(ID_DPD_LD_TEMPL, V),
-             Input(ID_STOR_ADD, D),
-             Input(ID_STOR_RMV, D),
-             Input(ID_BTN_CMT_SBM, NC)],
-            State(ID_TXTA_CMT, 'value'),
-            prevent_initial_call=True
-        )(self.update_comments_panel)
 
         self.app.callback(
             [Output(ID_DIV_PLTS, C),
@@ -385,7 +372,8 @@ class EcgApp:
              Output(ID_TXTA_CMT, DS),
              Output(ID_BTN_CMT_SBM, DS),
              Output(ID_BTN_EXP, DS),
-             Output(ID_STOR_TG_NCS, D)],
+             Output(ID_STOR_TG_NCS, D),
+             Output(ID_STOR_CH_HT, D)],
             [Input(ID_STOR_REC, D),
              Input(ID_DPD_LD_TEMPL, V),
              Input(all_(ID_GRA), 'relayoutData'),
@@ -411,20 +399,47 @@ class EcgApp:
         )(self.update_lead_options_disable_layout_figures)
 
         self.app.callback(
-            Output(ID_MD_ADD, 'is_open'),
-            [Input(ID_BTN_ADD, NC),
-             Input(ID_BTN_MD_CLS, NC)],
-            [State(ID_MD_ADD, 'is_open')],
+            [Output(ID_DIV_CMT_TG, CNM),
+             Output(ID_BTN_CMT_TG_TG, CNM),
+             Output(ID_IC_CMT_TG_TG, CNM),
+             Output(ID_DIV_PLTS, CNM)],
+            Input(ID_BTN_CMT_TG_TG, NC),
             prevent_initial_call=True
-        )(self.toggle_modal)
+        )(self.toggle_tags_n_comments_panel)
 
         self.app.callback(
-            Output(ID_ALT_MAX_LD, 'is_open'),
-            [Input(ID_STOR_ADD, D),
-             Input(ID_DPD_LD_TEMPL, V)],
-            State(ID_ALT_MAX_LD, 'is_open'),
+            Output(ID_GRP_TG, C),
+            Input(ID_STOR_REC, D),
             prevent_initial_call=True
-        )(self.toggle_max_lead_error)
+        )(self.get_tags_layout)
+
+        self.app.clientside_callback(
+            ClientsideFunction(  # clientside callback for efficiency
+                namespace='clientside',
+                function_name='update_tag_clicked'
+            ),
+            Output(ID_STOR_TG_IDX, D),
+            Input(all_(ID_ITM_TG), NC),
+            State(ID_STOR_TG_NCS, D),
+            prevent_initial_call=True
+        )
+
+        self.app.callback(
+            Output(ID_TXTA_CMT, 'rows'),
+            Input(ID_TXTA_CMT, 'value'),
+            prevent_initial_call=True
+        )(self.update_comment_textarea_height)
+
+        self.app.callback(
+            [Output(ID_ALT_CMT_SVD, 'is_open'),
+             Output(ID_GRP_CMT, C)],
+            [Input(ID_DPD_LD_TEMPL, V),
+             Input(ID_STOR_ADD, D),
+             Input(ID_STOR_RMV, D),
+             Input(ID_BTN_CMT_SBM, NC)],
+            State(ID_TXTA_CMT, 'value'),
+            prevent_initial_call=True
+        )(self.update_comments_panel)
 
         self.app.callback(
             [Output(ID_IC_FIXY, CNM),
@@ -456,38 +471,17 @@ class EcgApp:
             prevent_initial_call=True
         )(self.export_csv)
 
-        self.app.callback(
-            [Output(ID_DIV_CMT_TG, CNM),
-             Output(ID_BTN_CMT_TG_TG, CNM),
-             Output(ID_IC_CMT_TG_TG, CNM),
-             Output(ID_DIV_PLTS, CNM)],
-            Input(ID_BTN_CMT_TG_TG, NC),
-            prevent_initial_call=True
-        )(self.toggle_tags_n_comments_panel)
-
-        self.app.callback(
-            Output(ID_GRP_TG, C),
-            Input(ID_STOR_REC, D),
-            prevent_initial_call=True
-        )(self.get_tags_layout)
-
-        self.app.clientside_callback(
-            ClientsideFunction(  # clientside callback for efficiency
-                namespace='clientside',
-                function_name='update_tag_clicked'
-            ),
-            Output(ID_STOR_TG_IDX, D),
-            Input(all_(ID_ITM_TG), NC),
-            State(ID_STOR_TG_NCS, D),
-            prevent_initial_call=True
-        )
-
     @staticmethod
     def get_last_changed_id_property():
         """Only 1 input change is needed each time
         :return String representation, caller would check for substring
         """
         return dash.callback_context.triggered[0]['prop_id']
+
+    @staticmethod
+    def __print_changed_property(func_nm):
+        # Debugging only
+        print(f'in [{func_nm:<25}] with changed property: [{EcgApp.get_last_changed_id_property():<25}]')
 
     @staticmethod
     def toggle_div_options(n_clicks):
@@ -517,46 +511,29 @@ class EcgApp:
         return record_name
 
     @staticmethod
-    def toggle_disable(rec_nm):
+    def toggle_record_disable(rec_nm):
         # EcgApp.__print_changed_property('toggle btn&tpl disable')
         if rec_nm is not None:
             return lst_to_tuple([False] * 2)  # For 2 output properties
         else:
             return lst_to_tuple([True] * 2)
 
-    def toggle_layout_fade(self, template, data_add, data_rmv):
+    def set_add_lead_options(self, rec_nm):
+        # EcgApp.__print_changed_property('update add lead options')
+        if rec_nm is not None:  # Initialize
+            # Must generate selections now, for users could not select a template, and customize lead by single add
+            return [
+                dbc.ListGroupItem(id=m_id(ID_ITM_LD_ADD, idx), action=True, n_clicks=0, children=f'{idx + 1}: {nm}')
+                for idx, nm in enumerate(self.rec.lead_nms)
+            ]
+
+    def toggle_layout_fade_n_lead_disable(self, template, data_add, data_rmv):
         # EcgApp.__print_changed_property('toggle layout fade')
         if self.ui.get_id(self.get_last_changed_id_property()) == ID_DPD_LD_TEMPL:
             b = template is not None
         else:  # Due to lead add or remove
             b = len(self.idxs_lead) > 0
         return lst_to_tuple([b] + [not b] * 5)
-
-    def set_add_lead_options(self, record_name):
-        # EcgApp.__print_changed_property('update add lead options')
-        # changed_id_property = self.get_last_changed_id_property()
-        # changed_id = self.ui.get_id(changed_id_property)
-        if record_name is not None:  # Initialize
-            # Must generate selections now, for users could not select a template, and customize lead by single add
-            return [
-                dbc.ListGroupItem(id=m_id(ID_ITM_LD_ADD, idx), action=True, n_clicks=0, children=f'{idx + 1}: {nm}')
-                for idx, nm in enumerate(self.rec.lead_nms)
-            ]
-        else:
-            return None
-        # return items_lead_add
-
-    def get_tags_layout(self, record_name):
-        if record_name is not None:  # `curr_rec` already loaded
-            layout = [dbc.ListGroupItem(className=CNM_TG_BLK, action=True, children=[
-                dbc.Badge(id=m_id(ID_ITM_TG, idx), className=CNM_BDG_MY_INT, n_clicks=0,
-                          children=self.rec.count_to_str(self.rec.ms_to_count(tm))),
-                dbc.Badge(className=CNM_BDG_MY, children=typ),
-                html.P(className=CNM_TG_TXT, children=txt)
-            ]) for idx, (typ, tm, txt) in enumerate(self.rec.tags)]
-            return layout
-        else:
-            return None
 
     def update_lead_indices_add(self, ns_clicks_add):
         # EcgApp.__print_changed_property('clicked on add button')
@@ -575,6 +552,18 @@ class EcgApp:
         else:
             raise PreventUpdate
 
+    def _get_fig_index_by_index(self, index):
+        """ Gets the index of the index stored in `idxs_fig`
+
+        One-to-one correspondence with the order of children figures
+
+        Precondition: index is a member of `idxs_fig`
+        """
+        for i, idx in enumerate(self.idxs_lead):
+            if idx == index:
+                return i
+        return None  # Not intended to reach here
+
     def update_lead_indices_remove(self, ns_clicks_rmv):
         # EcgApp.__print_changed_property('clicked on remove button')
         changed_id_property = self.get_last_changed_id_property()
@@ -591,108 +580,32 @@ class EcgApp:
             # Original index in layout, subsequent callback below will remove div from HTML plots
             return idx_idx, idx
 
-    def update_num_lead(self, template, data_add, data_rmv):
-        return len(self.idxs_lead)
+    @staticmethod
+    def toggle_modal_display(n_clicks_add_btn, n_clicks_close_btn, is_open):
+        # EcgApp.__print_changed_property('toggle show modal')
+        return not is_open
 
-    def update_lead_height_styles(self, plots):
-        num_lead = len(self.idxs_lead)
-        if num_lead == 0:  # The layout is hidden anyway
-            return [dash.no_update] * num_lead
+    def toggle_max_lead_error(self, data_add, template, is_open):
+        # EcgApp.__print_changed_property('toggle show max lead error')
+        if self.ui.get_id(self.get_last_changed_id_property()) == ID_DPD_LD_TEMPL:
+            # Make sure no change happens when a template is selected
+            return False
         else:
-            h = f'{int(self.HT_LDS / max(num_lead, 3))}vh'  # So that maximal height is 1/3 of the div
-            return [dict(height=h)] * num_lead
-
-    def update_comment_textarea_height(self, txt):
-        """ Rough measure based on number of characters and number of line breaks """
-        if txt is not None:
-            n_ch = len(txt) if txt is not None else 0
-            n_ln = txt.count('\n')
-            n_row = max(n_ch // 30, n_ln)
-            min_bound = max(n_row + 1, self.MIN_TXTA_RW)
-            return min(min_bound, self.MAX_TXTA_RW)
-        else:
-            return self.MIN_TXTA_RW
-
-    def update_comments_panel(self, template, data_add, data_rmv, nc, msg):
-        """ On lead channel change, no comment saved, but all previous comments displayed
-        """
-        id_changed = self.ui.get_id(self.get_last_changed_id_property())
-        cmt_saved = False
-        if id_changed == ID_DPD_LD_TEMPL and template is None:  # Remove all comments from panel
-            return cmt_saved, []
-        if id_changed == ID_BTN_CMT_SBM:
-            # There's definitely a mru if button clicked
-            idx_lead, (x0, x1, y0, y1) = self.ui.get_mru_caliper_coords()
-            # ic(idx_lead, (x0, x1, y0, y1))
-            x0 = self.rec.pd_time_to_count(x0)
-            x1 = self.rec.pd_time_to_count(x1)
-            cmt = [
-                (x0 + x1) // 2,
-                (y0 + y1) // 2,
-                x0, y0,
-                idx_lead, msg
-            ]
-            self.cmts.update_comment(cmt)
-            cmt_saved = True
-
-        idxs_lead = self.LD_TEMPL[template] if id_changed == ID_DPD_LD_TEMPL else self.idxs_lead
-        self.ks_cmts, cmts = self.cmts.get_comment_list(idxs_lead)
-
-        def _get_1st_line_idx(s):
-            """ Index up until first new line char """
-            idx = s.find('\n')
-            return idx if idx != -1 else INF
-
-        def _get_1st_words_idx(s, lim=self.MAX_PRV_LEN):
-            """ Index up until the limit separated by space """
-            st = s[:lim]
-            if st.find(' ') != -1:
-                return st.rindex(' ')
+            added, idx_add = data_add
+            if not added and len(self.idxs_lead) >= self.MAX_NUM_LD:
+                return not is_open
             else:
-                return INF
+                return is_open
 
-        def _get_comment_preview(c):
-            """ Split comment into short preview, returns None if the preview is the entire comment """
-            if len(c) >= 30 or c.find('\n') != -1:  # Split into preview if it's a long comment or more than 1 line
-                idx = min(_get_1st_line_idx(c), _get_1st_words_idx(c))
-                if idx == INF:  # Degenerate case, not a word and no new line
-                    idx = self.MAX_PRV_LEN
-                return c[:idx]
-
-        def _get_cmt_item(idx):  # This `idx` is unique
-            x, idx_ld, c = cmts[idx]
-            cp = _get_comment_preview(c)
-            l = [
-                dbc.Badge(id=m_id(ID_BDG_CMT_TM, idx), className=CNM_BDG_MY_INT, n_clicks=0,
-                          children=self.rec.count_to_str(x)),
-                dbc.Badge(className=CNM_BDG_MY, children=self.rec.lead_nms[idx_ld])
-            ]
-            # ic(cmts[idx], cp)
-            if cp is not None:  # Should use preview
-                l += [
-                    html.P(className=CNM_CMT_TXT, children=cp),
-                    html.Button(id=m_id(ID_BTN_CMT_ITM_TG, idx), className=CNM_BTN, n_clicks=0, children=[
-                        html.I(id=ID_IC_CMT_ITM_TG, className=CNM_CMT_EXP)
-                    ]),
-                    dbc.Collapse(id=m_id(ID_CLP_CMT_ITM, idx), is_open=False, children=[
-                        html.P(className=CNM_CMT_TXT, children=c)  # The entire comment
-                    ]),
-                ]
-            else:  # Comment short enough
-                l.append(html.P(className=CNM_CMT_TXT, children=c))
-            return l
-
-        # raise PreventUpdate  # The output really doesn't matter, just to trigger inner state change
-        return cmt_saved, [dbc.ListGroupItem(className=CNM_CMT_BLK, action=True, children=_get_cmt_item(idx))
-                           for idx in range(len(cmts))]
-
-    def _get_all_annotations(self, idx_ann_clicked, idx_lead):
-        """ Static tag and shape measurement annotations """
-        anns = self.ui.get_caliper_annotations(idx_lead)
-        # ic(anns)
-        if self.rec is not None and self._marking_on:
-            anns += self.ui.get_tags(*(self.disp_rng[0]), idx_ann_clicked)
-        return anns
+    def update_lead_height_styles(self, change_heights):
+        # triggered_ids = [d['prop_id'] for d in dash.callback_context.triggered]
+        # ic(triggered_ids)
+        num_lead = len(self.idxs_lead)
+        # if num_lead == 0:  # The layout is hidden anyway
+        #     return [dash.no_update] * num_lead
+        # else:
+        h = f'{int(self.HT_LDS / max(num_lead, 3))}vh'  # So that maximal height is 1/3 of the div
+        return [dict(height=h)] * num_lead
 
     def update_lead_options_disable_layout_figures(
             self, record_name, template, layouts_fig, layout_tmb,
@@ -738,7 +651,6 @@ class EcgApp:
 
         # Shared output must be in a single function call per Dash callback
         # => Forced to update in a single function call
-        # ic()
 
         def _get_tag_annotations():
             """ Independent by lead """
@@ -747,12 +659,17 @@ class EcgApp:
             else:
                 return []
 
+        def _get_all_annotations(self, idx_ann_clicked, idx_lead):
+            """ Static tag and shape measurement annotations """
+            anns = self.ui.get_caliper_annotations(idx_lead)
+            if self.rec is not None and self._marking_on:
+                anns += self.ui.get_tags(*(self.disp_rng[0]), idx_ann_clicked)
+            return anns
+
         def _update_figs_annotations():
-            tags = _get_tag_annotations()
+            tags = _get_tag_annotations() # Override original values, for potential text annotation removal
             for i, f in enumerate(figs_gra):
-                # ic(self.idxs_lead[i])
                 f['layout']['annotations'] = tags + self.ui.get_caliper_annotations(self.idxs_lead[i])
-                # ic(self.ui.get_caliper_annotations(self.idxs_lead[i]))
 
         def _clear_figs_shapes():
             self._shapes = []
@@ -760,39 +677,27 @@ class EcgApp:
                 f['layout']['shapes'] = []
 
         def _update_lead_figures():
-            # ic()
             strt, end = self.disp_rng[0]
             sample_factor = self.plt.get_sample_factor(strt, end)
             x_vals = self.rec.get_time_values(strt, end, sample_factor)
             lst_args = [(idx_idx, idx_lead, strt, end, sample_factor)  # The strt, end variables here cannot be saved
                         for idx_idx, idx_lead in enumerate(self.idxs_lead)]
-            # ic(lst_args)
-            # Multi-threading for mainly IO
-            # for a in args:
-            #     _set_y_vals(*a)
             with concurrent.futures.ThreadPoolExecutor(max_workers=self.MAX_NUM_LD) as executor:
-                # ic('inside threading')
                 executor.map(lambda args: _set_y_vals(*args), lst_args)
 
-            # ic()
             removed = self.ui.update_caliper_annotations_time(strt, end, figs_gra, self.idxs_lead)
-            # ic()
             if removed:
                 self._shapes = figs_gra[0]['layout']['shapes']  # Pick any one, shapes already removed
                 self.ui.highlight_mru_caliper_edit(figs_gra, self.idxs_lead)
-            # anns = self._get_all_annotations(idx_ann_clicked)
             _update_figs_annotations()
             for f in figs_gra:  # Lines up with number of figures plotted
                 # Short execution time, no need to multi-process
                 f[D][0]['x'] = x_vals
-                # f['layout']['annotations'] = anns
                 # Without this line, the range displayed can be invalid
                 f['layout']['xaxis']['range'] = x_layout_range  # This has to be the last assignment
-            # ic()
 
         def _set_y_vals(idx_idx, idx_lead, strt, end, sample_factor):
             y_vals = self.rec.get_ecg_samples(idx_lead, strt, end, sample_factor)
-            # ic(strt, end, y_vals)
             if self._yaxis_fixed:
                 rang = figs_gra[idx_idx]['layout']['yaxis']['range']
                 figs_gra[idx_idx][D][0]['y'] = y_vals
@@ -800,7 +705,6 @@ class EcgApp:
             else:
                 figs_gra[idx_idx][D][0]['y'] = y_vals
                 figs_gra[idx_idx]['layout']['yaxis']['range'] = self.ui.get_ignore_noise_range(y_vals)
-                # figs_gra[idx_idx]['layout']['yaxis']['range'] = self.ui.get_ignore_noise_range(strt, end)
 
         def _shift_is_out_of_lim(strt, end, offset):
             """ On advance and nudge navigation controls.
@@ -825,8 +729,6 @@ class EcgApp:
                     f'{int(y0):,}',
                     f'{int(y1):,}'
                 )
-                # idx_lead, coords = c
-                # x0, x1, y0, y1 = coords
                 return [
                     html.Div(id=ID_DIV_CMT_LB_LD, children=[
                         'On lead ',
@@ -849,7 +751,6 @@ class EcgApp:
             else:
                 return []
 
-        # ic()
         changed_id_property = self.get_last_changed_id_property()
         changed_id = self.ui.get_id(changed_id_property)
 
@@ -857,6 +758,7 @@ class EcgApp:
         disable_export_btn = dash.no_update
         cmt_rng_label = dash.no_update
         disable_comment = dash.no_update
+        change_heights = dash.no_update
         if ID_STOR_REC == changed_id:  # Reset layout
             self.idxs_lead = []
             plots = []
@@ -867,7 +769,6 @@ class EcgApp:
             else:
                 fig_tmb = dash.no_update
                 ns_clicks_tag = []
-            # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
             time_label = None
             disable_export_btn = True
             figs_gra = [dash.no_update] * len(figs_gra)
@@ -875,11 +776,9 @@ class EcgApp:
             if template is not None:
                 self.idxs_lead = deepcopy(self.LD_TEMPL[template])  # Deepcopy cos idx_lead may mutate
                 # Override for any template change could happen before
-                # anns = self._get_all_annotations(idx_ann_clicked)
                 tags = _get_tag_annotations()
                 plots = [self.get_fig_layout(idx, tags + self.ui.get_caliper_annotations(idx))
                          for idx in self.idxs_lead]
-                # lead_styles = self.get_lead_height_styles()
                 # Linear, more efficient than checking index in `self.idxs_lead`
                 disables_lead_add = [False] * len(disables_lead_add)
                 for idx in self.idxs_lead:
@@ -890,7 +789,6 @@ class EcgApp:
             else:  # Reset layout
                 self.idxs_lead = []
                 plots = []
-                # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
                 disables_lead_add = [False] * len(disables_lead_add)  # All options are not disabled
                 # figs_gra = []  # For same reason below, the remove button case
                 fig_tmb = self.fig_tmb.add_trace([], override=True)  # Basically removes all trace without adding
@@ -898,13 +796,13 @@ class EcgApp:
                 disable_export_btn = True
             figs_gra = [dash.no_update] * len(figs_gra)
             ns_clicks_tag = dash.no_update
+            change_heights = True
             self.ui.clear_measurements()  # Remove all caliper measurements as the easiest solution
 
         elif ID_GRA == changed_id and self.idxs_lead:  # != []; RelayoutData changed, graph has pattern matched ID
             # When a record is selected, ID_GRA is in changed_id for unknown reason
             idx_changed = self.ui.get_pattern_match_index(changed_id_property)
             idx_idx_changed = self._get_fig_index_by_index(idx_changed)
-            # ic(layouts_fig[idx_idx_changed], figs_gra[idx_idx_changed]['layout'])
             l = layouts_fig[idx_idx_changed]
             if layouts_fig is not None and self.ui.K_XS in l:  # Navigation
                 # Execution won't go in if adding a new lead, cos layout doesn't contain KEY_X_S on create
@@ -913,12 +811,9 @@ class EcgApp:
                 yaxis_rng_ori = l_c['yaxis']['range']
                 fig_tmb['layout']['xaxis']['range'] = x_layout_range = \
                     self.ui.get_x_layout_range(layouts_fig[idx_idx_changed])
-                # ic('call update lead figures')
                 _update_lead_figures()
-                # ic(x_layout_range, self.disp_rng[0])
                 l_c['yaxis']['range'] = yaxis_rng_ori
                 plots = dash.no_update
-                # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
                 disables_lead_add = self.no_update_add_opns
                 time_label = self.ui.time_range_to_time_label(*x_layout_range)
                 cmt_rng_label = _create_comment_range_labels()
@@ -928,34 +823,25 @@ class EcgApp:
             # Change in caliper/user-drawn shape
             elif layouts_fig is not None and self.ui.shape_updated(l):
                 self.ui.update_caliper_annotations_shape(l, idx_changed)
-                # anns = self._get_all_annotations(idx_ann_clicked)
-                # tags = self._get_tag_annotations(idx_ann_clicked)
                 _update_figs_annotations()
                 if self.ui.caliper_is_synchronized():  # Broadcast shape changes to all leads
                     self._shapes = figs_gra[idx_idx_changed]['layout']['shapes']
                     for idx, f in enumerate(figs_gra):
                         if idx != idx_idx_changed:
                             f['layout']['shapes'] = self._shapes
-                # self._shapes = figs_gra[idx_idx_changed]['layout']['shapes']
                 self.ui.highlight_mru_caliper_edit(figs_gra, self.idxs_lead)
                 cmt_rng_label = _create_comment_range_labels()
                 disable_comment = not self.ui.has_measurement()
-                # for idx, f in enumerate(figs_gra):  # Override original values, for potential text annotation removal
-                #     # f['layout']['annotations'] = tags + self.ui.get_caliper_annotations(self.idxs_lead[idx])
-                #     if idx != idx_idx_changed:
-                #         f['layout']['shapes'] = self._shapes
             else:
                 raise PreventUpdate
         elif ID_TMB == changed_id:  # Changes in thumbnail figure have to be range change
             # Workaround: At first app start, ID_TMB is in changed_id for unknown reason
-            # ic(fig_tmb['layout'])
             if self.rec is not None:
                 self.disp_rng[0] = self.ui.get_x_display_range(fig_tmb['layout'])
                 x_layout_range = fig_tmb['layout']['xaxis']['range']
                 _update_lead_figures()
                 fig_tmb = dash.no_update
                 plots = dash.no_update
-                # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
                 disables_lead_add = self.no_update_add_opns
                 time_label = self.ui.time_range_to_time_label(*x_layout_range)
                 cmt_rng_label = _create_comment_range_labels()
@@ -974,10 +860,6 @@ class EcgApp:
             ns_clicks_tag = dash.no_update
         elif ID_IC_TG_TG == changed_id:
             if self.rec is not None:
-                # anns = self._get_all_annotations(idx_ann_clicked)
-                # tags = self._get_tag_annotations(idx_ann_clicked)
-                # for f in figs_gra:
-                #     f['layout']['annotations'] = tags + self.ui.get_caliper_annotations()
                 _update_figs_annotations()
                 plots = dash.no_update
                 disables_lead_add = self.no_update_add_opns
@@ -989,23 +871,18 @@ class EcgApp:
             if self.rec is None:  # Toggle without a record selected
                 raise PreventUpdate
             if ID_BTN_CLP_CLR == changed_id:  # Otherwise, caliper is already toggled & cleared
-                self.ui.clear_measurements()
-            # self._shapes = []
-            # anns = self._get_all_annotations(idx_ann_clicked)
+                self.ui.clear_measurements()  # TODO: Removes all calipers instead of expanding just for now
+            self._shapes = []
             _update_figs_annotations()
             _clear_figs_shapes()
             cmt_rng_label = _create_comment_range_labels()  # Basically set to none
             disable_comment = not self.ui.has_measurement()
-            # TODO: Removes all calipers instead of expanding just for now
-            # for f in figs_gra:
-            #     f['layout']['shapes'] = self._shapes
-            #     # f['layout']['annotations'] = anns
             plots = dash.no_update
             disables_lead_add = self.no_update_add_opns
             fig_tmb = dash.no_update
             ns_clicks_tag = dash.no_update
         # elif ID_IC_CLP_SYNC == changed_id:  # Toggled synchronization of caliper across leads
-        #     # TODO: Expand previous caliper measurements into the other mode
+        #     # TODO: Expand/Collapse previous caliper measurements into the other mode
         #     # if self.ui.caliper_is_synchronized():  # Independent caliper => Synchronized caliper
         #     #     self.ui.caliper_independent_to_synchronized(figs_gra)
         #     #     # self.ui.highlight_mru_caliper_edit(figs_gra)
@@ -1037,7 +914,6 @@ class EcgApp:
                 _update_lead_figures()
                 fig_tmb['layout']['xaxis']['range'] = x_layout_range
                 plots = dash.no_update
-                # lead_styles = [dash.no_update for i in range(len(self.idxs_lead))]
                 disables_lead_add = self.no_update_add_opns
                 time_label = self.ui.time_range_to_time_label(*x_layout_range)
                 cmt_rng_label = _create_comment_range_labels()
@@ -1050,7 +926,7 @@ class EcgApp:
             added, idx_add = data_add
             # Need to check if clicking actually added a lead
             if added:  # Else error alert will raise
-                anns = self._get_all_annotations(idx_ann_clicked, idx_add)
+                anns = _get_all_annotations(idx_ann_clicked, idx_add)
                 plots.append(self.get_fig_layout(idx_add, anns))
                 disables_lead_add[idx_add] = True
                 fig_tmb = self.fig_tmb.add_trace([idx_add], override=False)
@@ -1059,6 +935,7 @@ class EcgApp:
                     time_label = self.ui.count_pr_to_time_label(*self.disp_rng[0])
                     disable_export_btn = False
                 ns_clicks_tag = dash.no_update
+                change_heights = True
             else:
                 raise PreventUpdate
         elif ID_STOR_RMV == changed_id:
@@ -1073,13 +950,14 @@ class EcgApp:
                 cmt_rng_label = _create_comment_range_labels()
             del plots[idx_idx_rmv]
             disables_lead_add[idx_rmv] = False
-            # figs_gra = [dash.no_update] * len(figs_gra)
+            figs_gra = [dash.no_update] * len(figs_gra)
             # Surprisingly when I have the line below, Dash gives weird exception, instead of not having this line
             # del figs_gra[idx_idx_changed]'
             if len(self.idxs_lead) == 0:  # from 1 to 0 lead
                 time_label = None
                 disable_export_btn = True
             ns_clicks_tag = dash.no_update
+            change_heights = True
         elif ID_STOR_TG_IDX == changed_id and idx_ann_clicked != -1 and idx_ann_clicked != self.rec.N_TAG:
             ns_clicks_tag[idx_ann_clicked] += 1
             count = self.rec.ms_to_count(self.rec.tags[idx_ann_clicked][1])
@@ -1120,51 +998,118 @@ class EcgApp:
             raise PreventUpdate
         else:
             raise PreventUpdate
-        # ic()
         self.idx_ann_clicked = idx_ann_clicked
         return (
             plots, disables_lead_add, figs_gra, fig_tmb,
             time_label, cmt_rng_label,
             disable_comment, disable_comment, disable_export_btn,
-            ns_clicks_tag
+            ns_clicks_tag, change_heights
         )
 
     @staticmethod
-    def toggle_modal(n_clicks_add_btn, n_clicks_close_btn, is_open):
-        # EcgApp.__print_changed_property('toggle show modal')
-        return not is_open
-
-    def toggle_max_lead_error(self, data_add, template, is_open):
-        # EcgApp.__print_changed_property('toggle show max lead error')
-        if self.ui.get_id(self.get_last_changed_id_property()) == ID_DPD_LD_TEMPL:
-            # Make sure no change happens when a template is selected
-            return False
+    def toggle_tags_n_comments_panel(n_clicks):
+        if n_clicks % 2 == 0:
+            return ANM_DIV_CMT_TG_CLPW, join(CNM_BTN, ANM_BTN_TG_BDR_SH), CNM_TG_EXP, ANM_DIV_PLT_EXPW
         else:
-            added, idx_add = data_add
-            if not added and len(self.idxs_lead) >= self.MAX_NUM_LD:
-                return not is_open
-            else:
-                return is_open
+            return ANM_DIV_CMT_TG_EXPW, join(CNM_BTN, ANM_BTN_TG_BDR_HD), CNM_TG_EXP, ANM_DIV_PLT_CLPW
 
-    def _get_fig_index_by_index(self, index):
-        """ Gets the index of the index stored in `idxs_fig`
+    def get_tags_layout(self, record_name):
+        if record_name is not None:  # `curr_rec` already loaded
+            layout = [dbc.ListGroupItem(className=CNM_TG_BLK, action=True, children=[
+                dbc.Badge(id=m_id(ID_ITM_TG, idx), className=CNM_BDG_MY_INT, n_clicks=0,
+                          children=self.rec.count_to_str(self.rec.ms_to_count(tm))),
+                dbc.Badge(className=CNM_BDG_MY, children=typ),
+                html.P(className=CNM_TG_TXT, children=txt)
+            ]) for idx, (typ, tm, txt) in enumerate(self.rec.tags)]
+            return layout
 
-        One-to-one correspondence with the order of children figures
+    def update_comment_textarea_height(self, txt):
+        """ Rough measure based on number of characters and number of line breaks """
+        if txt is not None:
+            n_ch = len(txt) if txt is not None else 0
+            n_ln = txt.count('\n')
+            n_row = max(n_ch // 30, n_ln)
+            min_bound = max(n_row + 1, self.MIN_TXTA_RW)
+            return min(min_bound, self.MAX_TXTA_RW)
+        else:
+            return self.MIN_TXTA_RW
 
-        Precondition: index is a member of `idxs_fig`
+    def update_comments_panel(self, template, data_add, data_rmv, nc, msg):
+        """ On lead channel change, no comment saved, but all previous comments displayed
         """
-        for i, idx in enumerate(self.idxs_lead):
-            if idx == index:
-                return i
-        return None  # Not intended to reach here
+        id_changed = self.ui.get_id(self.get_last_changed_id_property())
+        cmt_saved = False
+        if id_changed == ID_DPD_LD_TEMPL and template is None:  # Remove all comments from panel
+            return cmt_saved, []
+        if id_changed == ID_BTN_CMT_SBM:
+            # There's definitely a mru if button clicked
+            idx_lead, (x0, x1, y0, y1) = self.ui.get_mru_caliper_coords()
+            x0 = self.rec.pd_time_to_count(x0)
+            x1 = self.rec.pd_time_to_count(x1)
+            cmt = [
+                (x0 + x1) // 2,
+                (y0 + y1) // 2,
+                x0, y0,
+                idx_lead, msg
+            ]
+            self.cmts.update_comment(cmt)
+            cmt_saved = True
+
+        idxs_lead = self.LD_TEMPL[template] if id_changed == ID_DPD_LD_TEMPL else self.idxs_lead
+        self.ks_cmts, cmts = self.cmts.get_comment_list(idxs_lead)
+
+        def _get_1st_line_idx(s):
+            """ Index up until first new line char """
+            idx = s.find('\n')
+            return idx if idx != -1 else INF
+
+        def _get_1st_words_idx(s, lim=self.MAX_PRV_LEN):
+            """ Index up until the limit separated by space """
+            st = s[:lim]
+            if st.find(' ') != -1:
+                return st.rindex(' ')
+            else:
+                return INF
+
+        def _get_comment_preview(c):
+            """ Split comment into short preview, returns None if the preview is the entire comment """
+            if len(c) >= 30 or c.find('\n') != -1:  # Split into preview if it's a long comment or more than 1 line
+                idx = min(_get_1st_line_idx(c), _get_1st_words_idx(c))
+                if idx == INF:  # Degenerate case, not a word and no new line
+                    idx = self.MAX_PRV_LEN
+                return c[:idx]
+
+        def _get_cmt_item(idx):  # This `idx` is unique
+            x, idx_ld, c = cmts[idx]
+            cp = _get_comment_preview(c)
+            l = [
+                dbc.Badge(id=m_id(ID_BDG_CMT_TM, idx), className=CNM_BDG_MY_INT, n_clicks=0,
+                          children=self.rec.count_to_str(x)),
+                dbc.Badge(className=CNM_BDG_MY, children=self.rec.lead_nms[idx_ld])
+            ]
+            if cp is not None:  # Should use preview
+                l += [
+                    html.P(className=CNM_CMT_TXT, children=cp),
+                    html.Button(id=m_id(ID_BTN_CMT_ITM_TG, idx), className=CNM_BTN, n_clicks=0, children=[
+                        html.I(id=ID_IC_CMT_ITM_TG, className=CNM_CMT_EXP)
+                    ]),
+                    dbc.Collapse(id=m_id(ID_CLP_CMT_ITM, idx), is_open=False, children=[
+                        html.P(className=CNM_CMT_TXT, children=c)  # The entire comment
+                    ]),
+                ]
+            else:  # Comment short enough
+                l.append(html.P(className=CNM_CMT_TXT, children=c))
+            return l
+
+        return cmt_saved, [dbc.ListGroupItem(className=CNM_CMT_BLK, action=True, children=_get_cmt_item(idx))
+                           for idx in range(len(cmts))]
 
     @staticmethod
     def update_fix_yaxis_icon(n_clicks):
-        # if self._yaxis_fixed:  # Init with yaxis unlocked
-        if n_clicks % 2 == 0:
-            return CNM_IC_LKO, True, 'Voltage ranges fixed'
+        if n_clicks % 2 == 0:  # Init with yaxis unlocked
+            return CNM_IC_LKO, True, 'Voltage ranges automatic'
         else:
-            return CNM_IC_LK, True, 'Voltage ranges automatic'
+            return CNM_IC_LK, True, 'Voltage ranges fixed'
 
     def update_synchronize_caliper(self, n_clicks):
         self.ui.toggle_caliper_synchronization()
@@ -1183,18 +1128,6 @@ class EcgApp:
     def export_csv(self, n_clicks):
         strt, end = self.disp_rng[0]
         return self.exp.export(strt, end, self.idxs_lead)
-
-    @staticmethod
-    def toggle_tags_n_comments_panel(n_clicks):
-        if n_clicks % 2 == 0:
-            return ANM_DIV_CMT_TG_CLPW, join(CNM_BTN, ANM_BTN_TG_BDR_SH), CNM_TG_EXP, ANM_DIV_PLT_EXPW
-        else:
-            return ANM_DIV_CMT_TG_EXPW, join(CNM_BTN, ANM_BTN_TG_BDR_HD), CNM_TG_EXP, ANM_DIV_PLT_CLPW
-
-    @staticmethod
-    def __print_changed_property(func_nm):
-        # Debugging only
-        print(f'in [{func_nm:<25}] with changed property: [{EcgApp.get_last_changed_id_property():<25}]')
 
     @staticmethod
     def example():

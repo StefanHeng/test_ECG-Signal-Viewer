@@ -1,19 +1,93 @@
 import numpy as np
-import pandas as pd
 
 import re
-# from random import random
 from enum import Enum
-# from bisect import bisect_left
-from typing import Type, List
+from typing import List
 
 from icecream import ic
 
 from ecg_defns_n_util import *
-# from data_link import *
 
 CLP_CH = Enum('CaliperChange', 'Add Remove Edit')  # Caliper change
 CLP_SYNC = Enum('LeadSynchronization', 'Synchronized Independent')  # 2 possible caliper types
+
+
+def _shape_dict_to_coords(d_shape, changed=False):
+    """
+    :param d_shape: Plotly shape dictionary
+    :param changed: Either the dictionary is an entire shape object or just the changes
+    :return The 4-tuple coordinates in order (x0, x1, y0, y1),
+    where x values are pandas time object and y values are integers
+
+    Ensures x0 < x1, y0 < y1
+    """
+    if changed:  # Plotly on shape *change* returns a different dictionary
+        x0, x1, y0, y1 = d_shape.values()
+    else:
+        x0, x1, y0, y1 = d_shape['x0'], d_shape['x1'], d_shape['y0'], d_shape['y1']
+    x0 = pd.to_datetime(x0)
+    x1 = pd.to_datetime(x1)
+    y0, y1 = int(y0), int(y1)
+    x0, x1 = (x0, x1) if x0 < x1 else (x1, x0)  # The relative magnitude depends on
+    y0, y1 = (y0, y1) if y0 < y1 else (y1, y0)
+    return x0, x1, y0, y1
+
+
+def _get_idx_removed(lst_shape, lst_coords):  # There must be one and only 1 missing
+    for idx, shape in enumerate(lst_shape):
+        if _shape_dict_to_coords(shape) != lst_coords[idx]:
+            return idx
+    # lst_shape is the smaller one, if all equal, the last annotation is removed
+    return len(lst_coords) - 1  # Don't use relative offset so that updating order works
+
+
+def _get_txt_annotation(x, y, s, text_angle=0):  # Like `_get_tag`, both returns plotly annotations
+    return dict(
+        x=x,
+        y=y,
+        text=s,
+        textangle=text_angle,
+        borderpad=2,
+        bgcolor=ANTN_BG_CLR_A5
+    )
+
+
+def _measure(x0, x1, y0, y1):
+    """
+    Based on mid-point coordinates.
+
+    As design choice, the measurement shown at the left and top edge of the rectangle
+
+    :param x0: x coordinate on left
+    :param x1: x coordinate on right
+    :param y0: y coordinate on bottom
+    :param y1: y coordinate on top
+    :return: A 2-tuple of plotly annotation-accepted dict, measurement for time and voltage axes respectively
+
+    """
+    x_diff = x1 - x0
+    y_diff = int(y1 - y0)
+    x = x0 + x_diff / 2
+    y = int(y0) + y_diff / 2
+    return (
+        _get_txt_annotation(x, y1, f'{pd_time_to_ms(x_diff):,}ms'),
+        _get_txt_annotation(x0, y, f'{y_diff:,}mV', text_angle=-90)
+    )
+
+
+def _get_caliper_indices_out_of_range(lst_coords, strt, end):
+    """
+     Remove shapes that fall off the display in internal tracks
+
+    :return: 2 tuple of if any measurement is removed, and the corresponding indices in sorted order
+    """
+    removed = False
+    idxs = []
+    for idx, (x0, x1, y0, y1) in enumerate(lst_coords):  # Reverse the list
+        if x0 >= end or x1 <= strt:
+            removed = True
+            idxs.append(idx)
+    return removed, idxs
 
 
 class EcgUi:
@@ -88,44 +162,9 @@ class EcgUi:
 
     @staticmethod
     def get_ignore_noise_range(vals, z=5):
-        # samples = []
-        # n = vals.shape[0]  # vals should be a numpy array
-        # for i in range(self.NUM_SAMPLES):
-        #     samples.append(int(random() * (n + 1)))  # Uniform distribution, with slight inaccuracy
-        # samples.sort()  # Small array size makes sorting efficient
-        # half_range = max(samples[self.PERCENT_NUM - 1], samples[-self.PERCENT_NUM])  # For symmetry
-        # half_range *= 40  # By nature of ECG waveform signals
-
-        # Update: try standard deviation range
-        # ic('in ignore noise')
-        # ic()
         half_range = z * np.std(vals)
         m = np.mean(vals)
-        # ic()
-        return m-half_range, m+half_range
-
-    def get_ignore_noise_range_(self, strt, end):  # TODO
-        """ Returns an initial, pseudo range of ECG values given a set of samples
-
-        Based on R peaks in the original record
-
-        A multiple of percentile range, should include all non-outliers
-
-        Should skip outliers/noise and include the majority of values
-
-        :return: Start and end values """
-        # Through randomization
-        # ecg_vals = self.rec.get_ecg_samples(0, strt, end)
-        # ic(strt, end, ecg_vals.shape)
-        # peaks = ecg_vals[self.rec.r_peak_indices(strt, end)]
-        peaks = self.rec.r_peak_vals(strt, end)
-        sample = np.random.choice(peaks, size=min(peaks.size, self.NUM_SAMPLES), replace=False)  # Uniform distribution
-        ic(peaks, sample)
-        sample.sort()  # Small array size makes sorting efficient
-        # half_range = max(sample[self.PERCENT_NUM - 1], sample[-self.PERCENT_NUM])  # For symmetry
-        half_range = np.percentile(sample, self.PERCENTILE)
-        half_range *= 1.4
-        return -half_range, half_range
+        return m - half_range, m + half_range
 
     @staticmethod
     def get_pattern_match_index(str_id):
@@ -200,7 +239,7 @@ class EcgUi:
         """ Renders the figures as necessary """
         self.clp: EcgUi.CaliperI
         c = self.CaliperS(self.clp.rec)  # For now, caliper is CaliperI instance
-        # # ic(self.clp.to_synchronized()[-1])
+        # TODO
         # if self.clp.has_measurement():
         #     c.from_independent(*self.clp.to_synchronized())
         # ic(ord_caliper, ld_idxs_coord, lst_coords)
@@ -222,11 +261,6 @@ class EcgUi:
         self.clp.clear_measurements()
 
     def update_caliper_annotations_shape(self, layout, idx_ld):
-        # if self.caliper_is_synchronized():
-        #     self.clp: EcgUi.CaliperS
-        #     self.clp.update_caliper_annotations_shape(layout, idx_ld)
-        # else:
-        #     self.clp.update_caliper_annotations_shape(layout, idx_ld)
         self.clp.update_caliper_annotations_shape(layout, idx_ld)
 
     def highlight_mru_caliper_edit(self, figs_gra, idxs_lead=[], idxs_ignore=[]):
@@ -286,7 +320,6 @@ class EcgUi:
                 del self._ord_caliper[-1]
 
         def get_mru_caliper_coords(self):
-            # ic(self._ord_caliper)
             if self._ord_caliper:
                 idx_lead = self._ord_caliper[-1]
                 return idx_lead, self.calipers[idx_lead].get_mru_caliper_coords()
@@ -294,9 +327,7 @@ class EcgUi:
         def highlight_mru_caliper_edit(self, figs_gra, idxs_lead, idxs_ignore=[]):
             """ Highlights the most recently edited shapes, for a list of figures
             Potentially, need to ignore the leads removed by Dash callback nature """
-            # ic(self._ord_caliper, idxs_lead)
             for i, f in enumerate(figs_gra):
-                # ic(i, idxs_ignore, i not in idxs_ignore)
                 idx_ld = idxs_lead[i]
                 if idx_ld not in idxs_ignore:
                     for idx, shape in enumerate(f['layout']['shapes']):
@@ -328,10 +359,8 @@ class EcgUi:
         def update_caliper_annotations_time(self, strt, end, figs, idxs_lead):
             caliper_removed_lds = [self.calipers[idx].update_caliper_annotations_time(strt, end, figs[i])
                                    for i, idx in enumerate(idxs_lead)]
-            # ic(self._ord_caliper)
             if self._ord_caliper:
                 idx_mru = self._ord_caliper[-1]
-                # ic(idx_mru)
                 while caliper_removed_lds[idxs_lead.index(idx_mru)]:
                     if len(self.calipers[idx_mru]) == 0:  # No more caliper for most recent lead
                         del self._ord_caliper[-1]
@@ -369,69 +398,13 @@ class EcgUi:
                 # Each caliper coordinates with the associated lead index
                 return list(zip([self.idx_lead] * self._n_mesr, self.lst_coords))
 
-            @staticmethod
-            def shape_dict_to_coords(d_shape, changed=False):
-                """
-                :param d_shape: Plotly shape dictionary
-                :param changed: Either the dictionary is an entire shape object or just the changes
-                :return The 4-tuple coordinates in order (x0, x1, y0, y1),
-                where x values are pandas time object and y values are integers
-
-                Ensures x0 < x1, y0 < y1
-                """
-                if changed:  # Plotly on shape *change* returns a different dictionary
-                    x0, x1, y0, y1 = d_shape.values()
-                else:
-                    x0, x1, y0, y1 = d_shape['x0'], d_shape['x1'], d_shape['y0'], d_shape['y1']
-                x0 = pd.to_datetime(x0)
-                x1 = pd.to_datetime(x1)
-                y0, y1 = int(y0), int(y1)
-                x0, x1 = (x0, x1) if x0 < x1 else (x1, x0)  # The relative magnitude depends on
-                y0, y1 = (y0, y1) if y0 < y1 else (y1, y0)
-                return x0, x1, y0, y1
-
-            def measure(self, x0, x1, y0, y1):
-                """
-                Based on mid-point coordinates.
-
-                As design choice, the measurement shown at the left and top edge of the rectangle
-
-                :param x0: x coordinate on left
-                :param x1: x coordinate on right
-                :param y0: y coordinate on bottom
-                :param y1: y coordinate on top
-                :return: A 2-tuple of plotly annotation-accepted dict, measurement for time and voltage axes respectively
-                """
-
-                x_diff = x1 - x0
-                # if x_diff <= self.MAX_CLP_RNG:
-                y_diff = int(y1 - y0)
-                x = x0 + x_diff / 2
-                y = int(y0) + y_diff / 2
-                return (
-                    self.get_txt_annotation(x, y1, f'{pd_time_to_ms(x_diff):,}ms'),
-                    self.get_txt_annotation(x0, y, f'{y_diff:,}mV', text_angle=-90)
-                )
-                # else:
-                #     return None
-
-            @staticmethod
-            def get_txt_annotation(x, y, s, text_angle=0):  # Like `_get_tag`, both returns
-                return dict(
-                    x=x,
-                    y=y,
-                    text=s,
-                    textangle=text_angle,
-                    borderpad=2,
-                    bgcolor=ANTN_BG_CLR_A5
-                )
-
             def get_caliper_annotations(self):
                 return flatten(*self.lst_ann_mesr)
                 # return [ann for pr in self.lst_ann_mesr for ann in pr]  # Flattens 2d list to 1d
 
             def _update_caliper_edit_order_after_remove(self, idxs_rmv):
-                """ Update the attribute on (order of measurement edits based on index), based on indices already removed
+                """ Update the attribute on (order of measurement edits based on index),
+                based on indices already removed
                 Indices removed should be reversely sorted """
                 remove_by_indices(self._ord_mesr_edit, idxs_rmv)
                 # ic(idxs_rmv, self._ord_mesr_edit)
@@ -451,24 +424,17 @@ class EcgUi:
                     lst_shape = layout_changed['shapes']
                     l = len(lst_shape)
                     if l > self._n_mesr:  # New shape added by user
-                        coords = self.shape_dict_to_coords(lst_shape[-1])
+                        coords = _shape_dict_to_coords(lst_shape[-1])
                         self.lst_coords.append(coords)
-                        self.lst_ann_mesr.append(self.measure(*coords))
+                        self.lst_ann_mesr.append(_measure(*coords))
                         self._n_mesr += 1
 
                         self._ord_mesr_edit.append(self._n_mesr - 1)  # Index of newly created shape is the last one
                         return CLP_CH.Add
                     # Linearly check membership for the removed rect
                     else:  # A shape removed
-                        def _get_idx_removed():  # There must be one and only 1 missing
-                            for idx, shape in enumerate(lst_shape):
-                                if self.shape_dict_to_coords(shape) != self.lst_coords[idx]:
-                                    return idx
-                            # lst_shape is the smaller one, if all equal, the last annotation is removed
-                            return len(self.lst_coords) - 1  # Don't use relative offset so that updating order works
-
                         # Must be that there were a single shape, and it's now removed
-                        idx_rmv = _get_idx_removed()
+                        idx_rmv = _get_idx_removed(lst_shape, self.lst_coords)
                         del self.lst_coords[idx_rmv]
                         del self.lst_ann_mesr[idx_rmv]
                         self._n_mesr -= 1
@@ -483,15 +449,14 @@ class EcgUi:
 
                     # Any one of the keys suffice, e.g. {'shapes[2].x0', 'shapes[2].x1', 'shapes[2].y0', 'shapes[2].y1'}
                     idx_ch = _get_idx_changed_shape(list(layout_changed.keys())[0])
-                    coords = self.shape_dict_to_coords(layout_changed, changed=True)
+                    coords = _shape_dict_to_coords(layout_changed, changed=True)
                     self.lst_coords[idx_ch] = coords
-                    self.lst_ann_mesr[idx_ch] = self.measure(*coords)
+                    self.lst_ann_mesr[idx_ch] = _measure(*coords)
 
                     idx_edt = self._ord_mesr_edit.index(idx_ch)  # Find the original ordering of this edited shape
                     del self._ord_mesr_edit[idx_edt]
                     self._ord_mesr_edit.append(idx_ch)  # Promote to recently edited
                     return CLP_CH.Edit
-                # ic(self._ord_mesr_edit)
 
             def update_caliper_annotations_time(self, strt, end, fig):
                 """ Expected to be called on every display time range change, there might not be a change
@@ -501,30 +466,16 @@ class EcgUi:
                 # :return Updated list of text annotations within display time range if any measurement removed,
                 False otherwise
                 """
-
-                def _get_measurement_indices_out_of_range(strt, end):
-                    """
-                     Remove shapes that fall off the display in internal tracks
-
-                    :return: 2 tuple of if any measurement is removed, and the corresponding indices in sorted order
-                    """
-                    s = self.rec.count_to_pd_time(strt)
-                    e = self.rec.count_to_pd_time(end)
-                    removed = False
-                    idxs = []
-                    for idx, (x0, x1, y0, y1) in enumerate(self.lst_coords):  # Reverse the list
-                        if x0 >= e or x1 <= s:
-                            removed = True
-                            idxs.append(idx)
-                    return removed, idxs
-
-                removed, idxs = _get_measurement_indices_out_of_range(strt, end)
+                removed, idxs = _get_caliper_indices_out_of_range(
+                    self.lst_coords,
+                    self.rec.count_to_pd_time(strt),
+                    self.rec.count_to_pd_time(end)
+                )
                 if removed:
                     idxs.sort(reverse=True)
                     self._n_mesr -= len(idxs)
                     remove_by_indices(self.lst_coords, idxs)
                     remove_by_indices(self.lst_ann_mesr, idxs)
-                    # for f in figs:
                     remove_by_indices(fig['layout']['shapes'], idxs)
 
                     self._update_caliper_edit_order_after_remove(idxs)
@@ -562,85 +513,30 @@ class EcgUi:
             self.lst_ann_mesr = []
             self._ord_mesr_edit = []
 
-        def from_independent(self, ord_caliper, ld_idxs_coord, lst_coords, lst_ann_mesr):
-            ic(ord_caliper, ld_idxs_coord, lst_coords, lst_ann_mesr)
-            self._n_mesr = len(self.lst_coords)
-            self._ord_mesr_edit = ord_caliper
-            self._ld_idxs_coord = ld_idxs_coord
-            self.lst_coords = lst_coords
-            self.lst_ann_mesr = lst_ann_mesr
-
-        def render(self, figs_gra):
-            """ Broadcast the shapes to every single channel """
-            ic([f['layout']['shapes'] for f in figs_gra])
-            shapes = flatten(*[f['layout']['shapes'] for f in figs_gra])
-            ic(shapes)
-            for f in figs_gra:
-                f['layout']['shapes'] = shapes
-
-        @staticmethod
-        def shape_dict_to_coords(d_shape, changed=False):
-            """
-            :param d_shape: Plotly shape dictionary
-            :param changed: Either the dictionary is an entire shape object or just the changes
-            :return The 4-tuple coordinates in order (x0, x1, y0, y1),
-            where x values are pandas time object and y values are floats
-
-            Ensures x0 < x1, y0 < y1
-            """
-            if changed:  # Plotly on shape *change* returns a different dictionary
-                x0, x1, y0, y1 = d_shape.values()
-            else:
-                x0, x1, y0, y1 = d_shape['x0'], d_shape['x1'], d_shape['y0'], d_shape['y1']
-            x0 = pd.to_datetime(x0)
-            x1 = pd.to_datetime(x1)
-            x0, x1 = (x0, x1) if x0 < x1 else (x1, x0)  # The relative magnitude depends on
-            y0, y1 = (y0, y1) if y0 < y1 else (y1, y0)
-            return x0, x1, y0, y1
-
-        def measure(self, x0, x1, y0, y1):
-            """
-            Based on mid-point coordinates.
-
-            As design choice, the measurement shown at the left and top edge of the rectangle
-
-            :param x0: x coordinate on left
-            :param x1: x coordinate on right
-            :param y0: y coordinate on bottom
-            :param y1: y coordinate on top
-            :return: A 2-tuple of plotly annotation-accepted dict, measurement for time and voltage axes respectively
-
-            """
-            x_diff = x1 - x0
-            # if x_diff <= self.MAX_CLP_RNG:
-            y_diff = int(y1 - y0)
-            x = x0 + x_diff / 2
-            y = int(y0) + y_diff / 2
-            return (
-                self.get_txt_annotation(x, y1, f'{pd_time_to_ms(x_diff):,}ms'),
-                self.get_txt_annotation(x0, y, f'{y_diff:,}mV', text_angle=-90)
-            )
-
-        @staticmethod
-        def get_txt_annotation(x, y, s, text_angle=0):  # Like `_get_tag`, both returns
-            return dict(
-                x=x,
-                y=y,
-                text=s,
-                textangle=text_angle,
-                borderpad=2,
-                bgcolor=ANTN_BG_CLR_A5
-            )
+        # TODO
+        # def from_independent(self, ord_caliper, ld_idxs_coord, lst_coords, lst_ann_mesr):
+        #     ic(ord_caliper, ld_idxs_coord, lst_coords, lst_ann_mesr)
+        #     self._n_mesr = len(self.lst_coords)
+        #     self._ord_mesr_edit = ord_caliper
+        #     self._ld_idxs_coord = ld_idxs_coord
+        #     self.lst_coords = lst_coords
+        #     self.lst_ann_mesr = lst_ann_mesr
+        #
+        # def render(self, figs_gra):
+        #     """ Broadcast the shapes to every single channel """
+        #     ic([f['layout']['shapes'] for f in figs_gra])
+        #     shapes = flatten(*[f['layout']['shapes'] for f in figs_gra])
+        #     ic(shapes)
+        #     for f in figs_gra:
+        #         f['layout']['shapes'] = shapes
 
         def get_caliper_annotations(self):
             return flatten(*self.lst_ann_mesr)
-            # return [ann for pr in self.lst_ann_mesr for ann in pr]  # Flattens 2d list to 1d
 
         def _update_measurement_edit_order_after_remove(self, idxs_rmv):
             """ Update the attribute on (order of measurement edits based on index), based on indices already removed
             Indices removed should be reversely sorted """
             remove_by_indices(self._ord_mesr_edit, idxs_rmv)
-            # ic(idxs_rmv, self._ord_mesr_edit)
             for idx_rmv in idxs_rmv:
                 for idx_idx, idx in enumerate(self._ord_mesr_edit):
                     if idx > idx_rmv:  # Decrement by the right amount for the remaining elements
@@ -657,23 +553,17 @@ class EcgUi:
                 lst_shape = layout_changed['shapes']
                 l = len(lst_shape)
                 if l > self._n_mesr:  # New shape added by user
-                    coords = self.shape_dict_to_coords(lst_shape[-1])
+                    coords = _shape_dict_to_coords(lst_shape[-1])
                     self.lst_coords.append(coords)
                     self._ld_idxs_coord.append(idx_ld)
-                    self.lst_ann_mesr.append(self.measure(*coords))
+                    self.lst_ann_mesr.append(_measure(*coords))
                     self._n_mesr += 1
 
                     self._ord_mesr_edit.append(self._n_mesr - 1)  # Index of newly created shape is the last one
                 # Linearly check membership for the removed rect
                 else:  # A shape removed
-                    def _get_idx_removed():  # There must be one and only 1 missing
-                        for idx, shape in enumerate(lst_shape):
-                            if self.shape_dict_to_coords(shape) != self.lst_coords[idx]:
-                                return idx
-                        # lst_shape is the smaller one, if all equal, the last annotation is removed
-                        return len(self.lst_coords) - 1  # Don't use relative offset so that updating order works
                     # Must be that there were a single shape, and it's now removed
-                    idx_rmv = _get_idx_removed()
+                    idx_rmv = _get_idx_removed(lst_shape, self.lst_coords)
                     del self.lst_coords[idx_rmv]
                     del self.lst_ann_mesr[idx_rmv]
                     del self._ld_idxs_coord[idx_rmv]
@@ -685,15 +575,14 @@ class EcgUi:
             else:  # Change to an existing shape
                 # Any one of the keys suffice, e.g. {'shapes[2].x0', 'shapes[2].x1', 'shapes[2].y0', 'shapes[2].y1'}
                 idx_ch = self._get_idx_changed_shape(list(layout_changed.keys())[0])
-                coords = self.shape_dict_to_coords(layout_changed, changed=True)
+                coords = _shape_dict_to_coords(layout_changed, changed=True)
                 self.lst_coords[idx_ch] = coords
-                self.lst_ann_mesr[idx_ch] = self.measure(*coords)
+                self.lst_ann_mesr[idx_ch] = _measure(*coords)
                 self._ld_idxs_coord[idx_ch] = idx_ld
 
                 idx_edt = self._ord_mesr_edit.index(idx_ch)  # Find the original ordering of this edited shape
                 del self._ord_mesr_edit[idx_edt]
                 self._ord_mesr_edit.append(idx_ch)  # Promote to recently edited
-            # ic(self._ord_mesr_edit)
 
         @staticmethod
         def _get_idx_changed_shape(k):
@@ -706,9 +595,14 @@ class EcgUi:
 
             Removes user-drawn shapes out of range if any, in the `figs` argument
 
-            # :return Updated list of text annotations within display time range if any measurement removed, False otherwise
+            # :return Updated list of text annotations within display time range if any measurement removed,
+            False otherwise
             """
-            removed, idxs = self._get_measurement_indices_out_of_range(strt, end)
+            removed, idxs = _get_caliper_indices_out_of_range(
+                self.lst_coords,
+                self.rec.count_to_pd_time(strt),
+                self.rec.count_to_pd_time(end)
+            )
             if removed:
                 idxs.sort(reverse=True)
                 self._n_mesr -= len(idxs)
@@ -719,25 +613,6 @@ class EcgUi:
 
                 self._update_measurement_edit_order_after_remove(idxs)
             return removed
-            #     return self.get_measurement_annotations()
-            # else:
-            #     return False
-
-        def _get_measurement_indices_out_of_range(self, strt, end):
-            """
-             Remove shapes that fall off the display in internal tracks
-
-            :return: 2 tuple of if any measurement is removed, and the corresponding indices in sorted order
-            """
-            strt = self.rec.count_to_pd_time(strt)
-            end = self.rec.count_to_pd_time(end)
-            removed = False
-            idxs = []
-            for idx, (x0, x1, y0, y1) in enumerate(self.lst_coords):  # Reverse the list
-                if x0 >= end or x1 <= strt:
-                    removed = True
-                    idxs.append(idx)
-            return removed, idxs
 
         def clear_measurements(self):
             self._n_mesr = 0
@@ -748,7 +623,6 @@ class EcgUi:
 
         def highlight_mru_caliper_edit(self, figs_gra):
             """ Highlights the most recently edited shapes, for a list of figures """
-            # ic(self._ord_mesr_edit)
             for f in figs_gra:
                 for idx, shape in enumerate(f['layout']['shapes']):
                     shape['fillcolor'] = CLR_CLPR_RECT_ACT if idx == self._ord_mesr_edit[-1] else CLR_CLPR_RECT
@@ -758,15 +632,7 @@ class EcgUi:
             :return: A 2-tuple of mru leads index and 4-tuple,
             (x0, x1, y0, y1) as string representation per return of 'shape_dict_to_coords'
             if a measurement exists, None otherwise """
-            # ic(self._ld_idxs_coord)
             if self.has_measurement():
-                # x0, x1, y0, y1 = self.lst_coords[self._ord_mesr_edit[-1]]
-                # return (
-                #     self.rec.pd_time_to_str(x0),
-                #     self.rec.pd_time_to_str(x1),
-                #     f'{int(y0):,}',
-                #     f'{int(y1):,}'
-                # )
                 return self._ld_idxs_coord[-1], self.lst_coords[self._ord_mesr_edit[-1]]
 
         def has_measurement(self):

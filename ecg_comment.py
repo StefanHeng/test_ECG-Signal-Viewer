@@ -26,9 +26,6 @@ class EcgComment:
         if not os.path.exists(self.path) or os.stat(self.path).st_size == 0:
             with open(self.path, 'w') as f:
                 json.dump([], f, indent=4)
-            # open(self.path, 'a').close()  # Create file if no comments made before
-            # self.comments = []
-        # else:
         f = open(self.path, 'r')
         self.lst = json.load(f)
         self.n_cmts = len(self.lst)  # Number of comments
@@ -66,7 +63,6 @@ class EcgComment:
         else:
             self.lst.insert(idx, comment)
             self.n_cmts += 1
-        # ic(self.lst)
         self.flush()
 
     def flush(self):

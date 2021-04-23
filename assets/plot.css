@@ -9,8 +9,6 @@
     flex-direction: column;
     align-items: center;
     transition: var(--ease-all);
-
-    /*border: 1px solid red;*/
 }
 
 #div_plots.class>* {
@@ -42,21 +40,17 @@
 .div_lead {
     height: 12em;  /* Having percentages heights all the way down causes plotly graph to collapse to 0 size in update for unknown reason */
     width: 100%;
-    /*margin: 0 auto 1em;*/
 
     display: flex;
     flex-direction: row;
     flex-basis: auto;
 
-    /*box-shadow: var(--bottom-border);*/
     transition: var(--ease-all);
     border-top: var(--border);
 }
 
 .div_lead-fade > :first-child {
     border-top: none;
-
-    /*border: 1px solid red;*/
 }
 
 .div_lead-fade > :last-child {
@@ -69,9 +63,7 @@
 
 .div_lead > div {
     height: 100%;
-    /*margin: 0 1em 0.25em;*/
 
-    /*border: 1px solid red;*/
     transition: var(--ease-all);
 }
 
@@ -82,7 +74,6 @@
 .div_lead-name {
     width: 5em;
     color: var(--dark-tint);
-    /*border-right: var(--border);*/
 }
 
 .lead-name {
@@ -90,16 +81,11 @@
 }
 
 .div_graph-thumbnail {
-    /*position: fixed;*/
     width: 100%;
     height: 7.25em;
 
     margin-bottom: 0.25em;
     overflow: hidden;
-
-    /*box-shadow: var(--drop-shadow_m);*/
-    /*border: 1px green solid;*/
-    /*border: 1px solid red;*/
 }
 
 .channel-graph-thumbnail {
@@ -108,7 +94,6 @@
     margin-top: -11em;
     margin-left: -0.5em;
     margin-right: -8.5em;
-    /*border: 1px green solid;*/
 }
 
 .div_graph {

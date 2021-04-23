@@ -33,10 +33,9 @@ class EcgRecord:
     # @profile
     def __init__(self, path_rec, path_rec_processed):
         self.record = h5py.File(path_rec, 'r')
-        self.record_p = h5py.File(path_rec_processed, 'r')
-        # ic([p for p in self.record_p])
-        self.idxs_rpeak = self.record_p['r-peak-idxs']
-        self.vals_rpeak = self.record_p['r-peak-vals']  # Synchronized by index
+        # self.record_p = h5py.File(path_rec_processed, 'r')
+        # self.idxs_rpeak = self.record_p['r-peak-idxs']
+        # self.vals_rpeak = self.record_p['r-peak-vals']  # Synchronized by index
         self.nm = path_rec.stem  # By pathlib Path, gets the file name without last extension
         self._seg_keys = list(self.record.keys())  # keys to each segment compiled in the .h5 file
         self.tags, self.tags_tm = self._get_tags()  # `_ann_tm` to make bisect easy
@@ -204,8 +203,6 @@ class EcgRecord:
         .. note:: Intended for the sampled data per `get_ecg_samples`
          """
         num = (end - strt) // step
-        # if (end - strt) % step != 0:
-        #     num += 1
         return num + 1
 
     def _counts_to_us(self, counts):
@@ -273,7 +270,6 @@ class EcgRecord:
         return self.pd_time_to_str(self.count_to_pd_time(count))
 
     def ms_to_count(self, t_ms):
-        # ic(t_ms, t_ms * self.spl_rate // 1000)
         return t_ms * self.spl_rate // 1000  # Supposedly the value should be whole integer
 
     def pd_time_to_str(self, t):
@@ -297,7 +293,6 @@ class EcgRecord:
         else:
             idx_strt = bisect_left(self.tags_tm, strt_ms)
             idx_end = bisect_left(self.tags_tm, end_ms)
-            # ic(strt_ms, end_ms, idx_strt, idx_end)
             if idx_strt == self.N_TAG:
                 idx_strt -= 1
             if idx_end == self.N_TAG:
@@ -309,16 +304,16 @@ class EcgRecord:
         strt = randint(0, self.COUNT_END - N)
         return strt, strt + N
 
-    def r_peak_indices(self, strt, end):
-        """ Offset to the starting count """
-        idx_strt = bisect_left(self.idxs_rpeak, strt)
-        idx_end = bisect_left(self.idxs_rpeak, end)
-        return self.idxs_rpeak[idx_strt:idx_end] - strt
-
-    def r_peak_vals(self, idx_lead, strt, end):
-        idx_strt = bisect_left(self.idxs_rpeak, strt)
-        idx_end = bisect_left(self.idxs_rpeak, end)
-        return self.vals_rpeak[idx_lead][idx_strt:idx_end]
+    # def r_peak_indices(self, strt, end):
+    #     """ Offset to the starting count """
+    #     idx_strt = bisect_left(self.idxs_rpeak, strt)
+    #     idx_end = bisect_left(self.idxs_rpeak, end)
+    #     return self.idxs_rpeak[idx_strt:idx_end] - strt
+    #
+    # def r_peak_vals(self, idx_lead, strt, end):
+    #     idx_strt = bisect_left(self.idxs_rpeak, strt)
+    #     idx_end = bisect_left(self.idxs_rpeak, end)
+    #     return self.vals_rpeak[idx_lead][idx_strt:idx_end]
 
     @staticmethod
     def example(path_rec=DATA_PATH.joinpath(record_nm), path_rec_processed=CURR.joinpath(record_p_nm)):

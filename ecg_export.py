@@ -71,6 +71,7 @@ class EcgExport:
             #         row = find_row(x_c)
             #     prev_count = x_c
             #     # Last comment at the same count
+            # TODO: Not the most memory-efficient way
 
             def _get_comments():
                 d = dict()
@@ -91,7 +92,6 @@ class EcgExport:
                 return d
 
             for count, cmts in _get_comments().items():
-                # ic(count, cmts)
                 df.at[_find_row(count), col_nm] = json.dumps(cmts)
 
         title = f'ECG export, idxs {idxs_lead}, [{self.rec.count_to_str(strt)}-{self.rec.count_to_str(end)}]'

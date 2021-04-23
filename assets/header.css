@@ -39,7 +39,6 @@
     align-items: center;
 
     font-family: monospace, monospace;
-    /*border: 1px solid red;*/
 }
 
 #time-label {
@@ -48,6 +47,4 @@
     margin: 0;
 
     color: var(--gray_a9);
-    /*float: right;*/
-    /*border: 1px solid green;*/
 }

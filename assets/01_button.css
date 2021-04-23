@@ -76,13 +76,10 @@
 #btn_comment-submit {
     height: 2em;
     width: 100%;
-    /*padding: 0.25em;*/
     color: var(--black_a6);
 
     border-radius: 0;
-    /*border: 0.125em solid var(--gray_2);*/
     border-top: var(--border);
-    /*border-bottom: none;*/
 }
 
 #btn_comment-submit:hover {

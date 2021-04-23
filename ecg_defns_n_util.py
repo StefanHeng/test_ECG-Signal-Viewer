@@ -51,10 +51,8 @@ FA_CSS_LNK = 'https://use.fontawesome.com/releases/v5.8.1/css/all.css'
 CNM_HD = 'header'
 ID_HDTT = 'header_title'
 TXT_HD = 'Ecg Viz'  # Text shown in header
-# ID_FD_TMB = 'fade_graph-thumbnail'
 ID_FD_MN = 'fade_body-main'
 CNM_MNBD = 'body_main'
-# ID_STOR_IDXS_LD = 'store_idxs_lead'
 
 ID_BBX_DIV_OPN = 'div_options-bound-box'
 ID_DIV_OPN = 'div_options'
@@ -65,7 +63,6 @@ ID_IC_OPN = 'ic_options'
 ID_DPD_RECR = 'record-dropdown'
 ID_DPD_LD_TEMPL = 'lead-template-dropdown'
 ID_STOR_REC = 'store_record-change'
-# ID_STOR_TPL = 'store_template-change'
 
 ID_DIV_TABS = 'div_tabs'  # Parent of lead channel plots and the annotation panel
 ID_DIV_PLTS = 'div_plots'
@@ -81,8 +78,6 @@ CNM_TMB = 'channel-graph-thumbnail'
 CNM_GRA = 'channel-graph'
 ID_TMB = 'figure-thumbnail'
 ID_GRA = 'graph'
-# ID_STOR_D_RNG = 'store_display_range'  # Contains dictionary of each display range
-# ID_INTVL = 'interval'
 ID_BTN_LD_RMV = 'btn_lead-remove'
 CNM_IC_RMV = 'fas fa-minus'
 ID_BTN_LD_RMV_WP = 'btn-wrapper_lead-remove'
@@ -91,7 +86,6 @@ TTP_PLCM_PLT_CTRL = 'bottom'
 TTP_OFST = 0
 TTP_DL = 200  # ToolTIp delay
 
-# ID_DIV_ADD = 'div_add'
 ID_BTN_ADD = 'btn_add'
 ID_IC_ADD = 'ic_add'
 CNM_IC_ADD = 'fas fa-plus'
@@ -102,19 +96,12 @@ ID_DLD_CSV = 'download_csv'
 
 ID_MD_ADD = 'modal_add'
 ID_MDHD_ADD = 'modal-header_add'
-# CNM_MDTT = 'modal_title'
 CNM_ADD_LD = 'title_add-lead'
 TXT_ADD_LD = 'Add a lead/channel: '
 ID_BTN_MD_CLS = 'btn_modal-close'
 CNM_IC_MD_CLS = 'fas fa-times'
 ID_MDBD_ADD = 'modal-body_add'
-# ID_DIV_MD_ADD = 'div_modal-add'
 
-# CNM_BTS_LST = 'list-group'  # For Bootstrap CSS
-# CNM_BTS_LST_ITM = 'list-group-item list-group-item-action'
-# ID_STOR_IDX_ADD = 'store_lead-idx-add'  # Current index of lead to add to layout
-# ID_RDO_LD_ADD = 'radio-group_lead-add'
-# CNM_RDO_ITM_IPT = 'input_null'
 ID_GRP_LD_ADD = 'list-group_lead-add'
 ID_ITM_LD_ADD = 'list-item_lead-add'
 
@@ -122,7 +109,7 @@ ID_ALT_MAX_LD = 'alert_max-lead-error'
 
 ID_STOR_ADD = 'store_lead-add-change'
 ID_STOR_RMV = 'store_lead-rmv-change'
-ID_STOR_N_LD = 'store_num-lead'
+ID_STOR_CH_HT = 'store_change-lead-heights'
 
 ID_DIV_PLT_CTRL = 'div_plot-controls'
 ID_BTN_ADV_BK = 'btn_advance-back'
@@ -144,7 +131,7 @@ ID_DIV_TG = 'div_tags'
 ID_GRP_TG = 'list-group_tags'
 ID_IC_CMT_TG_TG = 'ic_tag'  # Place holder for the expand/collapse panel symbol
 CNM_TG_EXP = 'fas fa-chevron-left'  # Expand tag & comment panel
-CNM_TG_CLP = 'fas fa-chevron-right'  # Collapse
+# CNM_TG_CLP = 'fas fa-chevron-right'  # Collapse
 ID_ITM_TG = 'item_tag'
 ID_STOR_TG_IDX = 'store_clicked-tag-index'  # semi-store in a sense
 ID_STOR_TG_NCS = 'store_tag-ns-clicks'
@@ -174,7 +161,7 @@ ID_BDG_CMT_TM = 'badge_comment-timestamp'
 CNM_CMT_TXT = 'text_comment'
 ID_BTN_CMT_ITM_TG = 'btn_comment-item'  # Toggle Expand/collapse whole content of comment entry
 ID_IC_CMT_ITM_TG = 'ic_comment-item'
-CNM_CMT_CLP = 'fas fa-chevron-up'
+CNM_CMT_CLP = 'fas fa-chevron-up'  # TODO: Interaction for comments
 CNM_CMT_EXP = 'fas fa-chevron-down'
 ID_CLP_CMT_ITM = 'collapse_comment-item'  # For dbc component on hiding/showing comment entry
 
@@ -211,7 +198,6 @@ ID_BTN_FIXY = 'btn_fix_yaxis'
 ID_IC_FIXY = 'ic_fix_yaxis'
 CNM_IC_LK = 'fas fa-lock'  # Font Awesome
 CNM_IC_LKO = 'fas fa-lock-open'
-# ID_STOR_IS_FIXY = 'id_is_yaxis_fixed'
 
 ID_BTN_CLP_SYNC = 'btn_synchronize-calipers'
 ID_IC_CLP_SYNC = 'ic_synchronize-calipers'
@@ -274,10 +260,8 @@ CLR_FONT = 'rgb(102, 102, 102)'  # Color of font
 TRANSP = 'rgba(0, 0, 0, 0)'
 CLR_BLK_A4 = 'rgba(0, 0, 0, 0.4)'
 
-# CLR_CLPR_A7 = 'rgba(252, 169, 18, 0.7)'
 CLR_CLPR_RECT = 'rgba(253, 203, 113, 0.51)'
 CLR_CLPR_RECT_ACT = 'rgba(252, 169, 18, 0.51)'  # Color for the most recent edited caliper measurement
-# CLR_CLPR_A1 = 'rgba(252, 169, 18, 0.1)'
 
 
 CONF = dict(  # Configuration for figure
@@ -285,31 +269,21 @@ CONF = dict(  # Configuration for figure
     scrollZoom=True,
     modeBarButtonsToRemove=['lasso2d', 'autoScale2d', 'toggleSpikelines',
                             'hoverClosestCartesian', 'hoverCompareCartesian'],
-    modeBarButtonsToAdd=[
-        # 'select2d',
-        'drawrect', 'eraseshape'
-    ],
+    modeBarButtonsToAdd=['drawrect', 'eraseshape'],
     displaylogo=False
 )
 
 TPL_SHAPE = dict(
     editable=True,
     fillcolor=CLR_CLPR_RECT,
-    line=dict(
-        color=TRANSP,
-        width=2,
-    ),
+    line=dict(color=TRANSP, width=2),
     xref='x',
     yref='y'
 )
 
 TPL = go.layout.Template()
 TPL.layout.annotationdefaults = dict(
-    font=dict(
-        family=LUX_FT_FML,
-        size=10.5,
-        color=ANTN_CLR
-    ),
+    font=dict(family=LUX_FT_FML, size=10.5, color=ANTN_CLR),
     showarrow=False,
     opacity=1,
     align='center',

@@ -46,7 +46,6 @@ class EcgPlot:
             data=[dict(
                 x=time_vals,
                 y=ecg_vals,
-                # mode='lines+markers',  # Markers needed to support box select
                 mode='lines',
                 line=dict(
                     color=CLR_PLT,
@@ -68,10 +67,8 @@ class EcgPlot:
                     range=[time_vals[0], time_vals.iat[-1]],
                 ),
                 yaxis=dict(
-                    # range=self.parn.ui.get_ignore_noise_range(strt, end),
                     range=self.parn.ui.get_ignore_noise_range(ecg_vals),
                     fixedrange=yaxis_fixed,
-                    # zeroline=True, zerolinewidth=5,
                     zerolinecolor=CLR_BLK_A4
                 ),
                 annotations=annotations,
@@ -191,11 +188,6 @@ class EcgPlot:
         def _remove_trace(self, idx):
             self.fig['data'][idx]['x'] = []
             self.fig['data'][idx]['y'] = []
-            # self.fig['data'][idx] = dict(
-            #         yaxis=self._get_yaxis_code(idx),
-            #         line=dict(width=0.5),
-            #         visible=False
-            #     )
 
         def remove_trace(self, idx_idx, idx_lead):
             # TODO: Doesn't work on a single lead channel removal
