@@ -165,11 +165,20 @@ ID_GRP_CMT = 'list-group_comments'
 CNM_CMT_BLK = 'comment-block'
 ID_BDG_CMT_TM = 'badge_comment-timestamp'
 CNM_CMT_TXT = 'text_comment'
-ID_BTN_CMT_ITM_TG = 'btn_comment-item'  # Toggle Expand/collapse whole content of comment entry
-ID_IC_CMT_ITM_TG = 'ic_comment-item'
+CNM_CMT_TXTP = 'text_comment-preview'
+CNM_CMT_TXTP_L = 'text_comment-preview-lighten'
+CNM_CMT_TXTW = 'text_comment-whole'
+ID_BTN_CMT_ITM_TG = 'btn_comment-item-toggle'  # Toggle Expand/collapse whole content of comment entry
+CNM_BTN_CMT_ITM_TG = 'btn_comment-item-toggle'
+ID_IC_CMT_ITM_TG = 'ic_comment-item-toggle'
 CNM_CMT_CLP = 'fas fa-chevron-up'  # TODO: Interaction for comments
 CNM_CMT_EXP = 'fas fa-chevron-down'
 ID_CLP_CMT_ITM = 'collapse_comment-item'  # For dbc component on hiding/showing comment entry
+
+ID_BTN_CMT_RMV = 'btn_remove-comment-item'
+CNM_BTN_CMT_RMV = 'btn_comment-item-remove'
+CNM_IC_CMT_RMV = 'ic_comment-item-remove'
+ID_ALT_CMT_RMV = 'alert_comment-removed'
 
 CNM_BDG = 'bdg'
 CNM_BDG_LT = 'badge-light'
@@ -195,6 +204,8 @@ ANM_BTN_TG_BDR_SH = 'btn_tag_show-left-border'
 ANM_BTN_TG_BDR_HD = 'btn_tag_hide-left-border'
 ANM_BTN_TG_TG_ROTS = 'ic-btn-tags-toggle_rotate-start'
 ANM_BTN_TG_TG_ROTE = 'ic-btn-tags-toggle_rotate-end'
+ANM_CMT_ITM_TG_EXP = 'btn_comment-item-toggle-expand'
+ANM_CMT_ITM_TG_CLP = 'btn_comment-item-toggle-collapse'
 
 CNM_BTN = 'btn'  # To override LUX bootstrap theme
 CNM_MY_DPD = 'my_dropdown'
@@ -229,6 +240,7 @@ V = 'value'
 NC = 'n_clicks'
 L = 'label'
 DS = 'disabled'
+IO = 'is_open'
 
 SV = 'SAVE'
 OVR = 'OVERRIDE'

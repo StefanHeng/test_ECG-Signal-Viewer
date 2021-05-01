@@ -61,7 +61,7 @@
 
 #btn_comments-n-tags-toggle {
     width: 1.5em;
-    height: 80vh;
+    height: 85vh;
     font-size: 0.75em;
     border-radius: 0;
     z-index: 200;   /* Needs to be higher than that of textarea */
@@ -93,3 +93,52 @@
     background-color: var(--primary-click);
     border-color: var(--primary-click);
 }
+
+/*.btn_comment-item-toggle {*/
+/*    height: 1.5em;*/
+/*    width: 1.5em;*/
+/*    display: inline-block;*/
+/*    border-radius: 0.5em;*/
+/*}*/
+
+.btn_comment-item-toggle {
+    width: 1.5em;
+    height: 1.5em;
+    /*margin-left: auto;*/
+    float: right;
+    margin: 0.25em;
+    display: inline-block;
+    transition: var(--ease-all);
+}
+
+.btn_comment-item-toggle:hover {
+    color: var(--gray_-4);
+    background: transparent;
+}
+
+.btn_comment-item-toggle:active {
+    color: var(--gray_-5);
+    background: transparent;
+}
+
+.btn_comment-item-remove {
+    width: 1.5em;
+    height: 1.5em;
+    display: inline-block;
+    margin: 0.25em;
+    margin-top: -0.15em;
+}
+
+.btn_comment-item-remove:hover {
+    color: #d9534f;
+    background: transparent;
+}
+
+.btn_comment-item-remove:active {
+    color: #c9302c;
+    background: transparent;
+}
+
+/*.ic_comment-item-remove {*/
+/*    padding-bottom: 0.5em;*/
+/*}*/

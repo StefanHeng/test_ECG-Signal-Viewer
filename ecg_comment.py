@@ -80,6 +80,11 @@ class EcgComment:
         # ic(self.lst)
         return idx
 
+    def remove_comment(self, idx):
+        """ User responsible that `idx` is a valid index """
+        del self.lst[idx]
+        self.n_cmts -= 1
+
     def flush(self):
         """ Writes all changes made to comments into original JSON file """
         config = open(self.path, 'w')

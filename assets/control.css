@@ -125,3 +125,11 @@
 .ic-btn-tags-toggle_rotate-end {
     transform: rotate(0deg);
 }
+
+.btn_comment-item-toggle-expand {
+    transform: scaleY(1);
+}
+
+.btn_comment-item-toggle-collapse {
+    transform: scaleY(-1);
+}
