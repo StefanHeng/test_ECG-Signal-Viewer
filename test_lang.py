@@ -289,20 +289,27 @@ if __name__ == "__main__":
 
     # ic('s' in None)
 
-    l = [[{'editable': True,
-           'fillcolor': 'rgba(252, 169, 18, 0.51)',
-           'fillrule': 'evenodd',
-           'layer': 'above',
-           'line': {'color': 'rgba(0, 0, 0, 0)', 'dash': 'solid', 'width': 2},
-           'opacity': 1,
-           'type': 'rect',
-           'x0': '1970-01-01 00:00:31.7574',
-           'x1': '1970-01-01 00:00:36.4363',
-           'xref': 'x',
-           'y0': 14928.579528552322,
-           'y1': -2880.7292021192707,
-           'yref': 'y'}],
-         [],
-         []]
-    # ic(sum(l))
-    ic(flatten(*l))
+    # l = [[{'editable': True,
+    #        'fillcolor': 'rgba(252, 169, 18, 0.51)',
+    #        'fillrule': 'evenodd',
+    #        'layer': 'above',
+    #        'line': {'color': 'rgba(0, 0, 0, 0)', 'dash': 'solid', 'width': 2},
+    #        'opacity': 1,
+    #        'type': 'rect',
+    #        'x0': '1970-01-01 00:00:31.7574',
+    #        'x1': '1970-01-01 00:00:36.4363',
+    #        'xref': 'x',
+    #        'y0': 14928.579528552322,
+    #        'y1': -2880.7292021192707,
+    #        'yref': 'y'}],
+    #      [],
+    #      []]
+    # # ic(sum(l))
+    # ic(flatten(*l))
+
+    # a = [0, 1, 2, 3, 4, 5]
+    # ic(a[[0, -2, -1]])
+
+    a = [(1, 2), (3, 4), (5, 6)]
+    b, c = map(list, zip(*a))
+    ic(b, c)

@@ -30,6 +30,10 @@ def lst_to_tuple(lst):
     return *lst,
 
 
+def merge_d(d1, d2):  # Workaround for before python 3.9
+    return {**d1, **d2}
+
+
 def remove_by_indices(lst, idxs):
     """ Assumes idxs valid and reversely sorted """
     for i in idxs:
@@ -225,6 +229,9 @@ V = 'value'
 NC = 'n_clicks'
 L = 'label'
 DS = 'disabled'
+
+SV = 'SAVE'
+OVR = 'OVERRIDE'
 
 DEV_TML_S = 'single -> 1: I'
 DEV_TML_RG0 = 'range(3) -> [1, 3]'

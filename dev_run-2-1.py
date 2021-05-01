@@ -8,8 +8,8 @@ def main():
     ecg_app = EcgApp(__name__)
     ecg_app.app.title = "Dev test run"
 
-    # ecg_app.run(debug=True)
-    ecg_app.run(debug=False)
+    ecg_app.run(debug=True)
+    # ecg_app.run(debug=False)
 
 
 if __name__ == "__main__":

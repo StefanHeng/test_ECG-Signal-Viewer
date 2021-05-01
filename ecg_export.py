@@ -5,7 +5,8 @@ from dash_extensions.snippets import send_data_frame
 
 import json
 
-from icecream import ic
+# from icecream import ic
+from ecg_defns_n_util import *
 
 
 class EcgExport:
@@ -20,10 +21,6 @@ class EcgExport:
         self.rec = record
         self.cmts = comments
         self._MAX_EXP_COUNT = self.rec.spl_rate * 2 * 60
-
-    @staticmethod
-    def _merge(d1, d2):  # Workaround for before python 3.9
-        return {**d1, **d2}
 
     def export(self, strt, end, idxs_lead):
         """
@@ -42,7 +39,7 @@ class EcgExport:
         if end - strt > self._MAX_EXP_COUNT:
             step = (end - strt) // self._MAX_EXP_COUNT
         df = pd.DataFrame(
-            self._merge(
+            merge_d(
                 {'time': self.rec.get_time_values_delta(strt, end, step)},
                 {self.rec.lead_nms[idx]: self.rec.get_ecg_samples(idx, strt, end, step) for idx in idxs_lead}
             )

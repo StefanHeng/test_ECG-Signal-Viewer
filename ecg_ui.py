@@ -261,7 +261,6 @@ class EcgUi:
         return self.clp.update_caliper_annotations_shape(layout, idx_ld)
 
     def highlight_mru_caliper_edit(self, figs_gra, idxs_lead=[], idxs_ignore=[]):
-        # ic(type(self.clp))
         if self.caliper_is_synchronized():
             self.clp: EcgUi.CaliperS
             self.clp.highlight_mru_caliper_edit(figs_gra)
@@ -276,13 +275,28 @@ class EcgUi:
 
     def update_caliper_annotations_time(self, strt, end, figs, idxs_lead, idx_ld_ch):
         if self.caliper_is_synchronized():
-            self.clp.update_caliper_annotations_time(strt, end, figs, idx_ld_ch)
+            return self.clp.update_caliper_annotations_time(strt, end, figs, idx_ld_ch)
         else:
-            self.clp.update_caliper_annotations_time(strt, end, figs, idxs_lead)
+            return self.clp.update_caliper_annotations_time(strt, end, figs, idxs_lead)
 
     def update_caliper_lead_removed(self, idx_ld_rmv):
         if not self.caliper_is_synchronized():  # Independent calipers
             self.clp.update_caliper_lead_removed(idx_ld_rmv)
+
+    def load_caliper_by_cmt(self, figs_gra, xc, yc, x0, y0, idx_idx_ld):
+        shape = dict(
+            type='rect',
+            x0=str(self.rec.count_to_pd_time(x0)),
+            x1=str(self.rec.count_to_pd_time(x0 + 2 * (xc - x0))),
+            y0=y0,
+            y1=y0 + 2 * (yc - y0)
+        )
+        shape = merge_d(shape, TPL_SHAPE)
+        if self.caliper_is_synchronized():
+            for f in figs_gra:
+                f['layout']['shapes'].append(shape)
+        else:
+            figs_gra[idx_idx_ld]['layout']['shapes'].append(shape)
 
     class CaliperI:
         """ Independent caliper for each lead """
@@ -292,6 +306,8 @@ class EcgUi:
             self.calipers = [self.Caliper(record, i) for i in range(self.rec.n_lead)] if self.rec is not None else []
             self._ord_caliper = []  # History of caliper measurement by lead index as a stack,
             # shared across synchronized & independent calipers
+
+            self._idx_ld_last = None
 
         def to_synchronized(self) -> (List[int], List[int], List, List):
             """ Transfer information for switching to synchronized calipers """
@@ -307,14 +323,18 @@ class EcgUi:
             """
             Given a changed layout and the corresponding lead index
             """
-            update = self.calipers[idx_ld].update_caliper_annotations_shape(layout)
+            update, edited_prev = self.calipers[idx_ld].update_caliper_annotations_shape(layout)
+            if self._idx_ld_last != idx_ld:
+                edited_prev = False
+                self._idx_ld_last = idx_ld
+            # ic('in shape', edited_prev)
             if update == CLP_CH.Add:
                 self._ord_caliper.append(idx_ld)
             elif update == CLP_CH.Edit and (idx_ld != self._ord_caliper[-1]):  # There must be at least 1 caliper left
                 self._ord_caliper.append(idx_ld)
             elif update == CLP_CH.Remove and (idx_ld == self._ord_caliper[-1]):
                 del self._ord_caliper[-1]
-            return update
+            return update, edited_prev
 
         def get_mru_caliper_coords(self):
             if self._ord_caliper:
@@ -354,21 +374,24 @@ class EcgUi:
             return idx_ld_rmv != []
 
         def update_caliper_annotations_time(self, strt, end, figs, idxs_lead):
-            caliper_removed_lds = [self.calipers[idx].update_caliper_annotations_time(strt, end, figs[i])
-                                   for i, idx in enumerate(idxs_lead)]
+            caliper_removed_lds, edited_prevs = map(list, zip(
+                *[self.calipers[idx].update_caliper_annotations_time(strt, end, figs[i])
+                  for i, idx in enumerate(idxs_lead)]))
+            edited_prev = True
             if self._ord_caliper:
                 idx_mru = self._ord_caliper[-1]
+                if not edited_prevs[idxs_lead.index(idx_mru)]:
+                    edited_prev = False
                 while caliper_removed_lds[idxs_lead.index(idx_mru)]:
                     if len(self.calipers[idx_mru]) == 0:  # No more caliper for most recent lead
                         del self._ord_caliper[-1]
-                        # ic(self._ord_caliper)
                         if not self._ord_caliper:  # No more caliper history for all leads
                             break
                         else:
                             idx_mru = self._ord_caliper[-1]
-                return True
+                return True, edited_prev
             else:
-                return False
+                return False, edited_prev
 
         class Caliper:
             """ Handles caliper internal updates for a single lead,
@@ -387,6 +410,8 @@ class EcgUi:
                 # synchronized with the above, on the corresponding text annotation measurements
                 self._ord_mesr_edit = []  # Keeps track of the order of elements modified by index
                 # Most recent one on end of list
+
+                self._idx_shape_last = None  # Index of caliper last edit, per Dash `shapes` list storage order
 
             def __len__(self):
                 return self._n_mesr
@@ -415,7 +440,7 @@ class EcgUi:
                 """
                 Expected to be called on every shape layout change, there will always be a change
                 :param layout_changed: The layout of the figure change
-                :return Caliper change enum type
+                :return Caliper change enum type, and whether edited the same caliper as last edit
                 """
                 if 'shapes' in layout_changed:  # Add/removal of shape
                     lst_shape = layout_changed['shapes']
@@ -424,10 +449,11 @@ class EcgUi:
                         coords = _shape_dict_to_coords(lst_shape[-1])
                         self.lst_coords.append(coords)
                         self.lst_ann_mesr.append(_measure(*coords))
-                        self._n_mesr += 1
 
-                        self._ord_mesr_edit.append(self._n_mesr - 1)  # Index of newly created shape is the last one
-                        return CLP_CH.Add
+                        self._ord_mesr_edit.append(self._n_mesr)  # Index of newly created shape is always the last one
+                        self._idx_shape_last = self._n_mesr
+                        self._n_mesr += 1
+                        return CLP_CH.Add, False
                     # Linearly check membership for the removed rect
                     else:  # A shape removed
                         # Must be that there were a single shape, and it's now removed
@@ -435,9 +461,10 @@ class EcgUi:
                         del self.lst_coords[idx_rmv]
                         del self.lst_ann_mesr[idx_rmv]
                         self._n_mesr -= 1
+                        self._idx_shape_last = None
 
                         self._update_caliper_edit_order_after_remove([idx_rmv])
-                        return CLP_CH.Remove
+                        return CLP_CH.Remove, False
                 else:  # Change to an existing shape
                     def _get_idx_changed_shape(k):
                         """ User responsible for match success
@@ -446,6 +473,11 @@ class EcgUi:
 
                     # Any one of the keys suffice, e.g. {'shapes[2].x0', 'shapes[2].x1', 'shapes[2].y0', 'shapes[2].y1'}
                     idx_ch = _get_idx_changed_shape(list(layout_changed.keys())[0])
+                    if idx_ch == self._idx_shape_last:
+                        edited_prev = True
+                    else:
+                        edited_prev = False
+                        self._idx_shape_last = idx_ch
                     coords = _shape_dict_to_coords(layout_changed, changed=True)
                     self.lst_coords[idx_ch] = coords
                     self.lst_ann_mesr[idx_ch] = _measure(*coords)
@@ -453,7 +485,7 @@ class EcgUi:
                     idx_edt = self._ord_mesr_edit.index(idx_ch)  # Find the original ordering of this edited shape
                     del self._ord_mesr_edit[idx_edt]
                     self._ord_mesr_edit.append(idx_ch)  # Promote to recently edited
-                    return CLP_CH.Edit
+                    return CLP_CH.Edit, edited_prev
 
             def update_caliper_annotations_time(self, strt, end, fig):
                 """ Expected to be called on every display time range change, there might not be a change
@@ -468,6 +500,13 @@ class EcgUi:
                     self.rec.count_to_pd_time(strt),
                     self.rec.count_to_pd_time(end)
                 )
+                if self._idx_shape_last in idxs:
+                    edited_prev = False
+                    self._idx_shape_last = None  # Caliper removed, reset
+                else:
+                    edited_prev = True
+                    if self._idx_shape_last is not None:
+                        self._idx_shape_last -= sum(i < self._idx_shape_last for i in idxs)
                 if removed:
                     idxs.sort(reverse=True)
                     self._n_mesr -= len(idxs)
@@ -476,7 +515,7 @@ class EcgUi:
                     remove_by_indices(fig['layout']['shapes'], idxs)
 
                     self._update_caliper_edit_order_after_remove(idxs)
-                return removed
+                return removed, edited_prev
 
             def clear_measurements(self):
                 self._n_mesr = 0
@@ -509,6 +548,9 @@ class EcgUi:
             self._ld_idxs_coord = []  # Associate each caliper measurement to it's MRU edit by lead index
             self.lst_ann_mesr = []
             self._ord_mesr_edit = []
+
+            self._idx_shape_last = None
+            self._idx_ld_last = None
 
         # TODO
         # def from_independent(self, ord_caliper, ld_idxs_coord, lst_coords, lst_ann_mesr):
@@ -554,10 +596,12 @@ class EcgUi:
                     self.lst_coords.append(coords)
                     self._ld_idxs_coord.append(idx_ld)
                     self.lst_ann_mesr.append(_measure(*coords))
-                    self._n_mesr += 1
 
-                    self._ord_mesr_edit.append(self._n_mesr - 1)  # Index of newly created shape is the last one
-                    return CLP_CH.Add
+                    self._idx_shape_last = self._n_mesr
+                    self._idx_ld_last = idx_ld
+                    self._ord_mesr_edit.append(self._n_mesr)
+                    self._n_mesr += 1
+                    return CLP_CH.Add, False
                 # Linearly check membership for the removed rect
                 else:  # A shape removed
                     # Must be that there were a single shape, and it's now removed
@@ -566,11 +610,13 @@ class EcgUi:
                     del self.lst_ann_mesr[idx_rmv]
                     del self._ld_idxs_coord[idx_rmv]
                     self._n_mesr -= 1
+                    self._idx_shape_last = None
+                    self._idx_ld_last = None
                     if idx_ld is not None and self.has_measurement():
                         self._ld_idxs_coord[-1] = idx_ld
 
                     self._update_measurement_edit_order_after_remove([idx_rmv])
-                    return CLP_CH.Remove
+                    return CLP_CH.Remove, False
             else:  # Change to an existing shape
                 # Any one of the keys suffice, e.g. {'shapes[2].x0', 'shapes[2].x1', 'shapes[2].y0', 'shapes[2].y1'}
                 idx_ch = self._get_idx_changed_shape(list(layout_changed.keys())[0])
@@ -579,10 +625,16 @@ class EcgUi:
                 self.lst_ann_mesr[idx_ch] = _measure(*coords)
                 self._ld_idxs_coord[idx_ch] = idx_ld
 
+                if idx_ch == self._idx_shape_last and idx_ld == self._idx_ld_last:
+                    edited_prev = True
+                else:
+                    edited_prev = False
+                    self._idx_shape_last = idx_ch
+                    self._idx_ld_last = idx_ld
                 idx_edt = self._ord_mesr_edit.index(idx_ch)  # Find the original ordering of this edited shape
                 del self._ord_mesr_edit[idx_edt]
                 self._ord_mesr_edit.append(idx_ch)  # Promote to recently edited
-                return CLP_CH.Edit
+                return CLP_CH.Edit, edited_prev
 
         @staticmethod
         def _get_idx_changed_shape(k):
@@ -598,11 +650,17 @@ class EcgUi:
             # :return Updated list of text annotations within display time range if any measurement removed,
             False otherwise
             """
-            removed, idxs = _get_caliper_indices_out_of_range(
+            removed, idxs = _get_caliper_indices_out_of_range(  # Indices removed
                 self.lst_coords,
                 self.rec.count_to_pd_time(strt),
                 self.rec.count_to_pd_time(end)
             )
+            preserve_prev = False
+            if self._idx_shape_last in idxs:  # The index of last edit is removed due to time shift
+                self._idx_shape_last = None  # Caliper removed, reset
+            elif self._idx_shape_last is not None:
+                preserve_prev = True
+                self._idx_shape_last -= sum(i < self._idx_shape_last for i in idxs)
             if removed:
                 idxs.sort(reverse=True)
                 self._n_mesr -= len(idxs)
@@ -612,9 +670,9 @@ class EcgUi:
                     remove_by_indices(f['layout']['shapes'], idxs)
 
                 self._update_measurement_edit_order_after_remove(idxs)
-            if self.has_measurement():
+            if self.has_measurement() and idx_ld is not None:
                 self._ld_idxs_coord[-1] = idx_ld
-            return removed
+            return removed, preserve_prev
 
         def clear_measurements(self):
             self._n_mesr = 0
@@ -635,6 +693,7 @@ class EcgUi:
             (x0, x1, y0, y1) as string representation per return of 'shape_dict_to_coords'
             if a measurement exists, None otherwise """
             if self.has_measurement():
+                # ic(self._ld_idxs_coord)
                 return self._ld_idxs_coord[-1], self.lst_coords[self._ord_mesr_edit[-1]]
 
         def has_measurement(self):

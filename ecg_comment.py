@@ -3,6 +3,8 @@ import json
 
 from bisect import bisect_left
 
+from icecream import ic
+
 from data_link import *
 
 
@@ -50,20 +52,33 @@ class EcgComment:
         Can potentially modify an existing comment, or add a new one
 
         :param comment: 6-element list of <x.center>, <y.center>, <x.0>, <y.0>, <lead_idx>, <msg>
+        :return Index of the caliper in internal storage
         """
         idx = bisect_left(self.lst, comment)
-        # ic(idx, self.lst, comment)
         if idx < self.n_cmts and self.lst[idx][:-1] == comment[:-1]:  # Only difference is the message
             self.lst[idx][-1] = comment[-1]
         # Based on sorting 6-tuple, and hence sorting of the actual message, the true caliper might be before
         elif 0 <= idx-1 < self.n_cmts and self.lst[idx-1][:-1] == comment[:-1]:
             # The case where there's a previous comment made on this caliper,
             # and the new message is lexicographically larger
+            idx -= 1
             self.lst[idx-1][-1] = comment[-1]
         else:
             self.lst.insert(idx, comment)
             self.n_cmts += 1
         self.flush()
+        return idx
+
+    def override_comment(self, comment, idx):
+        """ Remove the comment at index, insert the new comment, and return the index of the new comment
+
+        Maintains sorted order """
+        # ic(self.lst)
+        del self.lst[idx]
+        idx = bisect_left(self.lst, comment)
+        self.lst.insert(idx, comment)  # Number of comments stay the same
+        # ic(self.lst)
+        return idx
 
     def flush(self):
         """ Writes all changes made to comments into original JSON file """
@@ -94,3 +109,6 @@ class EcgComment:
                 else:
                     lst.append([row[0], row[-2], row[-1]])
         return idxs, lst
+
+    def get_comment_mid_count(self, idx):
+        return self.lst[0]
