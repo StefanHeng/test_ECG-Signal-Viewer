@@ -283,6 +283,10 @@ class EcgUi:
         if not self.caliper_is_synchronized():  # Independent calipers
             self.clp.update_caliper_lead_removed(idx_ld_rmv)
 
+    def caliper_on_display(self, idx_ld, xc, yc, x0, y0):
+        """ Checks if a potential comment has its corresponding caliper already loaded """
+        return self.clp.caliper_on_display(idx_ld, xc, yc, x0, y0)
+
     def load_caliper_by_cmt(self, figs_gra, xc, yc, x0, y0, idx_idx_ld):
         shape = dict(
             type='rect',
@@ -327,7 +331,6 @@ class EcgUi:
             if self._idx_ld_last != idx_ld:
                 edited_prev = False
                 self._idx_ld_last = idx_ld
-            # ic('in shape', edited_prev)
             if update == CLP_CH.Add:
                 self._ord_caliper.append(idx_ld)
             elif update == CLP_CH.Edit and (idx_ld != self._ord_caliper[-1]):  # There must be at least 1 caliper left
@@ -392,6 +395,9 @@ class EcgUi:
                 return True, edited_prev
             else:
                 return False, edited_prev
+
+        def caliper_on_display(self, idx_ld, xc, yc, x0, y0):
+            return self.calipers[idx_ld].caliper_on_display(xc, yc, x0, y0)
 
         class Caliper:
             """ Handles caliper internal updates for a single lead,
@@ -537,6 +543,12 @@ class EcgUi:
             def has_measurement(self):
                 return self._n_mesr > 0
 
+            def caliper_on_display(self, xc, yc, x0, y0):
+                for coords in self.lst_coords:
+                    if coords == (xc, yc, x0, y0):
+                        return True
+                return False
+
     class CaliperS:
         """ Synchronized caliper across all leads """
 
@@ -552,7 +564,7 @@ class EcgUi:
             self._idx_shape_last = None
             self._idx_ld_last = None
 
-        # TODO
+        # TODO: See `ecg_app`
         # def from_independent(self, ord_caliper, ld_idxs_coord, lst_coords, lst_ann_mesr):
         #     ic(ord_caliper, ld_idxs_coord, lst_coords, lst_ann_mesr)
         #     self._n_mesr = len(self.lst_coords)
@@ -693,8 +705,13 @@ class EcgUi:
             (x0, x1, y0, y1) as string representation per return of 'shape_dict_to_coords'
             if a measurement exists, None otherwise """
             if self.has_measurement():
-                # ic(self._ld_idxs_coord)
                 return self._ld_idxs_coord[-1], self.lst_coords[self._ord_mesr_edit[-1]]
 
         def has_measurement(self):
             return self._n_mesr > 0
+
+        def caliper_on_display(self, idx_ld, xc, yc, x0, y0):
+            for idx, coords in enumerate(self.lst_coords):
+                if idx_ld == self._ld_idxs_coord[idx] and coords == (xc, yc, x0, y0):
+                    return True
+            return False

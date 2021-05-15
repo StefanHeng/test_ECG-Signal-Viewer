@@ -393,7 +393,8 @@ class EcgApp:
              Input(ID_STOR_ADD, D),
              Input(ID_STOR_RMV, D),
              Input(ID_STOR_TG_IDX, D),  # Static tag click
-             Input(all_(ID_BDG_CMT_TM), NC)],  # Comment timestamp click
+             Input(all_(ID_BDG_CMT_TM), NC),  # Comment timestamp click
+             Input(all_(ID_BTN_CMT_RMV), NC)],
             [State(ID_DIV_PLTS, C),
              State(all_(ID_ITM_LD_ADD), DS),
              State(all_(ID_GRA), F),
@@ -449,7 +450,6 @@ class EcgApp:
         self.app.callback(
             [Output(mch(ID_CLP_CMT_ITM), IO),
              Output(mch(CNM_CMT_TXTP), CNM),
-             # Output(mch(ID_CLP_CMT_ITM), 'style'),
              Output(mch(ID_BTN_CMT_ITM_TG), CNM)],
             Input(mch(ID_BTN_CMT_ITM_TG), NC),
             prevent_initial_call=True
@@ -641,7 +641,7 @@ class EcgApp:
             n_clicks_adv_bk, n_clicks_mv_bk, n_clicks_fixy, n_clicks_mv_fw, n_clicks_adv_fw,
             n_clicks_mkg_tg, n_clicks_clpr, cnm_sync,
             data_add, data_rmv,
-            idx_ann_clicked, ns_clicks_cmt,
+            idx_ann_clicked, ns_clicks_cmt, ns_clicks_cmt_rmv,
             plots, disables_lead_add, figs_gra: List[Dict[str, Dict]], fig_tmb, ns_clicks_tag):
         """Display lead figures based on current record and template selected, and based on lead selection in modal
 
@@ -665,6 +665,7 @@ class EcgApp:
         :param data_rmv: Tuple info on the original index of removed lead index, and the lead index removed
         :param idx_ann_clicked: Index of tag clicked
         :param ns_clicks_cmt: Number of clicks for comment timestamp
+        :param ns_clicks_cmt_rmv: Number of clicks for comment removal
 
         # States
         :param plots: Div list of of lead currently on plot
@@ -758,7 +759,6 @@ class EcgApp:
         def _create_comment_range_labels():
             c = self.ui.get_mru_caliper_coords()
             if c is not None:
-                # ic(c)
                 idx_lead, (x0, x1, y0, y1) = c
                 (x0, x1, y0, y1) = (  # String representations
                     self.rec.pd_time_to_str(x0),
@@ -880,8 +880,6 @@ class EcgApp:
             # When a record is selected, ID_GRA is in changed_id for unknown reason
             idx_changed = self.ui.get_pattern_match_index(prop_id_ch)
             idx_idx_ch = self._get_fig_index_by_index(idx_changed)
-            # la = figs_gra[idx_idx_changed]['layout']['shapes']
-            # ic(la)
             l = layouts_fig[idx_idx_ch]
             if layouts_fig is not None and self.ui.K_XS in l:  # Navigation
                 # Execution won't go in if adding a new lead, cos layout doesn't contain KEY_X_S on create
@@ -902,18 +900,6 @@ class EcgApp:
             # Change in caliper/user-drawn shape
             elif layouts_fig is not None and self.ui.shape_updated(l):
                 _update_caliper(l, idx_changed, idx_idx_ch)
-                # update = self.ui.update_caliper_annotations_shape(l, idx_changed)
-                # if update != CLP_CH.Edit:
-                #     flush_comment_panel = ''  # Clear the comment existing text
-                # _update_figs_annotations()
-                # if self.ui.caliper_is_synchronized():  # Broadcast shape changes to all leads
-                #     self._shapes = figs_gra[idx_idx_changed]['layout']['shapes']
-                #     for idx, f in enumerate(figs_gra):
-                #         if idx != idx_idx_changed:
-                #             f['layout']['shapes'] = self._shapes
-                # self.ui.highlight_mru_caliper_edit(figs_gra, self.idxs_lead)
-                # cmt_rng_label = _create_comment_range_labels()
-                # disable_comment = not self.ui.has_measurement()
             else:
                 raise PreventUpdate
         elif ID_TMB == id_ch:  # Changes in thumbnail figure have to be range change
@@ -963,6 +949,8 @@ class EcgApp:
             disables_lead_add = self.no_update_add_opns
             fig_tmb = dash.no_update
             ns_clicks_tag = dash.no_update
+            cmt_btn_txt = SV  # As of now, edits to comment would be towards a new one
+            txt_cmt = ''
         # elif ID_IC_CLP_SYNC == changed_id:  # Toggled synchronization of caliper across leads
         #     # TODO: Expand/Collapse previous caliper measurements into the other mode
         #     # if self.ui.caliper_is_synchronized():  # Independent caliper => Synchronized caliper
@@ -1047,16 +1035,6 @@ class EcgApp:
             strt, end = self.disp_rng[0]
             if not (strt <= count <= end):  # Navigate to point of annotation
                 _shift_range((end - strt) // 2)
-                # mid_range = (end - strt) // 2  # Keep the same width in terms of time
-                # strt, end = self.rec.get_shifted_range(count, mid_range)
-                # self.disp_rng[0] = [strt, end]
-                # x_layout_range = [
-                #     self.rec.count_to_pd_time(strt),
-                #     self.rec.count_to_pd_time(end)
-                # ]
-                # _update_lead_figures()
-                # fig_tmb['layout']['xaxis']['range'] = x_layout_range
-                # time_label = self.ui.count_pr_to_time_label(*self.disp_rng[0])
             else:  # Annotation clicked on is within display range
                 fig_tmb = dash.no_update
                 n_update = [dash.no_update] * len(figs_gra)
@@ -1077,29 +1055,31 @@ class EcgApp:
         elif ID_BDG_CMT_TM == id_ch and not all(v == 0 for v in ns_clicks_cmt):
             idx_cmt = self.ui.get_pattern_match_index(prop_id_ch)
             cmt = self.cmts[idx_cmt]
-            # idx_idx_ch = self._get_fig_index_by_index(cmt[-1])  # The lead index
-            # if ns_clicks_cmt[idx_idx_ch] > 0:
-            # TODO: Show the caliper associated with comment if not already
             strt, end = self.disp_rng[0]
             count = cmt[0]
             if not (strt <= count <= end):  # Per EcgComment spec
                 _shift_range((end - strt) // 2)
             idx_ld = cmt[-2]
             idx_idx_ch = self._get_fig_index_by_index(idx_ld)
+            # TODO: Check that the caliper is not already loaded, before loading it
             self.ui.load_caliper_by_cmt(figs_gra, *(cmt[:-2]), idx_idx_ch)
 
             _update_caliper(figs_gra[idx_idx_ch]['layout'], idx_ld, idx_idx_ch)
             txt_cmt = cmt[-1]  # Reload the comment text
             self._start_track_comment(idx_cmt)  # Load the comment & process the caliper rendering first, then track
-            # ic('clicked time', self._track_cmt_on)
             cmt_btn_txt = OVR
 
+            plots = dash.no_update
             fig_tmb = dash.no_update
+            disables_lead_add = self.no_update_add_opns
+        elif id_ch == ID_BTN_CMT_RMV:
+            cmt_btn_txt = SV
+
             plots = dash.no_update
             disables_lead_add = self.no_update_add_opns
-
-            # else:
-            #     raise PreventUpdate
+            figs_gra = [dash.no_update] * len(figs_gra)
+            fig_tmb = dash.no_update
+            ns_clicks_tag = dash.no_update
         else:
             raise PreventUpdate
         self.idx_ann_clicked = idx_ann_clicked
@@ -1159,7 +1139,6 @@ class EcgApp:
                 idx_lead, msg
             ]
             cmt_saved = True
-            # ic(self._track_cmt_on)
             if self._track_cmt_on:
                 idx_new = self.cmts.override_comment(cmt, self._idx_cmt_t)
                 self._start_track_comment(idx_new)
@@ -1167,6 +1146,7 @@ class EcgApp:
                 self._start_track_comment(self.cmts.update_comment(cmt))
         elif id_ch == ID_BTN_CMT_RMV:
             self.cmts.remove_comment(self.ui.get_pattern_match_index(prop_id_ch))
+            self._end_track_comment()
 
         idxs_lead = self.LD_TEMPL[template] if id_ch == ID_DPD_LD_TEMPL else self.idxs_lead
         # Keys for internal comment data lookup, by order of each comment on display
@@ -1207,7 +1187,6 @@ class EcgApp:
             ]
             if cp is not None:  # Should use preview
                 comps = flatten(*[[html.P(className=CNM_CMT_TXT, children=row), html.Br()] for row in c.split('\n')])
-                # ic(comps)
                 l += [
                     html.Span(id=m_id(CNM_CMT_TXTP, idx), className=CNM_CMT_TXT, children=cp),
                     html.Button(id=m_id(ID_BTN_CMT_ITM_TG, idx), className=join(CNM_BTN, CNM_BTN_CMT_ITM_TG),

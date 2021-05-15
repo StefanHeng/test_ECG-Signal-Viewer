@@ -73,11 +73,9 @@ class EcgComment:
         """ Remove the comment at index, insert the new comment, and return the index of the new comment
 
         Maintains sorted order """
-        # ic(self.lst)
         del self.lst[idx]
         idx = bisect_left(self.lst, comment)
         self.lst.insert(idx, comment)  # Number of comments stay the same
-        # ic(self.lst)
         return idx
 
     def remove_comment(self, idx):

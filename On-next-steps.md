@@ -24,7 +24,7 @@ The following are features I have discussed with Dr. Saeed but weren’t able to
 
 ### Comment edit and removal
 
-The design is thought through but not implemented yet. 
+The design is thought through and its bare-bone implemented only. 
 
 - Edit: click on a timestamp for an item in the comment list which loads up the corresponding caliper measurement 
 - Removal: Click on a remove button for each item in the comment list 
@@ -32,6 +32,10 @@ The design is thought through but not implemented yet.
 
 
 This is important for retrospective study, in particular for annotating on regions of interest. 
+
+
+
+The logic for loading a caliper corresponding to a comment <u>only when</u> the caliper is not already present is not implemented 
 
 
 

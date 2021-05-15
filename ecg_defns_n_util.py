@@ -243,7 +243,7 @@ DS = 'disabled'
 IO = 'is_open'
 
 SV = 'SAVE'
-OVR = 'OVERRIDE'
+OVR = 'UPDATE & SAVE'
 
 DEV_TML_S = 'single -> 1: I'
 DEV_TML_RG0 = 'range(3) -> [1, 3]'
