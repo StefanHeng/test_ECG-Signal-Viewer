@@ -18,6 +18,7 @@ def test_vx_from_dict():
 
 
 def sizeof_fmt(num, suffix='B'):
+    """ Converts byte size to human readable format """
     for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
         if abs(num) < 1024.0:
             return "%3.1f%s%s" % (num, unit, suffix)

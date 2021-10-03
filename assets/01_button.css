@@ -94,12 +94,6 @@
     border-color: var(--primary-click);
 }
 
-/*.btn_comment-item-toggle {*/
-/*    height: 1.5em;*/
-/*    width: 1.5em;*/
-/*    display: inline-block;*/
-/*    border-radius: 0.5em;*/
-/*}*/
 
 .btn_comment-item-toggle {
     width: 1.5em;
@@ -125,8 +119,7 @@
     width: 1.5em;
     height: 1.5em;
     display: inline-block;
-    margin: 0.25em;
-    margin-top: -0.15em;
+    margin: -0.15em 0.25em 0.25em;
 }
 
 .btn_comment-item-remove:hover {
@@ -138,7 +131,3 @@
     color: #c9302c;
     background: transparent;
 }
-
-/*.ic_comment-item-remove {*/
-/*    padding-bottom: 0.5em;*/
-/*}*/

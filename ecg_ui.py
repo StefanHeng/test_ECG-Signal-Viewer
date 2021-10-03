@@ -351,7 +351,6 @@ class EcgUi:
                 idx_ld = idxs_lead[i]
                 if idx_ld not in idxs_ignore:
                     for idx, shape in enumerate(f['layout']['shapes']):
-                        # ic(idxs_lead)
                         # There's only 1
                         if idx_ld == self._ord_caliper[-1] and idx == self.calipers[idx_ld].mru_index():
                             shape['fillcolor'] = CLR_CLPR_RECT_ACT
