@@ -3,9 +3,7 @@ Development repository.
 
 Experiment language, libraries; development & test on new features.
 
-See [Ecg-Signal-Viewer](https://github.com/StefanHeng/Ecg-Signal-Viewer) for release. 
-
-[Contact me](https://stefanheng.github.io) for access. 
+See [Ecg-Signal-Viewer](https://github.com/StefanHeng/Ecg-Signal-Viewer) for release. Release repo [contact](https://stefanheng.github.io). 
 
 
 ## Repository structure 
